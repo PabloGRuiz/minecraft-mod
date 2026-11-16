@@ -73,6 +73,9 @@ public class RpgLevelsMod {
         event.put(ModEntities.PELOTITA.get(), com.pablo.rpglevels.entities.PelotitaEntity.createAttributes().build());
         event.put(ModEntities.VOIDBORN.get(), com.pablo.rpglevels.entities.VoidbornEntity.createAttributes().build());
         event.put(ModEntities.VOIDBORN_EXECUTOR.get(), com.pablo.rpglevels.entities.VoidbornExecutorEntity.createAttributes().build());
+        event.put(ModEntities.HORNLESS_VOIDBORN.get(), com.pablo.rpglevels.entities.HornlessVoidbornEntity.createAttributes().build());
+        event.put(ModEntities.HORNED_VOIDBORN.get(), com.pablo.rpglevels.entities.HornedVoidbornEntity.createAttributes().build());
+        event.put(ModEntities.COLOSSAL_VOIDBORN.get(), com.pablo.rpglevels.entities.ColossalVoidbornEntity.createAttributes().build());
     }
 
     private void registerSpawnPlacements(RegisterSpawnPlacementsEvent event) {
@@ -97,6 +100,21 @@ public class RpgLevelsMod {
                 net.minecraft.world.entity.monster.Monster::checkAnyLightMonsterSpawnRules,
                 RegisterSpawnPlacementsEvent.Operation.REPLACE);
         event.register(ModEntities.VOIDBORN_EXECUTOR.get(),
+                SpawnPlacementTypes.ON_GROUND,
+                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                net.minecraft.world.entity.monster.Monster::checkAnyLightMonsterSpawnRules,
+                RegisterSpawnPlacementsEvent.Operation.REPLACE);
+        event.register(ModEntities.HORNLESS_VOIDBORN.get(),
+                SpawnPlacementTypes.ON_GROUND,
+                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                net.minecraft.world.entity.monster.Monster::checkAnyLightMonsterSpawnRules,
+                RegisterSpawnPlacementsEvent.Operation.REPLACE);
+        event.register(ModEntities.HORNED_VOIDBORN.get(),
+                SpawnPlacementTypes.ON_GROUND,
+                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                net.minecraft.world.entity.monster.Monster::checkAnyLightMonsterSpawnRules,
+                RegisterSpawnPlacementsEvent.Operation.REPLACE);
+        event.register(ModEntities.COLOSSAL_VOIDBORN.get(),
                 SpawnPlacementTypes.ON_GROUND,
                 Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
                 net.minecraft.world.entity.monster.Monster::checkAnyLightMonsterSpawnRules,

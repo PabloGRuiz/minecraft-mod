@@ -46,6 +46,12 @@ public class ClientEntityEvents {
                 com.pablo.rpglevels.client.model.PelotitaModel::createBodyLayer);
         event.registerLayerDefinition(com.pablo.rpglevels.client.model.VoidbornModel.LAYER_LOCATION,
                 com.pablo.rpglevels.client.model.VoidbornModel::createBodyLayer);
+        event.registerLayerDefinition(com.pablo.rpglevels.client.model.HornlessVoidbornModel.LAYER_LOCATION,
+                com.pablo.rpglevels.client.model.HornlessVoidbornModel::createBodyLayer);
+        event.registerLayerDefinition(com.pablo.rpglevels.client.model.HornedVoidbornModel.LAYER_LOCATION,
+                com.pablo.rpglevels.client.model.HornedVoidbornModel::createBodyLayer);
+        event.registerLayerDefinition(com.pablo.rpglevels.client.model.ColossalVoidbornModel.LAYER_LOCATION,
+                com.pablo.rpglevels.client.model.ColossalVoidbornModel::createBodyLayer);
     }
 
     @SubscribeEvent
@@ -71,6 +77,14 @@ public class ClientEntityEvents {
                 com.pablo.rpglevels.client.renderer.PelotitaRenderer::new);
         event.registerEntityRenderer(ModEntities.VOIDBORN.get(), VoidbornRenderer::new);
         event.registerEntityRenderer(ModEntities.VOIDBORN_EXECUTOR.get(), VoidbornRenderer::new);
+        event.registerEntityRenderer(ModEntities.HORNLESS_VOIDBORN.get(),
+                com.pablo.rpglevels.client.renderer.HornlessVoidbornRenderer::new);
+        event.registerEntityRenderer(ModEntities.HORNED_VOIDBORN.get(),
+                com.pablo.rpglevels.client.renderer.HornedVoidbornRenderer::new);
+        event.registerEntityRenderer(ModEntities.COLOSSAL_VOIDBORN.get(),
+                com.pablo.rpglevels.client.renderer.ColossalVoidbornRenderer::new);
+        event.registerEntityRenderer(ModEntities.HOLLOW_ROCK.get(),
+                (ctx) -> new net.minecraft.client.renderer.entity.ThrownItemRenderer<>(ctx, 2.2f, false));
         event.registerEntityRenderer(ModEntities.SPIRITUAL_BEAM.get(),
                 com.pablo.rpglevels.client.renderer.SpiritualBeamRenderer::new);
         event.registerEntityRenderer(ModEntities.MAGIC_FIREBALL.get(),

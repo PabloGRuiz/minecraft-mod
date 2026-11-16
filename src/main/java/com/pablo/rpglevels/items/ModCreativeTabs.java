@@ -33,6 +33,9 @@ public class ModCreativeTabs {
                         output.accept(ModItems.PELOTITA_SPAWN_EGG.get());
                         output.accept(ModItems.VOIDBORN_SPAWN_EGG.get());
                         output.accept(ModItems.VOIDBORN_EXECUTOR_SPAWN_EGG.get());
+                        output.accept(ModItems.HORNLESS_VOIDBORN_SPAWN_EGG.get());
+                        output.accept(ModItems.HORNED_VOIDBORN_SPAWN_EGG.get());
+                        output.accept(ModItems.COLOSSAL_VOIDBORN_SPAWN_EGG.get());
                         output.accept(ModItems.ESCAPE_SCROLL.get());
                         output.accept(ModItems.ADVENTURER_CARD.get());
                         output.accept(ModItems.SPIRITUAL_SPELLBOOK.get());

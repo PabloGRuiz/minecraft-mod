@@ -22,7 +22,10 @@ public class MobRankHandler {
                 || entity instanceof com.pablo.rpglevels.entities.WindMasterNpcEntity
                 || entity instanceof com.pablo.rpglevels.entities.AdventurerNpcEntity
                 || entity instanceof com.pablo.rpglevels.entities.TownswomanNpcEntity
-                || entity instanceof com.pablo.rpglevels.entities.VoidbornEntity) {
+                || entity instanceof com.pablo.rpglevels.entities.VoidbornEntity
+                || entity instanceof com.pablo.rpglevels.entities.HornlessVoidbornEntity
+                || entity instanceof com.pablo.rpglevels.entities.HornedVoidbornEntity
+                || entity instanceof com.pablo.rpglevels.entities.ColossalVoidbornEntity) {
             return true;
         }
         return false;

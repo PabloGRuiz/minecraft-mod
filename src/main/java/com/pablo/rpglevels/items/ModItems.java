@@ -134,6 +134,30 @@ public class ModItems {
                     0xFFB300, // Dorado Hazard brillante
                     new Item.Properties()));
 
+    // Huevo generador de Hornless Voidborn
+    public static final DeferredItem<Item> HORNLESS_VOIDBORN_SPAWN_EGG = ITEMS.register("hornless_voidborn_spawn_egg",
+            () -> new DeferredSpawnEggItem(
+                    ModEntities.HORNLESS_VOIDBORN,
+                    0x1E1230, // Púrpura abisal
+                    0xE5DFD5, // Blanco hueso
+                    new Item.Properties()));
+
+    // Huevo generador de Horned Voidborn
+    public static final DeferredItem<Item> HORNED_VOIDBORN_SPAWN_EGG = ITEMS.register("horned_voidborn_spawn_egg",
+            () -> new DeferredSpawnEggItem(
+                    ModEntities.HORNED_VOIDBORN,
+                    0x291038, // Púrpura oscuro
+                    0xC92A2A, // Carmesí cuernos
+                    new Item.Properties()));
+
+    // Huevo generador de Colossal Voidborn
+    public static final DeferredItem<Item> COLOSSAL_VOIDBORN_SPAWN_EGG = ITEMS.register("colossal_voidborn_spawn_egg",
+            () -> new DeferredSpawnEggItem(
+                    ModEntities.COLOSSAL_VOIDBORN,
+                    0x11071C, // Negro abisal
+                    0x9C36B5, // Violeta espiritual
+                    new Item.Properties()));
+
     // Grimorio del Segador Espiritual (Libro de Hechizos Oficial de Iron's Spells - 3 ranuras rápidas)
     public static final DeferredItem<Item> SPIRITUAL_SPELLBOOK = ITEMS.register("spiritual_spellbook",
             () -> new io.redspace.ironsspellbooks.item.SpellBook(3, new Item.Properties().rarity(Rarity.RARE).stacksTo(1))

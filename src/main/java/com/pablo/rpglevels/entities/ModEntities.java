@@ -129,4 +129,32 @@ public class ModEntities {
                     .clientTrackingRange(16)
                     .updateInterval(1)
                     .build("spiritual_beam"));
+
+    public static final Supplier<EntityType<HornlessVoidbornEntity>> HORNLESS_VOIDBORN =
+            ENTITIES.register("hornless_voidborn", () -> EntityType.Builder.<HornlessVoidbornEntity>of(HornlessVoidbornEntity::new, MobCategory.MONSTER)
+                    .sized(0.85f, 3.0f)
+                    .eyeHeight(2.65f)
+                    .clientTrackingRange(14)
+                    .build("hornless_voidborn"));
+
+    public static final Supplier<EntityType<HornedVoidbornEntity>> HORNED_VOIDBORN =
+            ENTITIES.register("horned_voidborn", () -> EntityType.Builder.<HornedVoidbornEntity>of(HornedVoidbornEntity::new, MobCategory.MONSTER)
+                    .sized(0.90f, 3.1f)
+                    .eyeHeight(2.75f)
+                    .clientTrackingRange(14)
+                    .build("horned_voidborn"));
+
+    public static final Supplier<EntityType<ColossalVoidbornEntity>> COLOSSAL_VOIDBORN =
+            ENTITIES.register("colossal_voidborn", () -> EntityType.Builder.<ColossalVoidbornEntity>of(ColossalVoidbornEntity::new, MobCategory.MONSTER)
+                    .sized(1.15f, 2.8f)
+                    .eyeHeight(2.45f)
+                    .clientTrackingRange(16)
+                    .build("colossal_voidborn"));
+
+    public static final Supplier<EntityType<HollowRockProjectileEntity>> HOLLOW_ROCK =
+            ENTITIES.register("hollow_rock", () -> EntityType.Builder.<HollowRockProjectileEntity>of(HollowRockProjectileEntity::new, MobCategory.MISC)
+                    .sized(0.75f, 0.75f)
+                    .clientTrackingRange(10)
+                    .updateInterval(1)
+                    .build("hollow_rock"));
 }
