@@ -1,0 +1,28 @@
+﻿{
+    "criteria":  {
+                     "impossible":  {
+                                        "trigger":  "minecraft:impossible"
+                                    }
+                 },
+    "parent":  "rpglevels:obtain_spiritual_sword",
+    "display":  {
+                    "description":  {
+                                        "text":  "Nombra tu Espada Espiritual en un yunque y canaliza 200 de Maná para forjar un vínculo eterno con tu alma."
+                                    },
+                    "show_toast":  true,
+                    "icon":  {
+                                 "id":  "minecraft:anvil"
+                             },
+                    "hidden":  false,
+                    "announce_to_chat":  true,
+                    "title":  {
+                                  "text":  "Vínculo Maestro-Arma"
+                              },
+                    "frame":  "goal"
+                },
+    "requirements":  [
+                         [
+                             "impossible"
+                         ]
+                     ]
+}

@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "rpglevels:adventurer_npc",
+    "rpglevels:bandit",
+    "rpglevels:townswoman_npc",
+    "rpglevels:undead_adventurer"
+  ]
+}
+

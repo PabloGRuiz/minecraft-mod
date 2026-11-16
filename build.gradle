@@ -1,0 +1,110 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'net.neoforged.moddev' version '2.0.78'
+}
+
+tasks.named('wrapper', Wrapper) {
+    distributionType = Wrapper.DistributionType.BIN
+}
+
+version = mod_version
+group = mod_group_id
+
+repositories {
+    mavenCentral()
+    maven {
+        name = "Illusive Soulworks"
+        url = "https://maven.theillusivec4.top/"
+    }
+    maven {
+        name = "Modrinth"
+        url = "https://api.modrinth.com/maven"
+    }
+}
+
+dependencies {
+    implementation "top.theillusivec4.curios:curios-neoforge:${project.curios_version}"
+
+    // Better Combat & dependencies for testing in runClient
+    runtimeOnly "maven.modrinth:better-combat:VhIOvcXP"
+    runtimeOnly "maven.modrinth:playeranimator:HJZB6bmA"
+    runtimeOnly "maven.modrinth:cloth-config:izKINKFg"
+
+    // Jade (Waila) API & runtime
+    compileOnly "maven.modrinth:jade:eYz2YBGT"
+    runtimeOnly "maven.modrinth:jade:eYz2YBGT"
+
+    // Patchouli Guidebook API & runtime
+    compileOnly "maven.modrinth:patchouli:BIogJv2D"
+    runtimeOnly "maven.modrinth:patchouli:BIogJv2D"
+
+    // AppleSkin for HUD testing
+    runtimeOnly "maven.modrinth:appleskin:uAKA6Laj"
+
+    // RPG Modpack Ecosystem - Iron's Spells 'n Spellbooks First-Class Integration
+    implementation "maven.modrinth:irons-spells-n-spellbooks:slKLosTb"
+    implementation "maven.modrinth:irons-lib:sQyzhxuH"
+    implementation "maven.modrinth:geckolib:Grwn5rUB"
+
+    // L'Ender's Cataclysm + Lionfish API
+    runtimeOnly "maven.modrinth:lionfish-api:fTRMVgyZ"
+    runtimeOnly "maven.modrinth:l_enders-cataclysm:mYBUDZWl"
+
+    // Apothic Attributes + Placebo (Apotheosis RPG Attributes)
+    runtimeOnly "maven.modrinth:placebo:1Ypo4tf4"
+    runtimeOnly "maven.modrinth:apothic-attributes:Xtaunf84"
+
+    // Optimization & Shaders (Sodium + Iris + FerriteCore)
+    runtimeOnly "maven.modrinth:sodium:Pb3OXVqC"
+    runtimeOnly "maven.modrinth:iris:t3ruzodq"
+    runtimeOnly "maven.modrinth:ferrite-core:x7kQWVju"
+}
+
+base {
+    archivesName = mod_id
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+}
+
+neoForge {
+    version = project.neo_version
+
+    runs {
+        client {
+            client()
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            jvmArguments.addAll '-Xmx6G', '-Xms3G'
+        }
+
+        server {
+            server()
+            programArgument '--nogui'
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        data {
+            data()
+            programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+        }
+
+        configureEach {
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+            logLevel = org.slf4j.event.Level.DEBUG
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}

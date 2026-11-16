@@ -1,0 +1,45 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="MIT"
+issueTrackerURL="https://change.me.to.your.issue.tracker.org"
+
+[[mods]]
+modId="rpglevels"
+version="1.0.0"
+displayName="RPG Levels"
+updateJSONURL="https://change.me.example.invalid/updates.json"
+displayURL="https://change.me.to.your.home.page.com"
+logoFile="logo.png"
+credits="Creado por Pablo"
+authors="Pablo"
+description='''
+Un mod RPG ligero y no intrusivo que da un proposito real a los niveles de experiencia de Minecraft vanilla.
+'''
+
+[[dependencies.rpglevels]]
+modId="neoforge"
+type="required"
+versionRange="[21.1.0,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.rpglevels]]
+modId="minecraft"
+type="required"
+versionRange="[1.21.1,1.22)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.rpglevels]]
+modId="curios"
+type="required"
+versionRange="[9.0.0,)"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.rpglevels]]
+modId="irons_spellbooks"
+type="required"
+versionRange="[1.21.1-3.0.0,)"
+ordering="AFTER"
+side="BOTH"

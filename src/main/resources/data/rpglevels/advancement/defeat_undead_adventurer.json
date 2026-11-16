@@ -1,0 +1,28 @@
+﻿{
+    "criteria":  {
+                     "impossible":  {
+                                        "trigger":  "minecraft:impossible"
+                                    }
+                 },
+    "parent":  "rpglevels:defeat_wind_master",
+    "display":  {
+                    "description":  {
+                                        "text":  "Encuentra y derrota al Aventurero No Muerto en las criptas para liberar su alma atormentada."
+                                    },
+                    "show_toast":  true,
+                    "icon":  {
+                                 "id":  "minecraft:skeleton_skull"
+                             },
+                    "hidden":  false,
+                    "announce_to_chat":  true,
+                    "title":  {
+                                  "text":  "El Descanso del Caído"
+                              },
+                    "frame":  "goal"
+                },
+    "requirements":  [
+                         [
+                             "impossible"
+                         ]
+                     ]
+}

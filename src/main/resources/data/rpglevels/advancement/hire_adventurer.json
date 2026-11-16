@@ -1,0 +1,28 @@
+﻿{
+    "criteria":  {
+                     "impossible":  {
+                                        "trigger":  "minecraft:impossible"
+                                    }
+                 },
+    "parent":  "rpglevels:find_guild",
+    "display":  {
+                    "description":  {
+                                        "text":  "Contrata a tu primer aventurero escolta para que luche y explore a tu lado."
+                                    },
+                    "show_toast":  true,
+                    "icon":  {
+                                 "id":  "minecraft:emerald"
+                             },
+                    "hidden":  false,
+                    "announce_to_chat":  true,
+                    "title":  {
+                                  "text":  "Compañero de Armas"
+                              },
+                    "frame":  "task"
+                },
+    "requirements":  [
+                         [
+                             "impossible"
+                         ]
+                     ]
+}

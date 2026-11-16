@@ -1,0 +1,28 @@
+﻿{
+    "criteria":  {
+                     "impossible":  {
+                                        "trigger":  "minecraft:impossible"
+                                    }
+                 },
+    "parent":  "rpglevels:root",
+    "display":  {
+                    "description":  {
+                                        "text":  "Habla con Gareth en una aldea y formaliza tu inscripción oficial como Aventurero de Rango F."
+                                    },
+                    "show_toast":  true,
+                    "icon":  {
+                                 "id":  "rpglevels:adventurer_card"
+                             },
+                    "hidden":  false,
+                    "announce_to_chat":  true,
+                    "title":  {
+                                  "text":  "Bienvenido al Gremio"
+                              },
+                    "frame":  "task"
+                },
+    "requirements":  [
+                         [
+                             "impossible"
+                         ]
+                     ]
+}

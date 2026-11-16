@@ -1,0 +1,12 @@
+{
+  "name": "Irregulares y Emboscadas",
+  "category": "rpglevels:threats_and_bosses",
+  "icon": "minecraft:crossbow",
+  "sortnum": 0,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "El mundo ya no es seguro: criaturas modificadas por el miasma emergen en las noches.$(br2)$(c)$(l)Monstruos Irregulares:$(0)$(br)Criaturas con atributos multiplicados, mayor velocidad y partículas distintivas. Otorgan abundante experiencia y botín exclusivo de alto valor.$(br2)$(4)$(l)Represalia de Bandidos:$(0)$(br)Si limpias campamentos de forajidos durante el día, ¡la banda enviará una temible emboscada nocturna en busca de venganza!"
+    }
+  ]
+}

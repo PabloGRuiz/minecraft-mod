@@ -1,0 +1,17 @@
+{
+  "name": "El Abismo y El Cultista",
+  "category": "rpglevels:threats_and_bosses",
+  "icon": "rpglevels:cultist_spiritual_sword",
+  "sortnum": 3,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Al alcanzar el $(d)Rango B$(0), Alice te encomendará la misión más peligrosa: cazar al $(5)Cultista$(0), un Segador corrompido que busca abrir portales para el retorno de los demonios.$(br2)Alice teletransportará a todo tu grupo al $(l)Abismo$(0), una dimensión oscura saturada de monstruos irregulares donde cada baja asegura un $(e)Pergamino de Escape$(0)."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "$(5)$(l)El Cultista (Jefe Hazard - 600 HP):$(0)$(br)$(4)• Fase 1:$(0) Arremetidas cuerpo a cuerpo brutales, esferas de sombra y parálisis a distancia.$(br)$(5)• Fase 2 (<=60% HP):$(0) Despierta su espada espiritual en la letal $(l)Shadowblade$(0).$(br)$(c)• Fase 3 (<=20% HP):$(0) Entra en modo furia total y canaliza $(l)Fast Healing$(0) acelerado.$(br2)¡Vencerlo marca la culminación de la $(6)Versión Alpha$(0)!"
+    }
+  ]
+}
+

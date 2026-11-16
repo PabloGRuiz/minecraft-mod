@@ -1,0 +1,11 @@
+{
+  "variants": {
+    "axis=x": {
+      "model": "rpglevels:block/abyss_portal_ns"
+    },
+    "axis=z": {
+      "model": "rpglevels:block/abyss_portal_ew"
+    }
+  }
+}
+

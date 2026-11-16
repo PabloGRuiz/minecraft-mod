@@ -1,0 +1,7 @@
+{
+  "name": "Guía del Aventurero",
+  "landing_text": "Bienvenido al Reino de los Aventureros.$(br2)Este tomo contiene el conocimiento sobre los atributos del alma, los rangos del gremio, el arte de las Espadas Espirituales y las amenazas legendarias que acechan en las profundidades.",
+  "version": 1,
+  "book_texture": "patchouli:textures/gui/book_brown.png",
+  "use_resource_pack": true
+}

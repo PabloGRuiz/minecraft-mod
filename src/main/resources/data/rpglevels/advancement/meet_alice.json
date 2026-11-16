@@ -1,0 +1,28 @@
+﻿{
+    "criteria":  {
+                     "impossible":  {
+                                        "trigger":  "minecraft:impossible"
+                                    }
+                 },
+    "parent":  "rpglevels:root",
+    "display":  {
+                    "description":  {
+                                        "text":  "Encuéntrate con Alice en una aldea y escucha el legado de los antiguos Segadores Espirituales."
+                                    },
+                    "show_toast":  true,
+                    "icon":  {
+                                 "id":  "minecraft:amethyst_shard"
+                             },
+                    "hidden":  false,
+                    "announce_to_chat":  true,
+                    "title":  {
+                                  "text":  "La Ingeniera de Segadores"
+                              },
+                    "frame":  "task"
+                },
+    "requirements":  [
+                         [
+                             "impossible"
+                         ]
+                     ]
+}

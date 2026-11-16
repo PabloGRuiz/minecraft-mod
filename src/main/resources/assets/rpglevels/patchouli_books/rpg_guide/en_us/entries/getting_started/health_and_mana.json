@@ -1,0 +1,17 @@
+{
+  "name": "Salud y Maná en HUD",
+  "category": "rpglevels:getting_started",
+  "icon": "minecraft:potion",
+  "sortnum": 2,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Tu interfaz de combate ha sido optimizada para mostrar con claridad tus signos vitales sin saturar la pantalla.$(br2)$(c)$(l)Salud Apilada por Colores:$(0)$(br)En lugar de ocupar filas infinitas, tu vida se concentra en $(l)una sola hilera de 10 corazones$(0). Cada capa representa 20 HP y cambia de color según el poder acumulado."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "$(4)1x Rojo$(0) $(8)➔$(0) $(6)2x Naranja$(0) $(8)➔$(0) $(e)3x Amarillo$(0) $(8)➔$(0) $(a)4x Verde$(0) $(8)➔$(0) $(b)5x Cian$(0) $(8)➔$(0) $(1)6x Azul$(0) $(8)➔$(0) $(5)7x Púrpura$(0) $(8)➔$(0) $(d)8x Rosa$(0) $(8)➔$(0) $(7)9x Platino$(0) $(8)➔$(0) $(6)10x Dorado$(0).$(br2)Un indicador a la izquierda muestra cuántas capas posees.$(br)Los corazones de $(e)Absorción$(0) aparecen en una fila superior.$(br2)$(9)$(l)Barra de Maná:$(0)$(br)Gemas de lapislázuli sobre la barra de comida representan tu energía espiritual actual."
+    }
+  ]
+}
+

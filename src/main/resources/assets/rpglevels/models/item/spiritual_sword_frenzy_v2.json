@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "rpglevels:item/spiritual_sword_frenzy_v2"
+  }
+}

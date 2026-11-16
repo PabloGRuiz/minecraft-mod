@@ -1,0 +1,16 @@
+{
+  "name": "Gareth y Rangos",
+  "category": "rpglevels:guild_and_allies",
+  "icon": "rpglevels:adventurer_card",
+  "sortnum": 0,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "En las aldeas encontrarás a $(6)Gareth, el Maestro del Gremio$(0).$(br2)Habla con él para formalizar tu registro oficial. Recibirás tu $(l)Tarjeta de Aventurero$(0) personalizada y el rango inicial $(7)[Rango F]$(0).$(br2)Con la tarjeta en mano, haz clic derecho para consultar tus estadísticas y credencial oficial en cualquier momento."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "$(6)$(l)Escalafón del Gremio:$(0)$(br)$(7)• Rango F:$(0) Nivel 0 (Novato)$(br)$(a)• Rango E:$(0) Nivel 15$(br)$(e)• Rango D:$(0) Nivel 30$(br)$(b)• Rango C:$(0) Nivel 45$(br)$(d)• Rango B:$(0) Nivel 60$(br)$(5)• Rango A:$(0) Nivel 75$(br)$(6)• Rango S:$(0) Nivel 90 (Leyenda)$(br2)Al cumplir el nivel requerido, acude a Gareth para rendir tu examen y ascender."
+    }
+  ]
+}

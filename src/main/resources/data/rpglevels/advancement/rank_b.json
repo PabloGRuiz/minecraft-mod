@@ -1,0 +1,28 @@
+﻿{
+    "criteria":  {
+                     "impossible":  {
+                                        "trigger":  "minecraft:impossible"
+                                    }
+                 },
+    "parent":  "rpglevels:first_ascension",
+    "display":  {
+                    "description":  {
+                                        "text":  "Asciende hasta el Rango B, ganándote el respeto del reino y desbloqueando misiones de alto riesgo."
+                                    },
+                    "show_toast":  true,
+                    "icon":  {
+                                 "id":  "minecraft:diamond_sword"
+                             },
+                    "hidden":  false,
+                    "announce_to_chat":  true,
+                    "title":  {
+                                  "text":  "Aventurero Veterano"
+                              },
+                    "frame":  "goal"
+                },
+    "requirements":  [
+                         [
+                             "impossible"
+                         ]
+                     ]
+}
