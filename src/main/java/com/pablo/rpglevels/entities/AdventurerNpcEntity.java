@@ -163,7 +163,7 @@ public class AdventurerNpcEntity extends PathfinderMob implements RpgCombatDueli
 
     @Override
     public boolean removeWhenFarAway(double distanceToClosestPlayer) {
-        return false;
+        return !this.isHired() && !this.isPersistenceRequired() && !this.hasCustomName();
     }
 
     @Override

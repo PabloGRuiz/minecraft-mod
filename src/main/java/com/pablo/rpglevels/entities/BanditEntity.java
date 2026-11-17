@@ -408,6 +408,6 @@ public class BanditEntity extends Monster implements RangedAttackMob, RpgCombatD
 
     @Override
     public boolean removeWhenFarAway(double distanceToClosestPlayerSq) {
-        return false;
+        return !this.isPersistenceRequired() && !this.hasCustomName();
     }
 }

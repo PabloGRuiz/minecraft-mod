@@ -100,27 +100,27 @@ public class RpgLevelsMod {
         event.register(ModEntities.VOIDBORN.get(),
                 SpawnPlacementTypes.ON_GROUND,
                 Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
-                net.minecraft.world.entity.monster.Monster::checkAnyLightMonsterSpawnRules,
+                com.pablo.rpglevels.entities.VoidbornEntity::checkVoidbornSpawnRules,
                 RegisterSpawnPlacementsEvent.Operation.REPLACE);
         event.register(ModEntities.VOIDBORN_EXECUTOR.get(),
                 SpawnPlacementTypes.ON_GROUND,
                 Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
-                net.minecraft.world.entity.monster.Monster::checkAnyLightMonsterSpawnRules,
+                com.pablo.rpglevels.entities.VoidbornEntity::checkVoidbornSpawnRules,
                 RegisterSpawnPlacementsEvent.Operation.REPLACE);
         event.register(ModEntities.HORNLESS_VOIDBORN.get(),
                 SpawnPlacementTypes.ON_GROUND,
                 Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
-                net.minecraft.world.entity.monster.Monster::checkAnyLightMonsterSpawnRules,
+                com.pablo.rpglevels.entities.VoidbornEntity::checkVoidbornSpawnRules,
                 RegisterSpawnPlacementsEvent.Operation.REPLACE);
         event.register(ModEntities.HORNED_VOIDBORN.get(),
                 SpawnPlacementTypes.ON_GROUND,
                 Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
-                net.minecraft.world.entity.monster.Monster::checkAnyLightMonsterSpawnRules,
+                com.pablo.rpglevels.entities.VoidbornEntity::checkVoidbornSpawnRules,
                 RegisterSpawnPlacementsEvent.Operation.REPLACE);
         event.register(ModEntities.COLOSSAL_VOIDBORN.get(),
                 SpawnPlacementTypes.ON_GROUND,
                 Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
-                net.minecraft.world.entity.monster.Monster::checkAnyLightMonsterSpawnRules,
+                com.pablo.rpglevels.entities.VoidbornEntity::checkVoidbornSpawnRules,
                 RegisterSpawnPlacementsEvent.Operation.REPLACE);
         event.register(ModEntities.STARRY.get(),
                 SpawnPlacementTypes.ON_GROUND,

@@ -88,6 +88,22 @@ public class VoidbornEntity extends Monster {
         updateNameAndThreatTitle();
     }
 
+    public static boolean checkVoidbornSpawnRules(
+            EntityType<? extends Monster> type,
+            ServerLevelAccessor level,
+            MobSpawnType spawnType,
+            net.minecraft.core.BlockPos pos,
+            net.minecraft.util.RandomSource random
+    ) {
+        if (level.getDifficulty() == net.minecraft.world.Difficulty.PEACEFUL) {
+            return false;
+        }
+        if (pos.getY() < 0 || !level.getLevel().dimension().equals(Level.OVERWORLD)) {
+            return checkAnyLightMonsterSpawnRules(type, level, spawnType, pos, random);
+        }
+        return checkMonsterSpawnRules(type, level, spawnType, pos, random);
+    }
+
     public static AttributeSupplier.Builder createAttributes() {
         return Monster.createMonsterAttributes()
                 .add(Attributes.MAX_HEALTH, 110.0D)
