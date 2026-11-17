@@ -26,17 +26,24 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
     private boolean isGuildRegistered = false;
     private boolean hasReceivedAdventurerCard = false;
 
-    // Allocated attribute points in current life (allocated 1 by 1)
+    // Allocated attribute points from RPG Level progression (allocated 1 by 1)
     private int currentLifeFortitude = 0;
     private int currentLifeDexterity = 0;
     private int currentLifeSpirit = 0;
     private int currentLifeLuck = 0;
 
-    // Permanent attributes stored through Ascensions
-    private int permanentFortitude = 0;
-    private int permanentDexterity = 0;
-    private int permanentSpirit = 0;
-    private int permanentLuck = 0;
+    // Base/Permanent attributes (rolled 1..10 at birth, standard baseline = 5)
+    private int permanentFortitude = 5;
+    private int permanentDexterity = 5;
+    private int permanentSpirit = 5;
+    private int permanentLuck = 5;
+    private boolean birthStatsRolled = false;
+
+    // Divine Blessing (Falna) & Independent RPG Level Progression
+    private boolean divineBlessingUnlocked = false;
+    private String patronGodId = "";
+    private int rpgLevel = 1;
+    private int rpgXp = 0;
 
     // Channel Magic skill progression & temporary spirit surge
     private int channelMagicUses = 0;
@@ -431,9 +438,9 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
             }
         }
         int tier = getChannelMagicTier();
-        int spirit = (player != null) ? getTotalStatPoints(player, StatType.SPIRIT) : 0;
-        // Base 100 + 25 per tier + 5 per spirit point: at level 30 (15 spirit pts), 100 + 25 + 75 = 200 MP!
-        return 100.0f + (tier * 25.0f) + (spirit * 5.0f);
+        int spirit = (player != null) ? getTotalStatPoints(player, StatType.SPIRIT) : 5;
+        // Standard baseline at 5 Spirit (tier 1) = 100.0 MP. +/- 10 MP per Spirit point relative to 5, +25 MP per extra channel tier
+        return Math.max(20.0f, 100.0f + ((spirit - 5) * 10.0f) + ((tier - 1) * 25.0f));
     }
 
     public float getCurrentMana(Player player) {
@@ -793,24 +800,180 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         this.bonusPendingPoints = Math.max(0, points);
     }
 
+    public boolean hasRolledBirthStats() {
+        return birthStatsRolled;
+    }
+
+    public void setBirthStatsRolled(boolean rolled) {
+        this.birthStatsRolled = rolled;
+    }
+
+    /**
+     * Rolls innate base stats between 1 and 10 when the player first spawns in the world.
+     * Standard player baseline is 5 in all stats.
+     */
+    public boolean rollBirthStatsIfNeeded(net.minecraft.util.RandomSource random) {
+        if (this.birthStatsRolled) {
+            return false;
+        }
+        this.birthStatsRolled = true;
+        this.permanentFortitude = 1 + random.nextInt(10);
+        this.permanentDexterity = 1 + random.nextInt(10);
+        this.permanentSpirit = 1 + random.nextInt(10);
+        this.permanentLuck = 1 + random.nextInt(10);
+        return true;
+    }
+
+    public boolean hasDivineBlessingUnlocked() {
+        return divineBlessingUnlocked;
+    }
+
+    public void setDivineBlessingUnlocked(boolean unlocked) {
+        this.divineBlessingUnlocked = unlocked;
+    }
+
+    public String getPatronGodId() {
+        return patronGodId != null ? patronGodId : "";
+    }
+
+    public void setPatronGodId(String godId) {
+        this.patronGodId = godId != null ? godId : "";
+    }
+
+    public GreekGod getPatronGod() {
+        return GreekGod.fromId(this.patronGodId);
+    }
+
+    public int getRpgLevel() {
+        return Math.max(1, rpgLevel);
+    }
+
+    public void setRpgLevel(int level) {
+        this.rpgLevel = Math.max(1, Math.min(125, level));
+    }
+
+    public int getRpgXp() {
+        return Math.max(0, rpgXp);
+    }
+
+    public void setRpgXp(int xp) {
+        this.rpgXp = Math.max(0, xp);
+    }
+
+    public int getXpForNextLevel(int level) {
+        int lvl = Math.max(1, level);
+        return 80 + ((lvl - 1) * 35) + ((lvl - 1) * (lvl - 1) * 3);
+    }
+
+    public int getXpForNextLevel() {
+        return getXpForNextLevel(getRpgLevel());
+    }
+
+    public int getCurrentMilestoneCap() {
+        return getRank().getRequiredAscensionLevel();
+    }
+
+    public boolean isAtMilestoneCap() {
+        return !getRank().isMaxRank() && getRpgLevel() >= getCurrentMilestoneCap();
+    }
+
+    /**
+     * Grants independent RPG XP if the player has unlocked their Divine Blessing in the Astral Plane.
+     */
+    public boolean addRpgXp(net.minecraft.server.level.ServerPlayer player, int baseAmount) {
+        if (baseAmount <= 0 || !this.divineBlessingUnlocked) {
+            return false;
+        }
+
+        int cap = getCurrentMilestoneCap();
+        if (!getRank().isMaxRank() && this.rpgLevel >= cap) {
+            this.rpgXp = 0;
+            return false;
+        }
+
+        int spirit = (player != null) ? getTotalStatPoints(player, StatType.SPIRIT) : 5;
+        double spiritMult = 1.0 + (Math.max(0, spirit - 5) * 0.02);
+        int amount = Math.max(1, (int) Math.round(baseAmount * spiritMult));
+
+        this.rpgXp += amount;
+        boolean leveledUp = false;
+
+        while (this.rpgXp >= getXpForNextLevel(this.rpgLevel)) {
+            if (!getRank().isMaxRank() && this.rpgLevel >= cap) {
+                this.rpgXp = 0;
+                break;
+            }
+            this.rpgXp -= getXpForNextLevel(this.rpgLevel);
+            this.rpgLevel++;
+            leveledUp = true;
+
+            if (!getRank().isMaxRank() && this.rpgLevel >= cap) {
+                this.rpgXp = 0;
+                break;
+            }
+        }
+
+        if (player != null) {
+            if (leveledUp) {
+                int pending = getPendingPointsCount();
+                player.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                        "§6✦ §l[¡NIVEL RPG SUBIDO!] §eHas alcanzado el §fNivel " + this.rpgLevel
+                                + " §7(Puntos disponibles: §a" + pending + "§7 - Pulsa §b[K]§7)"));
+                player.playNotifySound(net.minecraft.sounds.SoundEvents.PLAYER_LEVELUP, net.minecraft.sounds.SoundSource.PLAYERS, 0.9f, 1.2f);
+
+                if (isAtMilestoneCap()) {
+                    GreekGod god = getPatronGod();
+                    String godName = (god != null) ? god.getDisplayName() : "tu Dios";
+                    player.sendSystemMessage(net.minecraft.network.chat.Component.empty());
+                    player.sendSystemMessage(net.minecraft.network.chat.Component.literal("§d⚡ « HITO DIVINO ALCANZADO (NIVEL " + cap + ") »").withStyle(net.minecraft.ChatFormatting.BOLD));
+                    player.sendSystemMessage(net.minecraft.network.chat.Component.literal("§eHas alcanzado el límite mortal de tu rango actual."));
+                    player.sendSystemMessage(net.minecraft.network.chat.Component.literal("§6Duerme en una cama §epara comparecer ante §b" + godName + " §een el §dEspacio Astral §ey recibir tu §6Ascensión de Rango§e."));
+                    player.sendSystemMessage(net.minecraft.network.chat.Component.empty());
+                    player.playNotifySound(net.minecraft.sounds.SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, net.minecraft.sounds.SoundSource.PLAYERS, 1.0f, 1.0f);
+                }
+
+                com.pablo.rpglevels.events.ModAttributesHandler.updatePlayerAttributes(player);
+            }
+            com.pablo.rpglevels.network.ModNetworking.syncToPlayer(player);
+            com.pablo.rpglevels.network.ModNetworking.sendXpGain(
+                    player,
+                    amount,
+                    this.rpgXp,
+                    getXpForNextLevel(this.rpgLevel),
+                    this.rpgLevel,
+                    isAtMilestoneCap()
+            );
+        }
+        return leveledUp;
+    }
+
     public static final int POINTS_PER_MILESTONE = 3;
 
-    public int getTotalEarnedPoints(int currentLevel) {
-        // 1 point every 3 levels up to level 105 (35 points per life from progression), plus bonus points
-        int levelPoints = Math.min(35, Math.max(0, currentLevel / 3));
-        return levelPoints + bonusPendingPoints;
+    public int getTotalEarnedPoints() {
+        if (!this.divineBlessingUnlocked) {
+            return this.bonusPendingPoints;
+        }
+        return Math.max(0, this.rpgLevel - 1) + this.bonusPendingPoints;
+    }
+
+    public int getTotalEarnedPoints(int ignoredLevel) {
+        return getTotalEarnedPoints();
     }
 
     public int getAllocatedPointsCount() {
         return currentLifeFortitude + currentLifeDexterity + currentLifeSpirit + currentLifeLuck;
     }
 
-    public int getPendingPointsCount(int currentLevel) {
-        return Math.max(0, getTotalEarnedPoints(currentLevel) - getAllocatedPointsCount());
+    public int getPendingPointsCount() {
+        return Math.max(0, getTotalEarnedPoints() - getAllocatedPointsCount());
     }
 
-    public boolean allocatePoint(StatType statType, int currentLevel) {
-        if (getPendingPointsCount(currentLevel) < 1) {
+    public int getPendingPointsCount(int ignoredLevel) {
+        return getPendingPointsCount();
+    }
+
+    public boolean allocatePoint(StatType statType) {
+        if (getPendingPointsCount() < 1) {
             return false;
         }
         switch (statType) {
@@ -822,6 +985,10 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         return true;
     }
 
+    public boolean allocatePoint(StatType statType, int ignoredLevel) {
+        return allocatePoint(statType);
+    }
+
     public int getLifePoints(StatType statType) {
         return switch (statType) {
             case FORTITUDE -> currentLifeFortitude;
@@ -831,14 +998,8 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         };
     }
 
-    public int getActiveMilestonePoints(StatType statType, int currentLevel) {
-        int maxEarned = getTotalEarnedPoints(currentLevel);
-        int allocated = getAllocatedPointsCount();
-        if (allocated <= maxEarned) {
-            return getLifePoints(statType);
-        }
-        if (maxEarned <= 0 || allocated <= 0) return 0;
-        return (int) Math.round((double) getLifePoints(statType) * maxEarned / allocated);
+    public int getActiveMilestonePoints(StatType statType, int ignoredLevel) {
+        return getLifePoints(statType);
     }
 
     public int getCuriosBonus(Player player, StatType statType) {
@@ -867,13 +1028,12 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         return bonus;
     }
 
-    public int getTotalStatPoints(StatType statType, int currentLevel) {
-        return getPermanentPoints(statType) + getActiveMilestonePoints(statType, currentLevel);
+    public int getTotalStatPoints(StatType statType, int ignoredLevel) {
+        return getPermanentPoints(statType) + getLifePoints(statType);
     }
 
     public int getTotalStatPoints(Player player, StatType statType) {
-        int level = (player != null) ? player.experienceLevel : 0;
-        int total = getTotalStatPoints(statType, level) + getCuriosBonus(player, statType);
+        int total = getPermanentPoints(statType) + getLifePoints(statType) + getCuriosBonus(player, statType);
         if (statType == StatType.SPIRIT && player != null && player.level() != null) {
             total += getActiveSpiritSurgeBonus(player.level().getGameTime());
         }
@@ -894,27 +1054,47 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         return off.getItem() instanceof com.pablo.rpglevels.items.SpiritualSwordItem && com.pablo.rpglevels.items.SpiritualSwordItem.isFirstRelease(off);
     }
 
-    public int getNextPendingMilestone(int currentLevel) {
-        return (getPendingPointsCount(currentLevel) > 0) ? Math.min(100, (currentLevel / 10) * 10) : -1;
+    public int getNextPendingMilestone(int ignoredLevel) {
+        return (getPendingPointsCount() > 0) ? Math.min(125, getCurrentMilestoneCap()) : -1;
+    }
+
+    /**
+     * Physical Attack Damage Bonus determined by the relationship between Fortitude and Dexterity.
+     * Standard baseline at Fortitude = 5 and Dexterity = 5 gives +0.0 (so player base attack damage is 1.0).
+     */
+    public double getPhysicalRelationDamageBonus(Player player) {
+        int rawFort = (player != null) ? getTotalStatPoints(player, StatType.FORTITUDE) : 5;
+        int rawDex = (player != null) ? getTotalStatPoints(player, StatType.DEXTERITY) : 5;
+        double fDelta = (rawFort * powerOutputRatio) - 5.0;
+        double dDelta = (rawDex * powerOutputRatio) - 5.0;
+        double baseRelation = (fDelta * 0.15) + (dDelta * 0.15);
+        double synergy = (fDelta > 0.0 && dDelta > 0.0) ? Math.sqrt(fDelta * dDelta) * 0.10 : 0.0;
+        return Math.max(-0.5, baseRelation + synergy);
+    }
+
+    /**
+     * Bonus damage granted to Spiritual Swords from the player's Spirit attribute.
+     */
+    public double getSpiritualSwordSpiritBonus(Player player) {
+        int rawSpirit = (player != null) ? getTotalStatPoints(player, StatType.SPIRIT) : 5;
+        double effSpirit = rawSpirit * powerOutputRatio;
+        return Math.max(0.0, effSpirit * 0.25);
     }
 
     /**
      * Calculates player's RPG Critical Strike Chance percentage.
-     * Base: 5.0%
-     * + 2.0% per point in Luck (StatType.LUCK)
-     * + 0.5% per point in Dexterity (StatType.DEXTERITY)
+     * Standard baseline at Luck = 5 and Dexterity = 5 is 5.0%.
      */
     public double getCritChance(Player player) {
-        int luck = (player != null) ? getTotalStatPoints(player, StatType.LUCK) : 0;
-        int dex = (player != null) ? getTotalStatPoints(player, StatType.DEXTERITY) : 0;
-        return 5.0 + (luck * 2.0) + (dex * 0.5);
+        int luck = (player != null) ? getTotalStatPoints(player, StatType.LUCK) : 5;
+        int dex = (player != null) ? getTotalStatPoints(player, StatType.DEXTERITY) : 5;
+        return Math.max(1.0, 5.0 + ((luck - 5) * 2.0) + (Math.max(0, dex - 5) * 0.5));
     }
 
     /**
      * Calculates RPG Critical Strike Damage Multiplier.
      * Standard Crit (<= 100% chance): 1.5x (150% damage)
      * Super-Crit (> 100% chance): 1.5x + ((critChance - 100.0) * 0.015)
-     * (e.g. at 120% Crit: 1.8x, at 150% Crit: 2.25x, at 200% Crit: 3.0x!)
      */
     public double getCritDamageMultiplier(double critChance) {
         if (critChance <= 100.0) {
@@ -924,35 +1104,18 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
     }
 
     /**
-     * Performs Ascension:
-     * 1. Consolidates all allocated points from current life into permanent stats.
-     * 2. Resets current life points for the new rank.
-     * 3. Increases Adventurer Rank.
+     * Performs Divine Ascension in the Astral Plane:
+     * 1. Preserves all innate and allocated stats (never resets player progress).
+     * 2. Grants +2 bonus attribute points as a divine gift.
+     * 3. Increases Adventurer Rank and unlocks the next level milestone cap.
      */
     public boolean performAscension() {
-        if (!isGuildRegistered) {
-            return false;
-        }
         AdventurerRank currentRank = getRank();
         if (currentRank.isMaxRank()) {
             return false;
         }
 
-        // 1. Consolidate points into permanent stats
-        permanentFortitude += currentLifeFortitude;
-        permanentDexterity += currentLifeDexterity;
-        permanentSpirit += currentLifeSpirit;
-        permanentLuck += currentLifeLuck;
-
-        // 2. Reset current life points & milestone choices
-        currentLifeFortitude = 0;
-        currentLifeDexterity = 0;
-        currentLifeSpirit = 0;
-        currentLifeLuck = 0;
-        chosenMilestones.clear();
-        lastNotifiedMilestone = 0;
-
-        // 3. Advance to next rank
+        this.bonusPendingPoints += 2;
         setRank(currentRank.getNextRank());
         return true;
     }
@@ -968,10 +1131,15 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         this.currentLifeDexterity = 0;
         this.currentLifeSpirit = 0;
         this.currentLifeLuck = 0;
-        this.permanentFortitude = 0;
-        this.permanentDexterity = 0;
-        this.permanentSpirit = 0;
-        this.permanentLuck = 0;
+        this.permanentFortitude = 5;
+        this.permanentDexterity = 5;
+        this.permanentSpirit = 5;
+        this.permanentLuck = 5;
+        this.birthStatsRolled = false;
+        this.divineBlessingUnlocked = false;
+        this.patronGodId = "";
+        this.rpgLevel = 1;
+        this.rpgXp = 0;
         this.channelMagicUses = 0;
         this.spiritSurgeUntilTick = 0;
         this.spiritSurgeBonus = 0;
@@ -999,6 +1167,11 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         this.permanentDexterity = other.permanentDexterity;
         this.permanentSpirit = other.permanentSpirit;
         this.permanentLuck = other.permanentLuck;
+        this.birthStatsRolled = other.birthStatsRolled;
+        this.divineBlessingUnlocked = other.divineBlessingUnlocked;
+        this.patronGodId = other.patronGodId;
+        this.rpgLevel = other.rpgLevel;
+        this.rpgXp = other.rpgXp;
         this.channelMagicUses = other.channelMagicUses;
         this.currentMana = other.currentMana;
         this.bonusPendingPoints = other.bonusPendingPoints;
@@ -1048,6 +1221,11 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         tag.putInt("PermDexterity", permanentDexterity);
         tag.putInt("PermSpirit", permanentSpirit);
         tag.putInt("PermLuck", permanentLuck);
+        tag.putBoolean("BirthStatsRolled", birthStatsRolled);
+        tag.putBoolean("DivineBlessingUnlocked", divineBlessingUnlocked);
+        tag.putString("PatronGodId", getPatronGodId());
+        tag.putInt("RpgLevel", rpgLevel);
+        tag.putInt("RpgXp", rpgXp);
         tag.putInt("ChannelMagicUses", channelMagicUses);
         tag.putLong("AuraVisibleUntilTick", auraVisibleUntilTick);
         tag.putLong("AuraSenseUntilTick", auraSenseUntilTick);
@@ -1249,6 +1427,21 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         }
         if (tag.contains("PermLuck", Tag.TAG_INT)) {
             this.permanentLuck = tag.getInt("PermLuck");
+        }
+        if (tag.contains("BirthStatsRolled", Tag.TAG_BYTE)) {
+            this.birthStatsRolled = tag.getBoolean("BirthStatsRolled");
+        }
+        if (tag.contains("DivineBlessingUnlocked", Tag.TAG_BYTE)) {
+            this.divineBlessingUnlocked = tag.getBoolean("DivineBlessingUnlocked");
+        }
+        if (tag.contains("PatronGodId", Tag.TAG_STRING)) {
+            this.patronGodId = tag.getString("PatronGodId");
+        }
+        if (tag.contains("RpgLevel", Tag.TAG_INT)) {
+            this.rpgLevel = Math.max(1, tag.getInt("RpgLevel"));
+        }
+        if (tag.contains("RpgXp", Tag.TAG_INT)) {
+            this.rpgXp = Math.max(0, tag.getInt("RpgXp"));
         }
 
         if (tag.contains("Milestones", Tag.TAG_LIST)) {

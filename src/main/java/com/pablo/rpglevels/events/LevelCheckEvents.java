@@ -1,15 +1,16 @@
 package com.pablo.rpglevels.events;
 
 import com.pablo.rpglevels.RpgLevelsMod;
+import com.pablo.rpglevels.data.AuraStatHelper;
+import com.pablo.rpglevels.data.GreekGod;
 import com.pablo.rpglevels.data.ModAttachments;
 import com.pablo.rpglevels.data.PlayerRpgData;
+import com.pablo.rpglevels.data.StatType;
+import com.pablo.rpglevels.init.ModBlocks;
 import com.pablo.rpglevels.network.ModNetworking;
 import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.ClickEvent;
-import net.minecraft.network.chat.Component;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.network.chat.HoverEvent;
-import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -18,11 +19,16 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
-import com.pablo.rpglevels.data.AuraStatHelper;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
 @EventBusSubscriber(modid = RpgLevelsMod.MOD_ID)
@@ -32,7 +38,31 @@ public class LevelCheckEvents {
     public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
         Player player = event.getEntity();
         if (player instanceof ServerPlayer serverPlayer) {
+            PlayerRpgData data = serverPlayer.getData(ModAttachments.PLAYER_RPG_DATA);
+            boolean rolledFirstTime = false;
+            if (data != null) {
+                rolledFirstTime = data.rollBirthStatsIfNeeded(serverPlayer.getRandom());
+            }
+
             ModAttributesHandler.updatePlayerAttributes(serverPlayer);
+
+            if (rolledFirstTime && data != null) {
+                serverPlayer.setHealth(serverPlayer.getMaxHealth());
+                data.setCurrentMana(serverPlayer, data.getMaxMana(serverPlayer));
+
+                int fort = data.getPermanentPoints(StatType.FORTITUDE);
+                int dex = data.getPermanentPoints(StatType.DEXTERITY);
+                int spi = data.getPermanentPoints(StatType.SPIRIT);
+                int luck = data.getPermanentPoints(StatType.LUCK);
+
+                serverPlayer.sendSystemMessage(Component.empty());
+                serverPlayer.sendSystemMessage(Component.literal("§6✦ « DESPERTAR EN EL MUNDO » ✦").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+                serverPlayer.sendSystemMessage(Component.literal("§7Has nacido con las siguientes estadísticas base innatas §8(Estándar = 5)§7:"));
+                serverPlayer.sendSystemMessage(Component.literal("  §c🛡 Fortitud: §f" + fort + " §8| §b🎯 Destreza: §f" + dex + " §8| §d✨ Espíritu: §f" + spi + " §8| §a🍀 Suerte: §f" + luck));
+                serverPlayer.sendSystemMessage(Component.literal("§e§oAbate a tu primer enemigo y duerme en una cama para acudir al Plano Astral y recibir la Bendición de un Dios."));
+                serverPlayer.sendSystemMessage(Component.empty());
+            }
+
             ModNetworking.syncToPlayer(serverPlayer);
             ModNetworking.syncMana(serverPlayer);
             checkAndPromptMilestones(serverPlayer);
@@ -56,9 +86,61 @@ public class LevelCheckEvents {
         Player player = event.getEntity();
         if (player instanceof ServerPlayer serverPlayer) {
             ModAttributesHandler.updatePlayerAttributes(serverPlayer);
+            if (!event.isEndConquered()) {
+                serverPlayer.setHealth(serverPlayer.getMaxHealth());
+            }
             ModNetworking.syncToPlayer(serverPlayer);
             ModNetworking.syncMana(serverPlayer);
             ModNetworking.syncQuestsToPlayer(serverPlayer);
+        }
+    }
+
+    /**
+     * Grant RPG XP when looting naturally generated chests/containers for the first time
+     */
+    @SubscribeEvent
+    public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
+        if (event.getLevel().isClientSide()) return;
+        if (!(event.getEntity() instanceof ServerPlayer player)) return;
+
+        BlockEntity be = event.getLevel().getBlockEntity(event.getPos());
+        if (be instanceof RandomizableContainerBlockEntity lootContainer && lootContainer.getLootTable() != null) {
+            PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
+            if (data != null && data.hasDivineBlessingUnlocked()) {
+                int xpGain = 55;
+                data.addRpgXp(player, xpGain);
+                player.displayClientMessage(Component.literal("§b✦ +" + xpGain + " XP RPG §7(Tesoro Saqueado)"), true);
+            }
+        }
+    }
+
+    /**
+     * Grant RPG XP when mining valuable ores
+     */
+    @SubscribeEvent
+    public static void onBlockBreak(BlockEvent.BreakEvent event) {
+        if (event.getLevel().isClientSide()) return;
+        if (!(event.getPlayer() instanceof ServerPlayer player) || player.isCreative()) return;
+
+        PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
+        if (data == null || !data.hasDivineBlessingUnlocked()) return;
+
+        BlockState state = event.getState();
+        int xpGain = 0;
+        if (state.is(ModBlocks.VOIDSTEEL_ORE.get()) || state.is(Blocks.ANCIENT_DEBRIS)) {
+            xpGain = 50;
+        } else if (state.is(Blocks.DIAMOND_ORE) || state.is(Blocks.DEEPSLATE_DIAMOND_ORE)
+                || state.is(Blocks.EMERALD_ORE) || state.is(Blocks.DEEPSLATE_EMERALD_ORE)) {
+            xpGain = 25;
+        } else if (state.is(Blocks.GOLD_ORE) || state.is(Blocks.DEEPSLATE_GOLD_ORE)
+                || state.is(Blocks.LAPIS_ORE) || state.is(Blocks.DEEPSLATE_LAPIS_ORE)
+                || state.is(Blocks.REDSTONE_ORE) || state.is(Blocks.DEEPSLATE_REDSTONE_ORE)
+                || state.is(Blocks.NETHER_QUARTZ_ORE) || state.is(Blocks.NETHER_GOLD_ORE)) {
+            xpGain = 8;
+        }
+
+        if (xpGain > 0) {
+            data.addRpgXp(player, xpGain);
         }
     }
 
@@ -69,7 +151,6 @@ public class LevelCheckEvents {
             return;
         }
 
-        // Reset double jump availability when player lands on ground, enters water/lava, or climbs
         if (serverPlayer.onGround() || serverPlayer.isInWater() || serverPlayer.isInLava() || serverPlayer.onClimbable()) {
             PlayerRpgData rpgData = serverPlayer.getData(ModAttachments.PLAYER_RPG_DATA);
             if (rpgData != null && !rpgData.canDoubleJumpAirborne()) {
@@ -77,7 +158,6 @@ public class LevelCheckEvents {
             }
         }
 
-        // Aura Opresiva (Presión Espiritual Cilíndrica): Se ejecuta cada 10 ticks (0.5s)
         if (serverPlayer.tickCount % 10 == 0) {
             PlayerRpgData rpgData = serverPlayer.getData(ModAttachments.PLAYER_RPG_DATA);
             if (rpgData != null && rpgData.isOppressiveAuraActive(serverPlayer.level().getGameTime())) {
@@ -85,18 +165,16 @@ public class LevelCheckEvents {
             }
         }
 
-        // Only run check every second (20 ticks) for efficiency
         if (serverPlayer.tickCount % 20 == 0) {
             ModAttributesHandler.updatePlayerAttributes(serverPlayer);
             checkAndPromptMilestones(serverPlayer);
             checkAndNotifyDawnAscension(serverPlayer);
 
-            // Passive Mana Regeneration (Solo si Iron's Spells NO está instalado; con Iron's Spells la regeneración la gestiona su MagicManager nativo según MANA_REGEN)
             if (!com.pablo.rpglevels.compat.irons.IronsSpellsCompat.isLoaded()) {
                 PlayerRpgData data = serverPlayer.getData(ModAttachments.PLAYER_RPG_DATA);
                 if (data != null && data.hasSkill("magic_affinity") && !PlayerRpgData.isHoldingReleasedSpiritualSword(serverPlayer)) {
-                    int spirit = data.getTotalStatPoints(serverPlayer, com.pablo.rpglevels.data.StatType.SPIRIT);
-                    float regen = 1.0f + (spirit * 0.05f);
+                    int spirit = data.getTotalStatPoints(serverPlayer, StatType.SPIRIT);
+                    float regen = 1.0f + (Math.max(0, spirit - 5) * 0.05f);
                     if (data.isSpiritSurgeActive(serverPlayer.level().getGameTime())) {
                         regen *= 2.0f;
                     }
@@ -131,7 +209,6 @@ public class LevelCheckEvents {
                 continue;
             }
 
-            // No afectar a mascotas domesticadas del propio jugador
             if (target instanceof TamableAnimal tamed && tamed.isOwnedBy(player)) {
                 continue;
             }
@@ -140,29 +217,20 @@ public class LevelCheckEvents {
             float diff = casterAura - targetAura;
 
             if (diff <= 0) {
-                // El objetivo tiene igual o mayor aura: resiste la presión
                 continue;
             }
 
-            // Efectos según diferencia de poder de aura:
-            // 1. diff < 15: Leve pesadez
             if (diff < 15.0f) {
                 target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 25, 0, false, false));
                 target.hurt(player.damageSources().indirectMagic(player, player), 0.75f);
-            }
-            // 2. 15 <= diff < 35: Presión notable
-            else if (diff < 35.0f) {
+            } else if (diff < 35.0f) {
                 target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 25, 1, false, false));
                 target.hurt(player.damageSources().indirectMagic(player, player), 1.5f);
-            }
-            // 3. 35 <= diff < 60: Presión aplastante
-            else if (diff < 60.0f) {
+            } else if (diff < 60.0f) {
                 target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 25, 2, false, false));
                 target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 25, 0, false, false));
                 target.hurt(player.damageSources().indirectMagic(player, player), 2.5f);
-            }
-            // 4. diff >= 60: Colapso gravitacional y ceguera sensorial
-            else {
+            } else {
                 target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 25, 3, false, false));
                 target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 25, 1, false, false));
                 target.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 35, 0, false, false));
@@ -170,7 +238,6 @@ public class LevelCheckEvents {
                 target.hurt(player.damageSources().indirectMagic(player, player), 4.0f);
             }
 
-            // Partículas de distorsión gravitacional sobre los afectados
             if (player.serverLevel().random.nextFloat() < 0.40f) {
                 player.serverLevel().sendParticles(
                         ParticleTypes.PORTAL,
@@ -181,21 +248,13 @@ public class LevelCheckEvents {
         }
     }
 
-    @SubscribeEvent
-    public static void onPlayerWakeUp(net.neoforged.neoforge.event.entity.player.PlayerWakeUpEvent event) {
-        if (event.getEntity() instanceof ServerPlayer serverPlayer) {
-            checkAndNotifyDawnAscension(serverPlayer);
-        }
-    }
-
     public static void checkAndNotifyDawnAscension(ServerPlayer player) {
         PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
-        if (data == null || !data.isGuildRegistered() || data.getRank().isMaxRank()) {
+        if (data == null || !data.hasDivineBlessingUnlocked() || data.getRank().isMaxRank()) {
             return;
         }
 
-        int reqLevel = data.getRank().getRequiredAscensionLevel();
-        if (player.experienceLevel < reqLevel) {
+        if (!data.isAtMilestoneCap()) {
             return;
         }
 
@@ -203,16 +262,18 @@ public class LevelCheckEvents {
         long currentDay = dayTime / 24000L;
         long timeOfDay = dayTime % 24000L;
 
-        // Morning dawn window (0 <= timeOfDay < 600)
         long lastDawnNotified = player.getPersistentData().getLong("LastAscensionDawnDay");
         if (currentDay != lastDawnNotified && timeOfDay >= 0 && timeOfDay < 600) {
             player.getPersistentData().putLong("LastAscensionDawnDay", currentDay);
 
             com.pablo.rpglevels.data.AdventurerRank nextRank = data.getRank().getNextRank();
+            GreekGod god = data.getPatronGod();
+            String godName = (god != null) ? god.getDisplayName() : "tu Dios";
+
             player.sendSystemMessage(Component.empty());
-            player.sendSystemMessage(Component.literal("§6🌅 « EL ALBA TRAE NUEVOS DESAFÍOS »").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
-            player.sendSystemMessage(Component.literal("§e¡El sol ilumina tus hazañas! Tienes el nivel suficiente (" + player.experienceLevel + "/" + reqLevel + ") para ascender a ").append(nextRank.getBadge()).append(Component.literal("§e.")));
-            player.sendSystemMessage(Component.literal("§7Preséntate ante el §6Maestro del Gremio §7en cualquier aldea para formalizar tu nuevo rango."));
+            player.sendSystemMessage(Component.literal("§d⚡ « LLAMADO ASTRAL DE ASCENSIÓN »").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD));
+            player.sendSystemMessage(Component.literal("§eHas alcanzado el Hito de Nivel " + data.getCurrentMilestoneCap() + ". §b" + godName + " §ete aguarda en sueños para otorgarte la Ascensión a ").append(nextRank.getBadge()).append(Component.literal("§e.")));
+            player.sendSystemMessage(Component.literal("§7Duerme o descansa en una cama para ingresar al §dEspacio Astral§7."));
             player.sendSystemMessage(Component.empty());
             player.playNotifySound(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 1.0f, 1.0f);
         }
@@ -220,44 +281,36 @@ public class LevelCheckEvents {
 
     public static void checkAndPromptMilestones(ServerPlayer player) {
         PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
-        if (data == null) {
+        if (data == null || !data.hasDivineBlessingUnlocked()) {
             return;
         }
 
-        int currentLevel = player.experienceLevel;
+        int currentLevel = data.getRpgLevel();
 
-        // Check for Rank Ascension if registered in Guild
-        if (data.isGuildRegistered() && !data.getRank().isMaxRank()) {
+        if (!data.getRank().isMaxRank()) {
             int reqAscensionLevel = data.getRank().getRequiredAscensionLevel();
             if (currentLevel >= reqAscensionLevel && data.getLastNotifiedMilestone() < reqAscensionLevel) {
                 data.setLastNotifiedMilestone(reqAscensionLevel);
                 sendAscensionPrompt(player, data.getRank().getNextRank(), reqAscensionLevel);
-                return;
-            }
-        }
-
-        // Check for newly reached attribute point (every 2 levels)
-        int currentPending = data.getPendingPointsCount(currentLevel);
-        if (currentPending > 0 && currentLevel >= 2) {
-            int currentMilestoneLevel = (currentLevel / 2) * 2;
-            if (currentMilestoneLevel > data.getLastNotifiedMilestone()) {
-                data.setLastNotifiedMilestone(currentMilestoneLevel);
-                sendMilestonePrompt(player, currentLevel, currentPending);
             }
         }
     }
 
     public static void sendAscensionPrompt(ServerPlayer player, com.pablo.rpglevels.data.AdventurerRank nextRank, int reqLevel) {
+        PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
+        GreekGod god = (data != null) ? data.getPatronGod() : null;
+        String godName = (god != null) ? god.getDisplayName() : "tu Dios";
+
         player.sendSystemMessage(Component.empty());
-        player.sendSystemMessage(Component.literal("§6« ASCENSIÓN DE RANGO DISPONIBLE »").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
-        player.sendSystemMessage(Component.literal("§e¡Has alcanzado el Nivel " + reqLevel + "! Tienes los méritos necesarios para ascender formalmente a ").append(nextRank.getBadge()).append(Component.literal("§e.")));
-        player.sendSystemMessage(Component.literal("§6Visita a un Maestro del Gremio en cualquier aldea para formalizar tu Ascensión de Rango."));
+        player.sendSystemMessage(Component.literal("§d« HITO DE RANGO ALCANZADO - ASCENSIÓN DISPONIBLE »").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD));
+        player.sendSystemMessage(Component.literal("§e¡Has alcanzado el Nivel RPG " + reqLevel + "! §b" + godName + " §eha reconocido tus hazañas para ascender a ").append(nextRank.getBadge()).append(Component.literal("§e.")));
+        player.sendSystemMessage(Component.literal("§6Duerme en cualquier cama para viajar al Espacio Astral y recibir tu Ascensión Divina."));
         player.sendSystemMessage(Component.empty());
         player.playNotifySound(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 1.0f, 1.0f);
     }
 
     public static void sendMilestonePrompt(ServerPlayer player, int level, int pendingPoints) {
-        player.sendSystemMessage(Component.literal("§6⚔ ¡Puntos de Atributos Disponibles! §e(Nivel " + level + ") §7- Tienes §a" + pendingPoints + " §7punto(s) pendiente(s). Pulsa §b[K] §7para asignarlos."));
+        player.sendSystemMessage(Component.literal("§6⚔ ¡Puntos de Atributos Disponibles! §e(Nivel RPG " + level + ") §7- Tienes §a" + pendingPoints + " §7punto(s) pendiente(s). Pulsa §b[K] §7para asignarlos."));
         player.playNotifySound(SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 0.75f, 1.2f);
     }
 }

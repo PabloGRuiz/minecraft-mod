@@ -46,7 +46,7 @@ public class RpgStatsScreen extends Screen {
 
         Player player = Minecraft.getInstance().player;
         PlayerRpgData data = (player != null) ? player.getData(ModAttachments.PLAYER_RPG_DATA) : null;
-        int level = (player != null) ? player.experienceLevel : 0;
+        int level = (data != null) ? data.getRpgLevel() : 1;
 
         // 1. Button to switch back to normal Inventory
         this.addRenderableWidget(Button.builder(Component.translatable("rpglevels.gui.back_inventory"), button -> {
@@ -68,18 +68,31 @@ public class RpgStatsScreen extends Screen {
             }
         }).bounds(leftPos + GUI_WIDTH - 158, topPos + GUI_HEIGHT - 23, 72, 17).build());
 
-        // 2. Ascension button indicator if requirements met
-        if (data != null && data.isGuildRegistered() && !data.getRank().isMaxRank() && level >= data.getRank().getRequiredAscensionLevel()) {
-            this.addRenderableWidget(Button.builder(Component.literal("§d⚡ Ascender"), button -> {
-                if (this.minecraft != null && this.minecraft.player != null) {
-                    this.minecraft.player.displayClientMessage(
-                            Component.literal("§6[Gremio de Aventureros] §eDebes presentarte en persona ante un Maestro del Gremio en cualquier aldea para formalizar tu Ascensión de Rango."),
-                            false
-                    );
-                }
-            }).bounds(leftPos + 12, topPos + GUI_HEIGHT - 23, 80, 17)
-            .tooltip(Tooltip.create(Component.literal("§d[Ascensión de Rango Disponible]\n§eRequisitos de Nivel cumplidos.\n§6Habla en persona con el Maestro del Gremio en una aldea para ascender formalmente.")))
-            .build());
+        // 2. Ascension / Divine Blessing status button
+        if (data != null) {
+            if (!data.hasDivineBlessingUnlocked()) {
+                this.addRenderableWidget(Button.builder(Component.literal("§5✦ Sin Bendición"), button -> {
+                    if (this.minecraft != null && this.minecraft.player != null) {
+                        this.minecraft.player.displayClientMessage(
+                                Component.literal("§d[Plano Astral] §eDerrota a tu primer enemigo y ve a dormir a una cama para que un Dios Olímpico te otorgue su Bendición y desbloquee tu subida de nivel."),
+                                false
+                        );
+                    }
+                }).bounds(leftPos + 12, topPos + GUI_HEIGHT - 23, 95, 17)
+                .tooltip(Tooltip.create(Component.literal("§5[Progresión Bloqueada]\n§7Hasta tener tu primer encuentro con un Dios en el Plano Astral, solo cuentas con tus estadísticas de nacimiento.\n§eAbate a un enemigo y duerme en una cama.")))
+                .build());
+            } else if (data.isAtMilestoneCap()) {
+                this.addRenderableWidget(Button.builder(Component.literal("§d⚡ Ascender (Dormir)"), button -> {
+                    if (this.minecraft != null && this.minecraft.player != null) {
+                        this.minecraft.player.displayClientMessage(
+                                Component.literal("§d[Espacio Astral] §eHas alcanzado el Hito de Nivel " + data.getCurrentMilestoneCap() + ". Duerme en una cama para que tu Dios te otorgue la Ascensión."),
+                                false
+                        );
+                    }
+                }).bounds(leftPos + 12, topPos + GUI_HEIGHT - 23, 110, 17)
+                .tooltip(Tooltip.create(Component.literal("§d[Hito de Rango Alcanzado]\n§eHas llegado al Nivel " + data.getCurrentMilestoneCap() + ".\n§6Duerme en una cama para acudir al Espacio Astral y recibir tu Ascensión de Rango.")))
+                .build());
+            }
         }
 
         // 3. Interactive Upgrade Buttons for Pending Attribute Points (1 by 1)
@@ -179,11 +192,18 @@ public class RpgStatsScreen extends Screen {
         // 1. Dark Fantasy Background Frame
         renderBackgroundFrame(guiGraphics);
 
-        // 2. Title & Header with Rank/Threat Badge
-        int currentLevel = player.experienceLevel;
+        // 2. Title & Header with Rank/Threat Badge & Patron God
+        int currentLevel = (data != null) ? data.getRpgLevel() : 1;
         guiGraphics.drawString(this.font, Component.translatable("rpglevels.gui.header_title"), leftPos + 12, topPos + 8, 0xFFFFAA00, true);
-        
-        Component playerInfo = rankOrThreatBadge.copy().append(Component.literal(" §e" + player.getName().getString() + " §7(Lvl §f" + currentLevel + "§7)"));
+
+        com.pablo.rpglevels.data.GreekGod patronGod = (data != null && data.hasDivineBlessingUnlocked()) ? data.getPatronGod() : null;
+        Component godSuffix = (patronGod != null)
+                ? Component.literal(" §8| ").append(patronGod.getBadge())
+                : Component.literal(" §8| §7Sin Bendición");
+
+        Component playerInfo = rankOrThreatBadge.copy()
+                .append(Component.literal(" §e" + player.getName().getString() + " §7(Nv.RPG §f" + currentLevel + "§7)"))
+                .append(godSuffix);
         int playerInfoW = this.font.width(playerInfo);
         guiGraphics.drawString(this.font, playerInfo, leftPos + GUI_WIDTH - 12 - playerInfoW, topPos + 8, 0xFFFFFFFF, false);
 
@@ -196,8 +216,8 @@ public class RpgStatsScreen extends Screen {
         guiGraphics.renderOutline(pX1, pY1, pX2 - pX1, pY2 - pY1, 0xFF4A4D60);
         InventoryScreen.renderEntityInInventoryFollowsMouse(guiGraphics, pX1, pY1, pX2, pY2, 42, 0.0625f, mouseX, mouseY, player);
 
-        // 4. Milestone Progress Bar below player
-        renderMilestoneBar(guiGraphics, currentLevel, pX1, pY2 + 3, pX2 - pX1);
+        // 4. Milestone & RPG XP Progress Bar below player
+        renderMilestoneBar(guiGraphics, data, pX1, pY2 + 3, pX2 - pX1);
 
         // 4b. Moral Reputation & Infamy Bar below Milestone Bar
         List<Component> repTooltip = renderReputationBar(guiGraphics, data, pX1, pY2 + 18, pX2 - pX1, mouseX, mouseY);
@@ -230,20 +250,29 @@ public class RpgStatsScreen extends Screen {
         guiGraphics.hLine(leftPos + 8, leftPos + GUI_WIDTH - 8, topPos + 208, 0xFF5A5F7A);
     }
 
-    private void renderMilestoneBar(GuiGraphics guiGraphics, int currentLevel, int x, int y, int width) {
-        if (currentLevel >= 100) {
-            guiGraphics.drawString(this.font, Component.translatable("rpglevels.gui.ascension_ready"), x, y, 0xFFFFAAFF, false);
-            int barY = y + 10;
+    private void renderMilestoneBar(GuiGraphics guiGraphics, PlayerRpgData data, int x, int y, int width) {
+        if (data == null || !data.hasDivineBlessingUnlocked()) {
+            guiGraphics.drawString(this.font, Component.literal("§5🔒 Sueña tras cazar"), x, y, 0xFFAA88FF, false);
+            int barY = y + 8;
+            guiGraphics.fill(x, barY, x + width, barY + 3, 0xFF222530);
+            guiGraphics.renderOutline(x, barY, width, 3, 0xFF555555);
+            return;
+        }
+
+        if (data.isAtMilestoneCap()) {
+            guiGraphics.drawString(this.font, Component.literal("§d⚡ ¡Duerme! (Hito)"), x, y, 0xFFFFAAFF, false);
+            int barY = y + 8;
             guiGraphics.fillGradient(x, barY, x + width, barY + 4, 0xFFFF55FF, 0xFF55FFFF);
             guiGraphics.renderOutline(x, barY, width, 4, 0xFFFFDD33);
             return;
         }
 
-        int nextMilestone = ((currentLevel / 10) + 1) * 10;
-        int currentProgressInTier = currentLevel % 10;
-        float progress = currentProgressInTier / 10.0f;
+        int curXp = data.getRpgXp();
+        int reqXp = Math.max(1, data.getXpForNextLevel());
+        float progress = Math.min(1.0f, (float) curXp / reqXp);
+        int cap = data.getCurrentMilestoneCap();
 
-        guiGraphics.drawString(this.font, Component.translatable("rpglevels.gui.milestone_label", nextMilestone), x, y, 0xFFCCCCCC, false);
+        guiGraphics.drawString(this.font, Component.literal("§7Hito Nv." + cap + " §8(" + curXp + "/" + reqXp + ")"), x, y, 0xFFCCCCCC, false);
 
         int barY = y + 8;
         int barHeight = 3;
@@ -360,6 +389,10 @@ public class RpgStatsScreen extends Screen {
         int cardH = 24;
         List<Component> hoveredTooltip = null;
 
+        double relDmgBonus = (data != null) ? data.getPhysicalRelationDamageBonus(player) : 0.0;
+        double spiritSwordBonus = (data != null) ? data.getSpiritualSwordSpiritBonus(player) : 0.0;
+        double hpDelta = (fortTotal >= 5) ? ((fortTotal - 5) * 2.0) : ((fortTotal - 5) * 1.5);
+
         // 1. FORTITUDE CARD
         int fortY = startY + 11;
         boolean fortHover = mouseX >= startX && mouseX <= startX + cardW && mouseY >= fortY && mouseY <= fortY + cardH;
@@ -368,22 +401,21 @@ public class RpgStatsScreen extends Screen {
 
         String fortName = Component.translatable("rpglevels.stat.fortitude.name").getString();
         guiGraphics.drawString(this.font, Component.literal("🛡️ §c§l" + fortName + ": §f" + fortTotal + " pts"), startX + 5, fortY + 3, 0xFFFFFFFF, true);
-        String fortBadge = "§8★" + fortPerm + " +Lvl" + fortActive + (fortCurios > 0 ? " +" + fortCurios : "");
+        String fortBadge = "§8★" + fortPerm + " +Nv" + fortActive + (fortCurios > 0 ? " +" + fortCurios : "");
         guiGraphics.drawString(this.font, Component.literal(fortBadge), startX + cardW - 5 - this.font.width(fortBadge), fortY + 3, 0xFF888888, false);
-        String fortSub = "§7+" + String.format("%.0f", fortTotal * 1.5) + " HP §8| §7Armad: §b+" + String.format("%.1f", fortTotal * 0.35) + " §8| §7Desvío: §e" + String.format("%.1f", deflectChance) + "%";
+        String fortSub = "§7Vida: §c" + (int)liveHealth + " HP §8| §7Armad: §b+" + String.format("%.1f", Math.max(0.0, (fortTotal - 5) * 0.35)) + " §8| §7Desvío: §e" + String.format("%.1f", deflectChance) + "%";
         guiGraphics.drawString(this.font, Component.literal(fortSub), startX + 5, fortY + 13, 0xFFAAAAAA, false);
 
         if (fortHover) {
             hoveredTooltip = new ArrayList<>();
-            hoveredTooltip.add(Component.literal("🛡️ §c§lFortaleza §7(" + fortTotal + " pts)").withStyle(net.minecraft.ChatFormatting.BOLD));
-            hoveredTooltip.add(Component.literal("§8Puntos: ★" + fortPerm + " base | +Lvl" + fortActive + " por nivel" + (fortCurios > 0 ? " | +" + fortCurios + " accesorios" : "")));
+            hoveredTooltip.add(Component.literal("🛡️ §c§lFortaleza §7(" + fortTotal + " pts | Estándar = 5)").withStyle(net.minecraft.ChatFormatting.BOLD));
+            hoveredTooltip.add(Component.literal("§8Puntos: ★" + fortPerm + " nacimiento | +Nv" + fortActive + " por nivel" + (fortCurios > 0 ? " | +" + fortCurios + " accesorios" : "")));
             hoveredTooltip.add(Component.literal("§8──────────────────────────────────"));
-            hoveredTooltip.add(Component.literal("§f• Vida Máxima: §c+" + String.format("%.1f", fortTotal * 1.5) + " HP §8(§c" + (int)liveHealth + " HP §7/ §e" + totalHearts + "♥§8)"));
-            hoveredTooltip.add(Component.literal("§f• Armadura Base: §b+" + String.format("%.1f", fortTotal * 0.35) + " §8(Total: §b" + String.format("%.1f", liveArmor) + "§8)"));
-            hoveredTooltip.add(Component.literal("§f• Dureza de Armadura: §9+" + String.format("%.1f", fortTotal * 0.15)));
-            hoveredTooltip.add(Component.literal("§f• Resistencia al Empuje: §6+" + String.format("%.1f", fortTotal * 1.5) + "%"));
-            hoveredTooltip.add(Component.literal("§f• Daño Físico Base: §c+" + String.format("%.1f", fortTotal * 0.25)));
-            hoveredTooltip.add(Component.literal("§f• Probabilidad de Desvío: §e" + String.format("%.1f", deflectChance) + "% §7(Anula golpes frontales)"));
+            hoveredTooltip.add(Component.literal("§f• Vida Máxima: §c" + (hpDelta >= 0 ? "+" : "") + String.format("%.1f", hpDelta) + " HP §8(§c" + (int)liveHealth + " HP §7/ §e" + totalHearts + "♥§8)"));
+            hoveredTooltip.add(Component.literal("§f• Armadura Base: §b+" + String.format("%.1f", Math.max(0.0, (fortTotal - 5) * 0.35)) + " §8(Total: §b" + String.format("%.1f", liveArmor) + "§8)"));
+            hoveredTooltip.add(Component.literal("§f• Dureza de Armadura: §9+" + String.format("%.1f", Math.max(0.0, (fortTotal - 5) * 0.15))));
+            hoveredTooltip.add(Component.literal("§f• Daño Físico (Relación Fort+Des): §c" + (relDmgBonus >= 0 ? "+" : "") + String.format("%.2f", relDmgBonus) + " §8(Base: " + String.format("%.2f", 1.0 + relDmgBonus) + ")"));
+            hoveredTooltip.add(Component.literal("§f• Probabilidad de Desvío: §e" + String.format("%.1f", deflectChance) + "% §7(Anula proyectiles)"));
             hoveredTooltip.add(Component.literal("§f• Reducción de Daño Plano: §a" + String.format("%.1f", Math.min(35.0, fortTotal * 0.45)) + "% §7(Mitigación constante)"));
         }
 
@@ -395,25 +427,25 @@ public class RpgStatsScreen extends Screen {
 
         String dexName = Component.translatable("rpglevels.stat.dexterity.name").getString();
         guiGraphics.drawString(this.font, Component.literal("🎯 §b§l" + dexName + ": §f" + dexTotal + " pts"), startX + 5, dexY + 3, 0xFFFFFFFF, true);
-        String dexBadge = "§8★" + dexPerm + " +Lvl" + dexActive + (dexCurios > 0 ? " +" + dexCurios : "");
+        String dexBadge = "§8★" + dexPerm + " +Nv" + dexActive + (dexCurios > 0 ? " +" + dexCurios : "");
         guiGraphics.drawString(this.font, Component.literal(dexBadge), startX + cardW - 5 - this.font.width(dexBadge), dexY + 3, 0xFF888888, false);
         float dexCdrPct = Math.min(60.0f, dexTotal * 1.2f);
-        String dexSub = "§7Vel.Atq: §e+" + String.format("%.1f", dexTotal * 2.5) + "% §8| §7CDR: §b-" + String.format("%.0f", dexCdrPct) + "% §8| §7Parry: §e" + String.format("%.0f", Math.min(80.0, 15.0 + dexTotal * 1.2)) + "%";
+        double dexPctAtk = (dexTotal - 5) * 2.5;
+        String dexSub = "§7Vel.Atq: §e" + (dexPctAtk >= 0 ? "+" : "") + String.format("%.1f", dexPctAtk) + "% §8| §7Daño(F+D): §c" + (relDmgBonus >= 0 ? "+" : "") + String.format("%.1f", relDmgBonus) + " §8| §7Parry: §e" + String.format("%.0f", Math.min(80.0, 15.0 + dexTotal * 1.2)) + "%";
         guiGraphics.drawString(this.font, Component.literal(dexSub), startX + 5, dexY + 13, 0xFFAAAAAA, false);
 
         if (dexHover && hoveredTooltip == null) {
             hoveredTooltip = new ArrayList<>();
-            hoveredTooltip.add(Component.literal("🎯 §b§lDestreza §7(" + dexTotal + " pts)").withStyle(net.minecraft.ChatFormatting.BOLD));
-            hoveredTooltip.add(Component.literal("§8Puntos: ★" + dexPerm + " base | +Lvl" + dexActive + " por nivel" + (dexCurios > 0 ? " | +" + dexCurios + " accesorios" : "")));
+            hoveredTooltip.add(Component.literal("🎯 §b§lDestreza §7(" + dexTotal + " pts | Estándar = 5)").withStyle(net.minecraft.ChatFormatting.BOLD));
+            hoveredTooltip.add(Component.literal("§8Puntos: ★" + dexPerm + " nacimiento | +Nv" + dexActive + " por nivel" + (dexCurios > 0 ? " | +" + dexCurios + " accesorios" : "")));
             hoveredTooltip.add(Component.literal("§8──────────────────────────────────"));
-            hoveredTooltip.add(Component.literal("§f• Velocidad de Ataque: §e+" + String.format("%.1f", dexTotal * 2.5) + "%"));
-            hoveredTooltip.add(Component.literal("§f• Daño a Distancia: §6+" + (dexTotal * 4) + "% §7(Arcos, ballestas y tridentes)"));
-            hoveredTooltip.add(Component.literal("§f• Velocidad de Movimiento: §a+" + String.format("%.1f", dexTotal * 1.2) + "%"));
-            hoveredTooltip.add(Component.literal("§f• Altura de Salto: §d+" + dexTotal + "%"));
-            hoveredTooltip.add(Component.literal("§f• Caída Segura: §b+" + String.format("%.1f", dexTotal * 0.4) + " bloques"));
+            hoveredTooltip.add(Component.literal("§f• Sinergia de Daño (Fortitud + Destreza): §c" + (relDmgBonus >= 0 ? "+" : "") + String.format("%.2f", relDmgBonus)));
+            hoveredTooltip.add(Component.literal("§f• Velocidad de Ataque: §e" + (dexPctAtk >= 0 ? "+" : "") + String.format("%.1f", dexPctAtk) + "%"));
+            hoveredTooltip.add(Component.literal("§f• Velocidad de Movimiento: §a" + ((dexTotal - 5) >= 0 ? "+" : "") + String.format("%.1f", (dexTotal - 5) * 1.2) + "%"));
+            hoveredTooltip.add(Component.literal("§f• Altura de Salto: §d" + ((dexTotal - 5) >= 0 ? "+" : "") + (dexTotal - 5) + "%"));
+            hoveredTooltip.add(Component.literal("§f• Caída Segura: §b+" + String.format("%.1f", Math.max(0.0, (dexTotal - 5) * 0.4)) + " bloques"));
             hoveredTooltip.add(Component.literal("§f• Probabilidad de Parry (Escudo/Espada): §e" + String.format("%.1f", Math.min(80.0, 15.0 + dexTotal * 1.2)) + "%"));
             hoveredTooltip.add(Component.literal("§f• Reducción de Cooldowns (Técnicas): §b-" + String.format("%.1f", dexCdrPct) + "% §8(Máx 60%)"));
-            hoveredTooltip.add(Component.literal("§f• Enfriamiento del Dash: §3-" + String.format("%.1f", (dexTotal * 30) / 20.0f) + "s §8(Base 90s, mín 10s)"));
         }
 
         // 3. SPIRIT CARD
@@ -424,21 +456,20 @@ public class RpgStatsScreen extends Screen {
 
         String spiName = Component.translatable("rpglevels.stat.spirit.name").getString();
         guiGraphics.drawString(this.font, Component.literal("✨ §d§l" + spiName + ": §f" + spiTotal + " pts"), startX + 5, spiY + 3, 0xFFFFFFFF, true);
-        String spiBadge = "§8★" + spiPerm + " +Lvl" + spiActive + (spiCurios > 0 ? " +" + spiCurios : "");
+        String spiBadge = "§8★" + spiPerm + " +Nv" + spiActive + (spiCurios > 0 ? " +" + spiCurios : "");
         guiGraphics.drawString(this.font, Component.literal(spiBadge), startX + cardW - 5 - this.font.width(spiBadge), spiY + 3, 0xFF888888, false);
-        String spiSub = "§7Maná: §b" + (int)curMana + "/" + (int)maxMana + " PM §8| §7XP: §a+" + String.format("%.1f", spiTotal * 0.1) + "%";
+        String spiSub = "§7Maná: §b" + (int)curMana + "/" + (int)maxMana + " PM §8| §7Bono Espada Esp.: §d+" + String.format("%.2f", spiritSwordBonus);
         guiGraphics.drawString(this.font, Component.literal(spiSub), startX + 5, spiY + 13, 0xFFAAAAAA, false);
 
         if (spiHover && hoveredTooltip == null) {
             hoveredTooltip = new ArrayList<>();
-            hoveredTooltip.add(Component.literal("✨ §d§lEspíritu §7(" + spiTotal + " pts)").withStyle(net.minecraft.ChatFormatting.BOLD));
-            hoveredTooltip.add(Component.literal("§8Puntos: ★" + spiPerm + " base | +Lvl" + spiActive + " por nivel" + (spiCurios > 0 ? " | +" + spiCurios + " accesorios" : "")));
+            hoveredTooltip.add(Component.literal("✨ §d§lEspíritu §7(" + spiTotal + " pts | Estándar = 5 -> 100 PM)").withStyle(net.minecraft.ChatFormatting.BOLD));
+            hoveredTooltip.add(Component.literal("§8Puntos: ★" + spiPerm + " nacimiento | +Nv" + spiActive + " por nivel" + (spiCurios > 0 ? " | +" + spiCurios + " accesorios" : "")));
             hoveredTooltip.add(Component.literal("§8──────────────────────────────────"));
-            hoveredTooltip.add(Component.literal("§f• Maná Máximo: §b+" + (spiTotal * 5 + (data != null ? data.getChannelMagicTier() * 25 : 0)) + " PM §8(Reserva total: §b" + (int)maxMana + " PM§8)"));
-            hoveredTooltip.add(Component.literal("§f• Regeneración de Maná: §3+" + String.format("%.2f", spiTotal * 0.05f) + " PM/s §8(Base +1.0/s)"));
-            hoveredTooltip.add(Component.literal("§f• Multiplicador de XP: §a+" + String.format("%.1f", spiTotal * 0.1) + "% extra al ganar experiencia"));
-            hoveredTooltip.add(Component.literal("§f• Afinidad Espiritual: §dPermite forjar y liberar Técnicas Espirituales"));
-            hoveredTooltip.add(Component.literal("§f• Oleada Espiritual: §eDuplica la regeneración durante cantos"));
+            hoveredTooltip.add(Component.literal("§f• Reserva de Maná Máximo: §b" + (int)maxMana + " PM §8(Base 100 PM en Espíritu 5)"));
+            hoveredTooltip.add(Component.literal("§f• Bono de Daño en Espadas Espirituales: §d+" + String.format("%.2f", spiritSwordBonus) + " daño extra"));
+            hoveredTooltip.add(Component.literal("§f• Regeneración de Maná: §3+" + String.format("%.2f", Math.max(0.0f, (spiTotal - 5) * 0.05f)) + " PM/s §8(Base +1.0/s)"));
+            hoveredTooltip.add(Component.literal("§f• Multiplicador de XP RPG: §a+" + String.format("%.0f", Math.max(0.0, (spiTotal - 5) * 2.0)) + "% extra"));
         }
 
         // 4. LUCK CARD
@@ -449,19 +480,19 @@ public class RpgStatsScreen extends Screen {
 
         String luckName = Component.translatable("rpglevels.stat.luck.name").getString();
         guiGraphics.drawString(this.font, Component.literal("🍀 §a§l" + luckName + ": §f" + luckTotal + " pts"), startX + 5, luckY + 3, 0xFFFFFFFF, true);
-        String luckBadge = "§8★" + luckPerm + " +Lvl" + luckActive + (luckCurios > 0 ? " +" + luckCurios : "");
+        String luckBadge = "§8★" + luckPerm + " +Nv" + luckActive + (luckCurios > 0 ? " +" + luckCurios : "");
         guiGraphics.drawString(this.font, Component.literal(luckBadge), startX + cardW - 5 - this.font.width(luckBadge), luckY + 3, 0xFF888888, false);
         String luckSub = "§7Crítico: §e" + String.format("%.1f", critChance) + "% §8(§c" + String.format("%.2f", critMult) + "x§8) §8| §7Drops: §a+" + (luckTotal * 3) + "%";
         guiGraphics.drawString(this.font, Component.literal(luckSub), startX + 5, luckY + 13, 0xFFAAAAAA, false);
 
         if (luckHover && hoveredTooltip == null) {
             hoveredTooltip = new ArrayList<>();
-            hoveredTooltip.add(Component.literal("🍀 §a§lSuerte §7(" + luckTotal + " pts)").withStyle(net.minecraft.ChatFormatting.BOLD));
-            hoveredTooltip.add(Component.literal("§8Puntos: ★" + luckPerm + " base | +Lvl" + luckActive + " por nivel" + (luckCurios > 0 ? " | +" + luckCurios + " accesorios" : "")));
+            hoveredTooltip.add(Component.literal("🍀 §a§lSuerte §7(" + luckTotal + " pts | Estándar = 5)").withStyle(net.minecraft.ChatFormatting.BOLD));
+            hoveredTooltip.add(Component.literal("§8Puntos: ★" + luckPerm + " nacimiento | +Nv" + luckActive + " por nivel" + (luckCurios > 0 ? " | +" + luckCurios + " accesorios" : "")));
             hoveredTooltip.add(Component.literal("§8──────────────────────────────────"));
             hoveredTooltip.add(Component.literal("§f• Probabilidad de Crítico: §e" + String.format("%.1f", critChance) + "% " + (critChance > 100.0 ? "§6[SUPER-CRIT!]" : "")));
             hoveredTooltip.add(Component.literal("§f• Multiplicador de Crítico: §c" + String.format("%.2f", critMult) + "x daño"));
-            hoveredTooltip.add(Component.literal("§f• Suerte Nativa (Vanilla Luck): §b+" + String.format("%.1f", luckTotal * 0.2) + " §7(Mejor botín y pesca)"));
+            hoveredTooltip.add(Component.literal("§f• Suerte Nativa (Vanilla Luck): §b" + ((luckTotal - 5) >= 0 ? "+" : "") + String.format("%.1f", (luckTotal - 5) * 0.2) + " §7(Mejor botín y pesca)"));
             hoveredTooltip.add(Component.literal("§f• Bonus de Drops y Recompensas: §a+" + (luckTotal * 3) + "% más probabilidad de botín raro"));
         }
 

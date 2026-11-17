@@ -517,10 +517,12 @@ public record NpcDialogueActionPayload(int entityId, int actionType) implements 
 
         switch (action) {
             case ACTION_CHAT -> {
+                com.pablo.rpglevels.data.GreekGod god = rpgData.getPatronGod();
+                String godName = (god != null) ? god.getDisplayName() : "un Dios Olímpico";
                 if (rpgData.getReputationScore() < 0) {
-                    responseDialogue = "§c\"No tengo nada de qué hablar contigo, forajido. Las autoridades del gremio no olvidan tus crímenes.\"";
+                    responseDialogue = "§c\"No tengo nada de qué hablar contigo, forajido. Las autoridades del gremio no olvidan tus crímenes, incluso si portas la bendición de " + godName + ".\"";
                 } else if (!rpgData.isGuildRegistered()) {
-                    responseDialogue = "§e\"El gremio conecta a los aventureros con las necesidades del reino. Desde encargos de recolección hasta cazar amenazas calamitosas.\"";
+                    responseDialogue = "§e\"El Gremio registra a todos los aventureros bendecidos por los Dioses. Para progresar en los rangos deberás alcanzar los Hitos de Nivel para que el Dios cuya bendición posees te otorgue la Ascensión al dormir en el Plano Astral.\"";
                 } else if (!rpgData.hasReceivedAdventurerCard()) {
                     rpgData.setReceivedAdventurerCard(true);
                     ModNetworking.syncToPlayer(player);
@@ -536,8 +538,12 @@ public record NpcDialogueActionPayload(int entityId, int actionType) implements 
                             guildMaster.getX(), guildMaster.getY() + 1.2, guildMaster.getZ(), 15, 0.4, 0.4, 0.4, 0.05);
 
                     responseDialogue = "§6\"¡Ah, " + playerName + "! Veo que eres un aventurero formalmente registrado pero aún no tenías tu credencial. ¡Aquí tienes tu Tarjeta Oficial de Aventurero! Llévala contigo para identificarte y consultar tu estado.\"";
+                } else if (!rpgData.hasDivineBlessingUnlocked()) {
+                    responseDialogue = "§e\"Escucha bien, " + playerName + ": ningún mortal puede subir de nivel por su propia cuenta. Cuando abatas a tu primer enemigo, llamarás la atención de un Dios; ve a dormir y en el Espacio Astral te otorgará su Bendición para desbloquear tu progresión.\"";
+                } else if (rpgData.isAtMilestoneCap()) {
+                    responseDialogue = "§d\"¡Has alcanzado el Hito de Nivel " + rpgData.getCurrentMilestoneCap() + ", " + playerName + "! El Gremio no otorga las Ascensiones; ese poder pertenece únicamente a los Dioses. Ve a dormir a una cama para que " + godName + " te convoque al Espacio Astral y te ascienda al siguiente rango.\"";
                 } else {
-                    responseDialogue = "§a\"¡Sigue cumpliendo misiones con honor, " + playerName + "! Tu rango de aventurero no solo te da prestigio, sino mayor responsabilidad.\"";
+                    responseDialogue = "§a\"¡Sigue fortaleciendo tu existencia en nombre de " + godName + ", " + playerName + "! Para ascender a " + rpgData.getRank().getNextRank().getBadge().getString() + " §adebes alcanzar el Hito de Nivel " + rpgData.getCurrentMilestoneCap() + " (Nivel actual: " + rpgData.getRpgLevel() + ") y luego dormir para recibir la Ascensión en el Plano Astral.\"";
                 }
             }
             case ACTION_REGISTER_GUILD -> {
@@ -585,56 +591,29 @@ public record NpcDialogueActionPayload(int entityId, int actionType) implements 
                     player.sendSystemMessage(Component.literal("§a- ¡Has recibido tu Tarjeta Oficial de Aventurero personalizada!"));
                     player.sendSystemMessage(Component.literal("§7- Tu rango ahora se muestra sobre tu cabeza y en tu ficha de estadísticas."));
                     player.sendSystemMessage(Component.literal("§7- Ahora puedes aceptar misiones de rango F."));
-                    player.sendSystemMessage(Component.literal("§7- Tus hazañas y reputación ahora cuentan con el multiplicador oficial del gremio."));
+                    player.sendSystemMessage(Component.literal("§7- Alcanza los Hitos de Nivel y duerme para que tu Dios te otorgue la Ascensión en el Plano Astral."));
                     player.sendSystemMessage(Component.empty());
 
-                    responseDialogue = "§6\"¡Felicidades, " + playerName + "! Has sido registrado oficialmente como Aventurero de Rango F y te he entregado tu Tarjeta de Aventurero. ¡Que tus hazañas traigan honor y gloria a nuestro gremio!\"";
+                    responseDialogue = "§6\"¡Felicidades, " + playerName + "! Has sido registrado oficialmente como Aventurero de Rango F y te he entregado tu Tarjeta de Aventurero. Recuerda que para ascender en los rangos deberás alcanzar cada Hito de Nivel para que tu Dios te otorgue la Ascensión al dormir.\"";
                 }
             }
             case ACTION_GUILD_ASCEND -> {
+                com.pablo.rpglevels.data.GreekGod god = rpgData.getPatronGod();
+                String godName = (god != null) ? god.getDisplayName() : "tu Dios";
                 if (!rpgData.isGuildRegistered()) {
-                    responseDialogue = "§c\"Primero debes estar inscrito en el Gremio de Aventureros para poder ascender de rango.\"";
+                    responseDialogue = "§c\"Primero debes estar inscrito en el Gremio de Aventureros.\"";
                 } else if (rpgData.getRank().isMaxRank()) {
-                    responseDialogue = "§6\"¡Ya has alcanzado el rango máximo de aventurero! Eres una leyenda viviente del gremio.\"";
+                    responseDialogue = "§6\"¡Ya has alcanzado el rango máximo de aventurero! Eres una leyenda viviente bendecida por " + godName + ".\"";
                 } else {
-                    int reqLevel = rpgData.getRank().getRequiredAscensionLevel();
-                    if (player.experienceLevel < reqLevel) {
-                        responseDialogue = "§c\"Aún no tienes suficiente experiencia para el siguiente rango. Necesitas nivel " + reqLevel + " de XP (actual: " + player.experienceLevel + ").\"";
+                    int reqLevel = rpgData.getCurrentMilestoneCap();
+                    if (rpgData.getRpgLevel() < reqLevel) {
+                        responseDialogue = "§e\"Para ascender de rango necesitas llegar al Hito de Nivel " + reqLevel + " (actual: Nivel " + rpgData.getRpgLevel() + "). Solo entonces " + godName + " te convocará al dormir al Espacio Astral para otorgarte la Ascensión.\"";
                         player.serverLevel().playSound(null, player.getX(), player.getY(), player.getZ(),
                                 SoundEvents.VILLAGER_NO, SoundSource.NEUTRAL, 1.0F, 1.0F);
                     } else {
-                        boolean success = rpgData.performAscension();
-                        if (success) {
-                            // Reset player XP to 0
-                            player.setExperienceLevels(0);
-                            player.setExperiencePoints(0);
-
-                            // Update attributes & sync
-                            ModAttributesHandler.updatePlayerAttributes(player);
-                            ModNetworking.syncToPlayer(player);
-
-                            // Visual & Audio fanfare
-                            ServerLevel sl = player.serverLevel();
-                            sl.sendParticles(ParticleTypes.TOTEM_OF_UNDYING, player.getX(), player.getY() + 1.0, player.getZ(), 60, 0.5, 0.5, 0.5, 0.2);
-                            sl.sendParticles(ParticleTypes.DRAGON_BREATH, player.getX(), player.getY() + 0.5, player.getZ(), 40, 0.5, 0.3, 0.5, 0.1);
-                            player.playNotifySound(SoundEvents.TOTEM_USE, SoundSource.PLAYERS, 1.0f, 1.0f);
-                            player.playNotifySound(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 1.0f, 1.0f);
-
-                            com.pablo.rpglevels.advancements.ModAdvancements.award(player, com.pablo.rpglevels.advancements.ModAdvancements.FIRST_ASCENSION);
-                            if (rpgData.getRank().getIndex() >= com.pablo.rpglevels.data.AdventurerRank.B.getIndex()) {
-                                com.pablo.rpglevels.advancements.ModAdvancements.award(player, com.pablo.rpglevels.advancements.ModAdvancements.RANK_B);
-                            }
-
-                            Component rankBadge = rpgData.getRank().getBadge();
-                            player.sendSystemMessage(Component.empty());
-                            player.sendSystemMessage(Component.translatable("rpglevels.ascension.success.title").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
-                            player.sendSystemMessage(Component.translatable("rpglevels.ascension.success.desc", rankBadge).withStyle(ChatFormatting.GREEN));
-                            player.sendSystemMessage(Component.empty());
-
-                            responseDialogue = "§6\"¡Ascensión concedida, " + playerName + "! Por tus méritos y dedicación, te nombro oficialmente " + rankBadge.getString() + "§6 del Gremio de Aventureros. ¡Que tu temple inspire a toda la orden!\"";
-                        } else {
-                            responseDialogue = "§c\"Ha ocurrido un error durante la ascensión formal.\"";
-                        }
+                        responseDialogue = "§d\"¡Has alcanzado el Hito de Nivel " + reqLevel + "! Ve a dormir en cualquier cama: " + godName + " te espera en el Espacio Astral para felicitarte por tus hazañas y otorgarte la Ascensión a " + rpgData.getRank().getNextRank().getBadge().getString() + "§d.\"";
+                        player.serverLevel().playSound(null, player.getX(), player.getY(), player.getZ(),
+                                SoundEvents.VILLAGER_YES, SoundSource.NEUTRAL, 1.0F, 1.1F);
                     }
                 }
             }

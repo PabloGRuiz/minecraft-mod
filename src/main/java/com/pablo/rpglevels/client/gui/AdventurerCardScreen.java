@@ -138,10 +138,12 @@ public class AdventurerCardScreen extends Screen {
         // Subtexto bajo la miniatura
         if (this.ownerCardTag != null) {
             if (this.ownerCardTag.contains(AdventurerCardItem.TAG_XP_LEVEL)) {
-                guiGraphics.drawCenteredString(font, "§eNivel XP: §f" + this.ownerCardTag.getInt(AdventurerCardItem.TAG_XP_LEVEL), (pX1 + pX2) / 2, pY2 + 5, 0xFFFFFFFF);
+                guiGraphics.drawCenteredString(font, "§eNivel RPG: §f" + this.ownerCardTag.getInt(AdventurerCardItem.TAG_XP_LEVEL), (pX1 + pX2) / 2, pY2 + 5, 0xFFFFFFFF);
             }
         } else if (renderEntity instanceof Player p) {
-            guiGraphics.drawCenteredString(font, "§eNivel XP: §f" + p.experienceLevel, (pX1 + pX2) / 2, pY2 + 5, 0xFFFFFFFF);
+            PlayerRpgData pData = p.getData(ModAttachments.PLAYER_RPG_DATA);
+            int rpgLvl = (pData != null) ? pData.getRpgLevel() : 1;
+            guiGraphics.drawCenteredString(font, "§eNivel RPG: §f" + rpgLvl, (pX1 + pX2) / 2, pY2 + 5, 0xFFFFFFFF);
         } else if (renderEntity instanceof AdventurerNpcEntity npc) {
             guiGraphics.drawCenteredString(font, "§eNivel: §f" + npc.getAdventurerLevel(), (pX1 + pX2) / 2, pY2 + 5, 0xFFFFFFFF);
         }

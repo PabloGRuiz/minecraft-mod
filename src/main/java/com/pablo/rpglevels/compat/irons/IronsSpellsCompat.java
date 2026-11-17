@@ -114,10 +114,15 @@ public class IronsSpellsCompat {
     public static void applySpiritModifiers(Player player, int spirit, int channelTier, boolean spiritSurge) {
         if (!isLoaded() || player == null || player.level().isClientSide()) return;
         try {
-            double bonusMax = (spirit * 5.0) + (channelTier * 25.0);
-            double bonusRegen = spirit * 0.05;
+            AttributeInstance maxManaInst = player.getAttribute(AttributeRegistry.MAX_MANA);
+            if (maxManaInst != null && Math.abs(maxManaInst.getBaseValue() - 100.0) > 0.01) {
+                maxManaInst.setBaseValue(100.0);
+            }
+            // En Espíritu = 5 y Tier = 1, el maná base estándar es 100 (0 de bono). +/- 10 PM por punto respecto a 5.
+            double bonusMax = Math.max(-80.0, ((spirit - 5) * 10.0) + ((channelTier - 1) * 25.0));
+            double bonusRegen = Math.max(0.0, (spirit - 5) * 0.05);
             if (spiritSurge) {
-                bonusRegen *= 2.0;
+                bonusRegen = (bonusRegen + 0.25) * 2.0;
             }
             if (PlayerRpgData.isHoldingReleasedSpiritualSword(player)) {
                 // Durante la Primera Liberación activa: el maná NO se regenera pasivamente (multiplicador total -1.0 anula el 100% del maná regen)
@@ -128,7 +133,7 @@ public class IronsSpellsCompat {
 
             applyModifier(player, AttributeRegistry.MAX_MANA, MOD_SPIRIT_MAX_MANA, bonusMax, AttributeModifier.Operation.ADD_VALUE);
 
-            double bonusSpellPower = spirit * 0.015; // +1.5% Poder de Hechizo general en Iron's Spells por punto de Espíritu
+            double bonusSpellPower = (spirit - 5) * 0.015; // +/- 1.5% Poder de Hechizo general en Iron's Spells respecto a base 5
             applyModifier(player, AttributeRegistry.SPELL_POWER, MOD_SPIRIT_GENERAL_SPELL_POWER, bonusSpellPower, AttributeModifier.Operation.ADD_VALUE);
         } catch (Throwable t) {
             RpgLevelsMod.LOGGER.error("Error aplicando modificadores de espíritu para Iron's Spells: ", t);

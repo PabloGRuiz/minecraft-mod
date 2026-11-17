@@ -116,6 +116,12 @@ public enum ThreatLevel {
         if (entity instanceof com.pablo.rpglevels.entities.CultistBossEntity) {
             return HAZARD;
         }
+        if (entity instanceof com.pablo.rpglevels.entities.ColossalVoidbornEntity colossal) {
+            return colossal.isElite() ? CALAMITY : HAZARD;
+        }
+        if (entity instanceof com.pablo.rpglevels.entities.VoidbornExecutorEntity) {
+            return HAZARD;
+        }
 
         // Specific Voidborn variants (Rank B, Rank A, or HAZARD Executor)
         if (entity instanceof com.pablo.rpglevels.entities.VoidbornEntity voidborn) {

@@ -292,12 +292,17 @@ public class NpcDialogueScreen extends Screen {
                 .tooltip(Tooltip.create(Component.literal("§eConsulta el tablón de misiones disponibles para tu rango de aventurero.")))
                 .build());
 
-                if (!clientData.getRank().isMaxRank() && localPlayer != null && localPlayer.experienceLevel >= clientData.getRank().getRequiredAscensionLevel()) {
+                if (!clientData.getRank().isMaxRank()) {
                     com.pablo.rpglevels.data.AdventurerRank nextRank = clientData.getRank().getNextRank();
-                    this.addRenderableWidget(Button.builder(Component.literal("§6⚡ Ascender a ").append(nextRank.getBadge()), b -> {
+                    int reqLvl = clientData.getCurrentMilestoneCap();
+                    boolean ready = clientData.isAtMilestoneCap();
+                    Component btnLabel = ready
+                            ? Component.literal("§d⚡ Hito Alcanzado")
+                            : Component.literal("§b⚡ Hito Nivel " + reqLvl);
+                    this.addRenderableWidget(Button.builder(btnLabel, b -> {
                         ModNetworking.sendNpcDialogueAction(entityId, NpcDialogueActionPayload.ACTION_GUILD_ASCEND);
                     }).bounds(rightColumnX + 114, secondRowY, 100, btnHeight)
-                    .tooltip(Tooltip.create(Component.literal("§6[Ascensión de Rango Oficial]\n§eRequisitos de Nivel cumplidos.\n§7Avanza formalmente a " + nextRank.getBadge().getString() + " §7y consolida tu poder.")))
+                    .tooltip(Tooltip.create(Component.literal("§d[Ascensión Divina en el Plano Astral]\n§eHito requerido para " + nextRank.getBadge().getString() + "§e: §fNivel " + reqLvl + " §7(Actual: " + clientData.getRpgLevel() + ")\n§7Al alcanzar el Hito y dormir en una cama, tu Dios te otorgará la Ascensión en el Espacio Astral.")))
                     .build());
                 }
 

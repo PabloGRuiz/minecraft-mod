@@ -2,6 +2,11 @@ package com.pablo.rpglevels.mobs;
 
 import com.pablo.rpglevels.entities.BanditEntity;
 import com.pablo.rpglevels.entities.ModEntities;
+import com.pablo.rpglevels.data.ModAttachments;
+import com.pablo.rpglevels.data.PlayerRpgData;
+import com.pablo.rpglevels.party.PartyManager;
+import com.pablo.rpglevels.entities.AdventurerNpcEntity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -204,6 +209,29 @@ public class BanditAmbushManager {
 
         // Reputation Reward (+8 Rep)
         com.pablo.rpglevels.events.ReputationEvents.modifyReputation(player, 8, "rpglevels.reputation.reason.ambush_cleared");
+
+        // Recompensa de Experiencia RPG para el jugador que superó la emboscada
+        PlayerRpgData rpgData = player.getData(ModAttachments.PLAYER_RPG_DATA);
+        int ambushXp = 350 + (ambush.totalBandits * 20); // 450 a 650 XP de RPG
+        if (rpgData != null && rpgData.hasDivineBlessingUnlocked()) {
+            rpgData.addRpgXp(player, ambushXp);
+            player.sendSystemMessage(Component.literal("§6✦ §l[¡EMBOSCADA SUPERADA!] §eHas obtenido §a+" + ambushXp + " XP RPG §epor erradicar a la banda forajida."));
+        }
+
+        // Repartir experiencia de emboscada a los compañeros de grupo
+        List<LivingEntity> recipients = PartyManager.getPartyXpRecipients(player, 48.0);
+        for (LivingEntity recipient : recipients) {
+            if (recipient instanceof ServerPlayer ally && ally != player) {
+                PlayerRpgData allyData = ally.getData(ModAttachments.PLAYER_RPG_DATA);
+                if (allyData != null && allyData.hasDivineBlessingUnlocked()) {
+                    int allyXp = Math.max(120, ambushXp / 2);
+                    allyData.addRpgXp(ally, allyXp);
+                    ally.sendSystemMessage(Component.literal("§6✦ §l[¡EMBOSCADA SUPERADA!] §eHas obtenido §a+" + allyXp + " XP RPG §epor cooperar en el grupo."));
+                }
+            } else if (recipient instanceof AdventurerNpcEntity adv) {
+                adv.addExperience(250);
+            }
+        }
 
         // 3. Ender Dragon style XP Rain: multiple cascading orbs totaling ~2000 XP
         for (int i = 0; i < 35; i++) {

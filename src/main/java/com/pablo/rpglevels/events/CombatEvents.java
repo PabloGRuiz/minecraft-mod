@@ -674,29 +674,86 @@ public class CombatEvents {
             }
 
             int xpReward = switch (threat) {
-                case GENESIS -> 600;
-                case CATASTROPHE -> 400;
-                case GRAND_DISASTER -> 250;
-                case DISASTER -> 150;
-                case CALAMITY -> 90;
-                case HAZARD -> 60;
-                case B -> 40;
-                case C -> 25;
-                case D -> 18;
-                case E -> 12;
-                default -> 8;
+                case GENESIS -> 2500;
+                case CATASTROPHE -> 1800;
+                case GRAND_DISASTER -> 1200;
+                case DISASTER -> 800;
+                case CALAMITY -> 500;
+                case HAZARD -> 350;
+                case A -> 180;
+                case B -> 100;
+                case C -> 55;
+                case D -> 35;
+                case E -> 20;
+                default -> 12;
             };
 
-            // Repartir experiencia solo a los aventureros NPC cercanos (los jugadores ya reciben orbes de XP del mob y PartyXpEvents)
+            // Detección y recompensa aumentada para Jefes Mundiales y Jefes del Mod
+            boolean isBoss = victim instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon
+                    || victim instanceof net.minecraft.world.entity.boss.wither.WitherBoss
+                    || victim instanceof net.minecraft.world.entity.monster.warden.Warden
+                    || victim instanceof net.minecraft.world.entity.monster.ElderGuardian
+                    || victim instanceof com.pablo.rpglevels.entities.CultistBossEntity
+                    || victim instanceof com.pablo.rpglevels.entities.UndeadAdventurerBossEntity
+                    || victim instanceof com.pablo.rpglevels.entities.WindMasterBossEntity
+                    || victim instanceof com.pablo.rpglevels.entities.VoidbornExecutorEntity
+                    || victim instanceof com.pablo.rpglevels.entities.ColossalVoidbornEntity;
+
+            if (isBoss) {
+                if (victim instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon) {
+                    xpReward = Math.max(xpReward, 1500);
+                } else if (victim instanceof net.minecraft.world.entity.monster.warden.Warden) {
+                    xpReward = Math.max(xpReward, 1200);
+                } else if (victim instanceof net.minecraft.world.entity.boss.wither.WitherBoss) {
+                    xpReward = Math.max(xpReward, 1000);
+                } else if (victim instanceof com.pablo.rpglevels.entities.WindMasterBossEntity windMaster) {
+                    xpReward = windMaster.isEmpowered() ? 750 : 500;
+                } else if (victim instanceof com.pablo.rpglevels.entities.ColossalVoidbornEntity) {
+                    xpReward = Math.max(xpReward, 600);
+                } else if (victim instanceof com.pablo.rpglevels.entities.VoidbornExecutorEntity) {
+                    xpReward = Math.max(xpReward, 450);
+                } else if (victim instanceof com.pablo.rpglevels.entities.UndeadAdventurerBossEntity) {
+                    xpReward = Math.max(xpReward, 450);
+                } else if (victim instanceof com.pablo.rpglevels.entities.CultistBossEntity) {
+                    xpReward = Math.max(xpReward, 400);
+                } else if (victim instanceof net.minecraft.world.entity.monster.ElderGuardian) {
+                    xpReward = Math.max(xpReward, 350);
+                } else {
+                    xpReward = Math.max(xpReward, 400);
+                }
+
+                serverPlayer.sendSystemMessage(Component.literal(
+                        "§6✦ §l[¡JEFE DERROTADO!] §eHas vencido a §f" + victim.getDisplayName().getString() + " §7(§a+" + xpReward + " XP RPG§7)"));
+                serverPlayer.serverLevel().playSound(null, serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(),
+                        SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 1.0f, 1.1f);
+            }
+
+            // Otorgar XP RPG propia al jugador responsable (y compañeros de party jugadores) si ya tienen la Bendición Divina
+            PlayerRpgData killerData = serverPlayer.getData(ModAttachments.PLAYER_RPG_DATA);
+            if (killerData != null && killerData.hasDivineBlessingUnlocked()) {
+                killerData.addRpgXp(serverPlayer, xpReward);
+            }
+
+            // Repartir experiencia a los aventureros NPC y aliados de party cercanos
             List<LivingEntity> recipients = com.pablo.rpglevels.party.PartyManager.getPartyXpRecipients(serverPlayer, 48.0);
             if (!recipients.isEmpty()) {
-                int share = Math.max(15, xpReward / recipients.size());
+                int share = Math.max(isBoss ? 100 : 15, xpReward / recipients.size());
                 for (LivingEntity recipient : recipients) {
                     if (recipient instanceof AdventurerNpcEntity adv) {
-                        adv.addExperience(Math.max(20, share));
+                        adv.addExperience(Math.max(isBoss ? 150 : 20, share));
                         // Bonificación de afinidad en combate
-                        if (adv.isHiredBy(serverPlayer) && threat.ordinal() >= ThreatLevel.C.ordinal()) {
-                            adv.addAffinity(serverPlayer, 1);
+                        if (adv.isHiredBy(serverPlayer) && (isBoss || threat.ordinal() >= ThreatLevel.C.ordinal())) {
+                            adv.addAffinity(serverPlayer, isBoss ? 3 : 1);
+                        }
+                    } else if (recipient instanceof ServerPlayer allyPlayer && allyPlayer != serverPlayer) {
+                        PlayerRpgData allyData = allyPlayer.getData(ModAttachments.PLAYER_RPG_DATA);
+                        if (allyData != null && allyData.hasDivineBlessingUnlocked()) {
+                            int allyGain = Math.max(isBoss ? 150 : 8, xpReward / 2);
+                            allyData.addRpgXp(allyPlayer, allyGain);
+                            if (isBoss) {
+                                allyPlayer.sendSystemMessage(Component.literal(
+                                        "§6✦ §l[¡JEFE DERROTADO!] §eTu grupo venció a §f" + victim.getDisplayName().getString() + " §7(§a+" + allyGain + " XP RPG§7)"));
+                            }
                         }
                     }
                 }

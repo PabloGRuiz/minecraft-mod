@@ -193,6 +193,13 @@ public class ModNetworking {
                 UpdatePowerControlPayload.STREAM_CODEC,
                 UpdatePowerControlPayload::handle
         );
+
+        // RPG XP Gain Notification (Server -> Client)
+        registrar.playToClient(
+                SyncXpGainPayload.TYPE,
+                SyncXpGainPayload.STREAM_CODEC,
+                SyncXpGainPayload::handle
+        );
     }
 
     public static void openPartyScreen(ServerPlayer player) {
@@ -253,5 +260,10 @@ public class ModNetworking {
     public static void sendSkillUnlocked(ServerPlayer player, String skillId, String skillName, String skillCategory, String description) {
         if (player == null) return;
         PacketDistributor.sendToPlayer(player, new SkillUnlockedPayload(skillId, skillName, skillCategory, description));
+    }
+
+    public static void sendXpGain(ServerPlayer player, int gainedAmount, int currentXp, int maxXp, int currentLevel, boolean atCap) {
+        if (player == null) return;
+        PacketDistributor.sendToPlayer(player, new SyncXpGainPayload(gainedAmount, currentXp, maxXp, currentLevel, atCap));
     }
 }

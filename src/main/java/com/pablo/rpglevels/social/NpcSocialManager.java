@@ -205,59 +205,59 @@ public class NpcSocialManager {
             return switch (tier) {
                 case DESCONOCIDO -> {
                     String[] dialogues = {
-                            "Saludos, forastero. El gremio siempre necesita espadas afiladas, pero ten cuidado con lo que acecha tras la puesta de sol.",
-                            "Veo que portas el rango " + playerRank.getName() + ". No bajes la guardia, los bosques están plagados de monstruos y ojos que vigilan.",
-                            "Un consejo de colega: revisa bien el filo de tu arma y las costuras de tu armadura antes de adentrarte en cualquier gruta.",
-                            "¿Vienes a buscar contratos? Las tabernas del reino bullen de rumores sobre ruinas olvidadas y bestias que custodian reliquias.",
-                            "El camino de la aventura no perdona a los descuidados. Guarda siempre una antorcha y raciones en tu faltriquera.",
-                            "Muchos parten buscando oro y gloria, pero pocos regresan para contarlo. Asegúrate de tener un buen plan de escape."
+                            "Saludos, forastero. Dicen que los Dioses observan desde el Plano Astral; sin su Bendición Divina, ningún mortal puede subir de nivel.",
+                            "Veo que portas el rango " + playerRank.getName() + ". Recuerda que para progresar en los rangos debes llegar a los Hitos de Nivel para que el Dios cuya bendición posees te otorgue la Ascensión al dormir.",
+                            "Cuando abatí a mi primer monstruo y dormí en la posada, desperté en el Espacio Astral y escuché la voz de mi Dios otorgándome su bendición.",
+                            "¿Vienes a buscar contratos? Cumplir misiones del gremio, cazar monstruos y saquear cofres antiguos es la mejor forma de alcanzar tu próximo Hito.",
+                            "A los Dioses no les importa si tus hazañas son moralmente correctas o despiadadas, solo buscan que fortalezcas tu existencia en su nombre.",
+                            "Muchos parten buscando la gloria, pero solo quienes alcanzan el Hito de su rango son convocados de nuevo al Plano Astral para ascender."
                     };
                     yield dialogues[RNG.nextInt(dialogues.length)];
                 }
                 case CONOCIDO -> {
                     String[] dialogues = {
-                            "¡Hola, colega! Dicen que en las cavernas profundas se han avistado vetas resplandecientes y criaturas colosales.",
-                            "Siempre es bueno cruzar miradas con alguien conocido. Si necesitas un compañero de expedición, por una esmeralda al día te cubro las espaldas.",
-                            "Anoche escuché aullar lobos cerca de la colina. Si sales de expedición hoy, vigila tu retaguardia.",
-                            "He estado entrenando mis estocadas y bloqueos con el escudo. En este oficio, dormirse en los laureles es firmar la sentencia de muerte.",
-                            "La recompensa por cazar bandidos ha subido en el tablón del gremio. Esos rufianes están causando demasiados estragos en los caminos.",
-                            "¿Has probado la sopa caliente de la posada? Tras diez horas marchando bajo la lluvia, sabe a auténtico banquete real."
+                            "¡Hola, colega! ¿Qué Dios Olímpico te otorgó su bendición en el Plano Astral? En el gremio hay elegidos de Zeus, Ares, Atenea y hasta del mismo Hades.",
+                            "Siempre es bueno cruzar miradas con alguien conocido. Si necesitas un compañero para subir de nivel y acercarte a tu Hito de Rango, por una esmeralda te cubro las espaldas.",
+                            "Dicen que al llegar al Hito de tu rango actual y dormir, vuelves al Espacio Astral y un rayo divino sella tu Ascensión.",
+                            "He estado entrenando duro. Quiero llenar mi recipiente mortal y alcanzar el próximo Hito para que mi Dios me conceda el ascenso.",
+                            "La recompensa de experiencia por cumplir encargos del gremio ayuda muchísimo a llegar al Hito de Ascensión.",
+                            "¿Recuerdas el rayo que cae sobre ti cuando regresas del Plano Astral? Todavía se me eriza la piel al recordarlo."
                     };
                     yield dialogues[RNG.nextInt(dialogues.length)];
                 }
                 case AMISTOSO -> {
                     String[] dialogues = {
-                            "¡Qué alegría verte de nuevo, " + playerName + "! Estaba afilando mi arma. ¿Qué hazaña tienes planeada para hoy?",
-                            "Pelear a tu lado me hace sentir que podemos conquistar cualquier mazmorra. ¡Somos un gran equipo!",
-                            "Me gusta tu forma de combatir: firme, valiente y con la cabeza fría. Es un alivio no tener que cubrir a un novato torpe.",
-                            "¿Recuerdas esa última refriega? Por un momento creí que nos superaban en número, pero tu arrojo inclinó la balanza a nuestro favor.",
-                            "Si alguna vez necesitas que monte guardia en tu campamento mientras descansas junto al fuego, solo dímelo. No se me escapará ni una sombra.",
-                            "En el gremio ya muchos comentan nuestras andanzas. ¡Dicen que donde ponemos el pie, los monstruos huyen despavoridos!"
+                            "¡Qué alegría verte de nuevo, " + playerName + "! Seguro que el Dios cuya bendición portas está orgulloso de tus hazañas.",
+                            "Pelear a tu lado hace que subir de nivel hacia el próximo Hito sea mucho más emocionante. ¡Somos un gran equipo!",
+                            "Me gusta tu forma de combatir: se nota que la Bendición Divina corre con fuerza por tus venas.",
+                            "Cuando alcances el Hito de tu rango actual, no olvides ir a dormir a una cama para que tu Dios te otorgue la Ascensión en el Espacio Astral.",
+                            "Si alguna vez necesitas que monte guardia en tu campamento mientras sueñas en el Plano Astral con tu Dios, solo dímelo.",
+                            "En el gremio ya muchos comentan tus andanzas. ¡Dicen que ascenderás de rango más rápido que nadie!"
                     };
                     yield dialogues[RNG.nextInt(dialogues.length)];
                 }
                 case AMIGO_CERCANO -> {
                     String[] dialogues = {
-                            "¡Amigo mío! Brindemos por nuestras victorias. Si alguna vez caes en una emboscada, no dudaré en ponerme al frente con mi escudo.",
-                            "He conocido muchos guerreros en mis viajes, pero pocos con tu temple, honor y lealtad. Es un inmenso privilegio marchar a tu lado.",
-                            "Cuando acabe nuestra jornada, deberíamos sentarnos junto a una fogata a compartir historias de nuestras tierras de origen. Considero un tesoro nuestra amistad.",
-                            "Toma, estuve revisando mis suministros y separé las mejores vendas y provisiones por si las cosas se ponen difíciles en combate.",
-                            "Antes luchaba únicamente por unas monedas de esmeralda... pero viajar contigo me recordó el verdadero espíritu de ser un aventurero.",
-                            "Pase lo que pase ahí fuera, que sepas que tienes mi espada incondicional. ¡Ninguna calamidad logrará quebrantar nuestro equipo!",
-                            "Tu liderazgo me inspira a ser mejor guerrero cada día. Siento que ya no soy el mismo aventurero inseguro que conoció las primeras ruinas."
+                            "¡Amigo mío! Brindemos por nuestras victorias y por los Dioses que nos bendijeron en el Plano Astral.",
+                            "He conocido muchos elegidos de los Dioses en el gremio, pero pocos con tu temple, honor y lealtad. Es un privilegio marchar a tu lado.",
+                            "Cada vez que superas un Hito y regresas del Espacio Astral tras recibir la Ascensión de tu Dios, tu aura se siente mucho más imponente.",
+                            "Toma, estuve revisando mis suministros y separé provisiones para nuestras expediciones rumbo a tu próximo Hito.",
+                            "Antes pensaba que nuestras estadísticas de nacimiento decidían nuestro destino... pero con la Bendición Divina demostramos que no tenemos límites.",
+                            "Pase lo que pase ahí fuera, que sepas que tienes mi espada incondicional. ¡Ninguna calamidad logrará quebrantar nuestra familia!",
+                            "Tu liderazgo me inspira a fortalecer mi existencia cada día."
                     };
                     yield dialogues[RNG.nextInt(dialogues.length)];
                 }
                 case VINCULO_INQUEBRANTABLE -> {
                     String[] dialogues = {
-                            "¡Hermano de armas! Mi espada, mi escudo y mi vida están consagradas a tu lado. ¡Ningún monstruo ni bandido se interpondrá en nuestro camino!",
-                            "Tu presencia inspira a todos los aventureros del reino. A donde tus pasos guíen, allí marcharé contigo hasta el fin de los mundos.",
-                            "Los plebeyos como yo solemos ser olvidados por la historia... pero a tu lado siento que estamos escribiendo una leyenda imborrable.",
-                            "Hermano, en la batalla somos un solo cuerpo. Mi vida es tu escudo, y mientras me queden fuerzas, ningún daño alcanzará tu pecho.",
-                            "Si los mismos dioses del combate bajaran a desafiarnos, empuñaría mi arma a tu lado sin dudar un solo parpadeo.",
+                            "¡Hermano de armas! Mi espada, mi escudo y mi vida están consagradas a tu lado. ¡Ni los mismos monstruos del Abismo detendrán nuestro ascenso!",
+                            "Tu presencia inspira a todo el Gremio. Los Dioses del Plano Astral seguramente contemplan tus hazañas con asombro.",
+                            "Los plebeyos como yo solemos ser olvidados por la historia... pero junto a un elegido como tú estamos escribiendo una leyenda digna del Olimpo.",
+                            "Hermano, en la batalla somos un solo cuerpo. Mi vida es tu escudo mientras avanzas de Hito en Hito hacia la cumbre.",
+                            "Si los mismos Dioses del Plano Astral bajaran a ponernos a prueba, empuñaría mi arma a tu lado sin dudar un solo parpadeo.",
                             "Más que un compañero de expediciones, eres mi verdadera familia. No hay oro en todo el continente que pueda pagar lo que significa tu lealtad.",
-                            "¡Mira este horizonte! El reino es vasto y peligroso, pero teniéndote a mi lado, siento que nada ni nadie nos podrá detener jamás.",
-                            "¡Por nuestro linaje, por nuestras hazañas y por la gloria eterna de nuestra hermandad! ¡A la carga, camarada!"
+                            "¡Mira este horizonte! Con la Bendición Divina y nuestra hermandad, nada ni nadie nos podrá detener jamás.",
+                            "¡Por nuestro linaje, por nuestras hazañas y por la gloria eterna! ¡A la carga, camarada!"
                     };
                     yield dialogues[RNG.nextInt(dialogues.length)];
                 }

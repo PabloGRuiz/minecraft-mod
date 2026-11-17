@@ -66,7 +66,7 @@ public class AdventurerCardItem extends Item {
         tag.putString(TAG_OWNER_UUID, owner.getUUID().toString());
         tag.putString(TAG_RANK, data.getRank().getName());
         tag.putInt(TAG_RANK_INDEX, data.getRank().getIndex());
-        tag.putInt(TAG_XP_LEVEL, owner.experienceLevel);
+        tag.putInt(TAG_XP_LEVEL, data.getRpgLevel());
         tag.putInt(TAG_REP_SCORE, data.getReputationScore());
         tag.putString(TAG_REP_DISPLAY, data.getReputationTier().getDisplayName().getString());
         tag.putInt(TAG_FORTITUDE, data.getTotalStatPoints(owner, StatType.FORTITUDE));

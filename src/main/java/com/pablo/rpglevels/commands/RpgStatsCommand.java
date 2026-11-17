@@ -138,6 +138,94 @@ public class RpgStatsCommand {
                     return executeAscend(player);
                 }));
 
+        // /<root> level <set|xp> <amount> -> Admin RPG Level & XP control
+        cmd.then(Commands.literal("level")
+                .requires(source -> source.hasPermission(2))
+                .then(Commands.literal("set")
+                        .then(Commands.argument("level", IntegerArgumentType.integer(1, 125))
+                                .executes(context -> {
+                                    ServerPlayer player = context.getSource().getPlayerOrException();
+                                    int lvl = IntegerArgumentType.getInteger(context, "level");
+                                    PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
+                                    if (data != null) {
+                                        data.setDivineBlessingUnlocked(true);
+                                        if (data.getPatronGod() == null) {
+                                            data.setPatronGodId(com.pablo.rpglevels.data.GreekGod.pickRandom(player.getRandom()).getId());
+                                        }
+                                        data.setRpgLevel(lvl);
+                                        data.setRpgXp(0);
+                                        ModAttributesHandler.updatePlayerAttributes(player);
+                                        ModNetworking.syncToPlayer(player);
+                                        player.sendSystemMessage(Component.literal("§aNivel RPG establecido en §e" + lvl + " §7(Puntos pendientes: §a" + data.getPendingPointsCount() + "§7)"));
+                                    }
+                                    return 1;
+                                })))
+                .then(Commands.literal("xp")
+                        .then(Commands.argument("amount", IntegerArgumentType.integer(1))
+                                .executes(context -> {
+                                    ServerPlayer player = context.getSource().getPlayerOrException();
+                                    int xp = IntegerArgumentType.getInteger(context, "amount");
+                                    PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
+                                    if (data != null) {
+                                        if (!data.hasDivineBlessingUnlocked()) {
+                                            player.sendSystemMessage(Component.literal("§cPrimero desbloquea la Bendición Divina en el Plano Astral (o usa /rpg god astral)."));
+                                            return 0;
+                                        }
+                                        data.addRpgXp(player, xp);
+                                        player.sendSystemMessage(Component.literal("§b+" + xp + " XP RPG otorgada. Nivel actual: §e" + data.getRpgLevel() + " §7(" + data.getRpgXp() + "/" + data.getXpForNextLevel() + ")"));
+                                    }
+                                    return 1;
+                                }))));
+
+        // /<root> god <astral|set|reroll_birth> -> Admin Divine Blessing & Astral Plane test shortcuts
+        cmd.then(Commands.literal("god")
+                .requires(source -> source.hasPermission(2))
+                .then(Commands.literal("astral")
+                        .executes(context -> {
+                            ServerPlayer player = context.getSource().getPlayerOrException();
+                            com.pablo.rpglevels.world.trial.WarGodTrialManager.startTrial(player);
+                            return 1;
+                        }))
+                .then(Commands.literal("reroll_birth")
+                        .executes(context -> {
+                            ServerPlayer player = context.getSource().getPlayerOrException();
+                            PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
+                            if (data != null) {
+                                data.setBirthStatsRolled(false);
+                                data.rollBirthStatsIfNeeded(player.getRandom());
+                                ModAttributesHandler.updatePlayerAttributes(player);
+                                player.setHealth(player.getMaxHealth());
+                                data.setCurrentMana(player, data.getMaxMana(player));
+                                ModNetworking.syncToPlayer(player);
+                                ModNetworking.syncMana(player);
+                                player.sendSystemMessage(Component.literal("§6✦ Estadísticas de nacimiento relanzadas: §cFort " + data.getPermanentPoints(StatType.FORTITUDE)
+                                        + " §8| §bDes " + data.getPermanentPoints(StatType.DEXTERITY)
+                                        + " §8| §dEsp " + data.getPermanentPoints(StatType.SPIRIT)
+                                        + " §8| §aSue " + data.getPermanentPoints(StatType.LUCK)));
+                            }
+                            return 1;
+                        }))
+                .then(Commands.literal("set")
+                        .then(Commands.argument("god_name", StringArgumentType.word())
+                                .suggests((c, b) -> SharedSuggestionProvider.suggest(new String[]{"zeus", "hades", "poseidon", "ares", "athena", "apollo", "artemis", "hermes", "hephaestus", "aphrodite", "dionysus", "demeter"}, b))
+                                .executes(context -> {
+                                    ServerPlayer player = context.getSource().getPlayerOrException();
+                                    String name = StringArgumentType.getString(context, "god_name");
+                                    com.pablo.rpglevels.data.GreekGod god = com.pablo.rpglevels.data.GreekGod.fromId(name);
+                                    if (god == null) {
+                                        player.sendSystemMessage(Component.literal("§cDios no reconocido."));
+                                        return 0;
+                                    }
+                                    PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
+                                    if (data != null) {
+                                        data.setPatronGodId(god.getId());
+                                        data.setDivineBlessingUnlocked(true);
+                                        ModNetworking.syncToPlayer(player);
+                                        player.sendSystemMessage(Component.literal("§aDios Patrono establecido en: ").append(god.getBadge()));
+                                    }
+                                    return 1;
+                                }))));
+
         // /<root> help -> Interactive command manual
         cmd.then(Commands.literal("help")
                 .executes(context -> executeHelp(context.getSource())));
@@ -991,13 +1079,13 @@ public class RpgStatsCommand {
             return 0;
         }
 
-        if (data.getPendingPointsCount(player.experienceLevel) < 1) {
+        if (data.getPendingPointsCount() < 1) {
             player.sendSystemMessage(Component.literal("§cNo tienes puntos de atributos pendientes por asignar."));
             return 0;
         }
 
         // Allocate 1 point
-        boolean success = data.allocatePoint(statType, player.experienceLevel);
+        boolean success = data.allocatePoint(statType);
         if (!success) {
             player.sendSystemMessage(Component.literal("§cNo tienes suficientes puntos pendientes."));
             return 0;
@@ -1009,7 +1097,7 @@ public class RpgStatsCommand {
         ModNetworking.syncMana(player);
 
         // Feedback
-        int pendingRemaining = data.getPendingPointsCount(player.experienceLevel);
+        int pendingRemaining = data.getPendingPointsCount();
         Component statLabel = Component.translatable(statType.getTranslationKey());
         player.sendSystemMessage(Component.literal("§a+1 a ").append(statLabel).append(Component.literal(". §e(Puntos pendientes restantes: §a" + pendingRemaining + "§e)")));
         player.playNotifySound(SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.85f, 1.2f);
@@ -1023,24 +1111,26 @@ public class RpgStatsCommand {
             return 0;
         }
 
-        int currentLvl = player.experienceLevel;
+        int currentLvl = data.getRpgLevel();
         player.sendSystemMessage(Component.literal("§6=== [Tus Estadísticas RPG] ==="));
+        com.pablo.rpglevels.data.GreekGod patronGod = data.hasDivineBlessingUnlocked() ? data.getPatronGod() : null;
+        String godStr = (patronGod != null) ? ("§dBendición: " + patronGod.getBadge().getString()) : "§7Sin Bendición Divina";
         if (data.isGuildRegistered()) {
             if (data.isCriminal()) {
                 ThreatLevel threat = ThreatLevel.getThreatForPlayer(player, data);
                 player.sendSystemMessage(Component.literal("§cEstado: §4[Fugitivo/Criminal] §7| ")
-                        .append(threat.getBadge()).append(Component.literal(" §e| Nivel XP: §f" + currentLvl)));
+                        .append(threat.getBadge()).append(Component.literal(" §e| Nivel RPG: §f" + currentLvl + " §7| " + godStr)));
             } else {
                 player.sendSystemMessage(Component.literal("§eRango: ").append(data.getRank().getBadge())
-                        .append(Component.literal(" §7(Multiplicador Rep: x" + data.getRank().getReputationMultiplier() + ") §e| Nivel XP: §f" + currentLvl)));
+                        .append(Component.literal(" §e| Nivel RPG: §f" + currentLvl + "/" + data.getCurrentMilestoneCap() + " §7(" + data.getRpgXp() + "/" + data.getXpForNextLevel() + " XP) §7| " + godStr)));
             }
         } else {
             if (data.isCriminal()) {
                 ThreatLevel threat = ThreatLevel.getThreatForPlayer(player, data);
                 player.sendSystemMessage(Component.literal("§cEstado: §4[Criminal No Registrado] §7| ")
-                        .append(threat.getBadge()).append(Component.literal(" §e| Nivel XP: §f" + currentLvl)));
+                        .append(threat.getBadge()).append(Component.literal(" §e| Nivel RPG: §f" + currentLvl + " §7| " + godStr)));
             } else {
-                player.sendSystemMessage(Component.literal("§7Estado: §f[Civil No Registrado en el Gremio] §e| Nivel XP: §f" + currentLvl));
+                player.sendSystemMessage(Component.literal("§7Estado: §f[Civil No Registrado en el Gremio] §e| Nivel RPG: §f" + currentLvl + " §7| " + godStr));
             }
         }
 
@@ -1052,20 +1142,20 @@ public class RpgStatsCommand {
             Component statName = Component.translatable(stat.getTranslationKey());
 
             String bonusDesc = switch (stat) {
-                case FORTITUDE -> "+" + (totalPoints * 2) + " HP, +" + String.format("%.1f", totalPoints * 0.5) + " Armadura, " + String.format("%.1f", Math.min(70.0, totalPoints * 0.7)) + "% Desvío";
-                case DEXTERITY -> "+" + (totalPoints * 4) + "% Vel. Ataque, +" + (totalPoints * 4) + "% Daño Rango, +" + (totalPoints * 2) + "% Vel";
-                case SPIRIT -> "+" + String.format("%.1f", totalPoints * 0.1) + "% Multiplicador XP Extra";
-                case LUCK -> "+" + (totalPoints * 2) + "% Prob. Crítico, +" + (totalPoints * 3) + "% Botín Drops";
+                case FORTITUDE -> "Vida y Armadura (Relación F+D Daño: +" + String.format("%.2f", data.getPhysicalRelationDamageBonus(player)) + ")";
+                case DEXTERITY -> "Vel. Ataque, Mov. y Salto (Relación F+D Daño: +" + String.format("%.2f", data.getPhysicalRelationDamageBonus(player)) + ")";
+                case SPIRIT -> (int) data.getMaxMana(player) + " PM Máx, +" + String.format("%.2f", data.getSpiritualSwordSpiritBonus(player)) + " Daño Espada Espiritual";
+                case LUCK -> String.format("%.1f", data.getCritChance(player)) + "% Prob. Crítico, +" + (totalPoints * 3) + "% Botín Drops";
             };
 
-            String detail = " §7(Perm: +" + permPoints + " | Nivel: +" + activeLifePoints + (curiosBonus > 0 ? " | Curios: +" + curiosBonus : "") + ")";
+            String detail = " §7(Nacimiento: " + permPoints + " | Nivel: +" + activeLifePoints + (curiosBonus > 0 ? " | Curios: +" + curiosBonus : "") + ")";
             player.sendSystemMessage(Component.literal(" " + stat.getIcon() + " ").append(statName).append(Component.literal(": §a" + totalPoints + " pts §e[" + bonusDesc + "]")).append(Component.literal(detail)));
         }
 
         int allocated = data.getAllocatedPointsCount();
-        int maxEarned = data.getTotalEarnedPoints(currentLvl);
-        int pending = data.getPendingPointsCount(currentLvl);
-        player.sendSystemMessage(Component.literal("§7Puntos de Atributos (Vida Actual): §a" + allocated + " §7asignados / §e" + maxEarned + " §7desbloqueados (§b" + pending + " pendientes§7)"));
+        int maxEarned = data.getTotalEarnedPoints();
+        int pending = data.getPendingPointsCount();
+        player.sendSystemMessage(Component.literal("§7Puntos de Atributos: §a" + allocated + " §7asignados / §e" + maxEarned + " §7ganados (§b" + pending + " pendientes§7)"));
         player.sendSystemMessage(Component.literal("§7Puntos de Habilidad Física: §6" + data.getPhysicalSkillPoints() + " disponibles §7| Habilidades aprendidas: §f" + data.getUnlockedSkills().size()));
 
         com.pablo.rpglevels.data.ReputationTier repTier = data.getReputationTier();
@@ -1082,8 +1172,8 @@ public class RpgStatsCommand {
             return 0;
         }
 
-        if (!data.isGuildRegistered()) {
-            player.sendSystemMessage(Component.literal("§cDebes inscribirte en el Gremio de Aventureros con un Guild Master en una aldea antes de poder ascender de rango."));
+        if (!data.hasDivineBlessingUnlocked()) {
+            player.sendSystemMessage(Component.literal("§cPrimero debes derrotar a tu primer enemigo y dormir para recibir la Bendición de un Dios en el Plano Astral."));
             return 0;
         }
 
@@ -1092,50 +1182,15 @@ public class RpgStatsCommand {
             return 0;
         }
 
-        // Verify Guild Master proximity
-        var nearbyMasters = player.serverLevel().getEntitiesOfClass(
-                com.pablo.rpglevels.entities.GuildMasterNpcEntity.class,
-                player.getBoundingBox().inflate(8.0)
-        );
-        if (nearbyMasters.isEmpty()) {
-            player.sendSystemMessage(Component.literal("§c¡Para ascender de rango debes presentarte en persona ante un Maestro del Gremio en cualquier aldea!"));
+        int reqLevel = data.getCurrentMilestoneCap();
+        if (data.getRpgLevel() < reqLevel) {
+            player.sendSystemMessage(Component.literal("§cRequieres alcanzar el Hito de Nivel RPG " + reqLevel + " para ascender al siguiente rango (Nivel actual: " + data.getRpgLevel() + ")."));
             return 0;
         }
 
-        int reqLevel = data.getRank().getRequiredAscensionLevel();
-        if (player.experienceLevel < reqLevel) {
-            player.sendSystemMessage(Component.literal("§cRequieres Nivel " + reqLevel + " de XP para ascender al siguiente rango (Nivel actual: " + player.experienceLevel + ")."));
-            return 0;
-        }
-
-        // Perform ascension
-        boolean success = data.performAscension();
-        if (!success) {
-            return 0;
-        }
-
-        // Reset experience to 0
-        player.setExperienceLevels(0);
-        player.setExperiencePoints(0);
-
-        // Update attributes and sync
-        ModAttributesHandler.updatePlayerAttributes(player);
-        ModNetworking.syncToPlayer(player);
-
-        // Visual & Sound effects
-        var level = player.serverLevel();
-        level.sendParticles(net.minecraft.core.particles.ParticleTypes.TOTEM_OF_UNDYING, player.getX(), player.getY() + 1.0, player.getZ(), 60, 0.5, 0.5, 0.5, 0.2);
-        level.sendParticles(net.minecraft.core.particles.ParticleTypes.DRAGON_BREATH, player.getX(), player.getY() + 0.5, player.getZ(), 40, 0.5, 0.3, 0.5, 0.1);
-        player.playNotifySound(SoundEvents.TOTEM_USE, SoundSource.PLAYERS, 1.0f, 1.0f);
-        player.playNotifySound(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 1.0f, 1.0f);
-
-        // Announcement
-        Component rankBadge = data.getRank().getBadge();
-        player.sendSystemMessage(Component.empty());
-        player.sendSystemMessage(Component.translatable("rpglevels.ascension.success.title").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
-        player.sendSystemMessage(Component.translatable("rpglevels.ascension.success.desc", rankBadge).withStyle(ChatFormatting.GREEN));
-        player.sendSystemMessage(Component.empty());
-
+        com.pablo.rpglevels.data.GreekGod god = data.getPatronGod();
+        String godName = (god != null) ? god.getDisplayName() : "tu Dios";
+        player.sendSystemMessage(Component.literal("§d✦ Has alcanzado el Hito de Nivel " + reqLevel + ". §eDuerme en cualquier cama para acudir al Espacio Astral y que §b" + godName + " §ete otorgue la Ascensión."));
         return 1;
     }
 

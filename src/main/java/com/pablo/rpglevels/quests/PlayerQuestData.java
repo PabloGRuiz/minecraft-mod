@@ -144,9 +144,15 @@ public class PlayerQuestData implements INBTSerializable<CompoundTag> {
         activeQuests.remove(questId);
         claimedQuests.add(questId);
 
-        // Give XP
+        // Give XP (both vanilla XP and RPG XP if blessed by a God)
         if (quest.rewardXp() > 0) {
             player.giveExperiencePoints(quest.rewardXp());
+            com.pablo.rpglevels.data.PlayerRpgData rpgData = player.getData(com.pablo.rpglevels.data.ModAttachments.PLAYER_RPG_DATA);
+            if (rpgData != null && rpgData.hasDivineBlessingUnlocked()) {
+                int rpgXpGain = Math.max(40, quest.rewardXp() / 3);
+                rpgData.addRpgXp(player, rpgXpGain);
+                player.sendSystemMessage(net.minecraft.network.chat.Component.literal("§b✦ +" + rpgXpGain + " XP RPG por completar la misión del Gremio!"));
+            }
         }
 
         // Give items

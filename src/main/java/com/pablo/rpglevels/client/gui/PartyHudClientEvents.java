@@ -20,6 +20,16 @@ import java.util.List;
 @EventBusSubscriber(modid = RpgLevelsMod.MOD_ID, value = Dist.CLIENT)
 public class PartyHudClientEvents {
 
+    private static int lastHudBottom = 0;
+
+    public static int getPartyHudBottom() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.options.hideGui || !ClientPartyData.isInParty() || ClientPartyData.getMembers().isEmpty()) {
+            return 0;
+        }
+        return lastHudBottom;
+    }
+
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
         Minecraft mc = Minecraft.getInstance();
@@ -150,6 +160,7 @@ public class PartyHudClientEvents {
             currentY += boxH + 2;
         }
 
+        lastHudBottom = (int) (currentY * hudScale);
         guiGraphics.pose().popPose();
     }
 }

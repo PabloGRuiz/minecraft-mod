@@ -4,6 +4,7 @@ import com.pablo.rpglevels.RpgLevelsMod;
 import com.pablo.rpglevels.data.ModAttachments;
 import com.pablo.rpglevels.data.PlayerRpgData;
 import com.pablo.rpglevels.data.StatType;
+import com.pablo.rpglevels.items.SpiritualSwordItem;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.ai.attributes.Attribute;
@@ -19,6 +20,7 @@ public class ModAttributesHandler {
     private static final ResourceLocation MOD_FORT_TOUGHNESS = ResourceLocation.fromNamespaceAndPath(RpgLevelsMod.MOD_ID, "stat_fortitude_toughness");
     private static final ResourceLocation MOD_FORT_KNOCKBACK = ResourceLocation.fromNamespaceAndPath(RpgLevelsMod.MOD_ID, "stat_fortitude_knockback");
     private static final ResourceLocation MOD_FORT_DAMAGE = ResourceLocation.fromNamespaceAndPath(RpgLevelsMod.MOD_ID, "stat_fortitude_damage");
+    private static final ResourceLocation MOD_SPIRIT_SWORD_DAMAGE = ResourceLocation.fromNamespaceAndPath(RpgLevelsMod.MOD_ID, "stat_spirit_sword_damage");
 
     private static final ResourceLocation MOD_DEX_ATTACK_SPEED = ResourceLocation.fromNamespaceAndPath(RpgLevelsMod.MOD_ID, "stat_dexterity_attack_speed");
     private static final ResourceLocation MOD_DEX_SPEED = ResourceLocation.fromNamespaceAndPath(RpgLevelsMod.MOD_ID, "stat_dexterity_movement_speed");
@@ -59,38 +61,58 @@ public class ModAttributesHandler {
         double spirit = rawSpirit * powerRatio;
         double luck = rawLuck * powerRatio;
 
+        // Baseline estándar = 5 puntos en cada habilidad
+        double fortDelta = fortitude - 5.0;
+        double dexDelta = dexterity - 5.0;
+        double spiritDelta = spirit - 5.0;
+        double luckDelta = luck - 5.0;
+
         // Clean up legacy modifiers if present
         removeModifier(player, Attributes.ATTACK_DAMAGE, OLD_MOD_STR);
         removeModifier(player, Attributes.MAX_HEALTH, OLD_MOD_HP);
         removeModifier(player, Attributes.MOVEMENT_SPEED, OLD_MOD_AGI);
 
-        // 1. FORTITUDE (Max Health, Armor, Toughness, Knockback Resistance, Attack Damage)
-        applyModifier(player, Attributes.MAX_HEALTH, MOD_FORT_HP, fortitude * 1.5, AttributeModifier.Operation.ADD_VALUE);
-        applyModifier(player, Attributes.ARMOR, MOD_FORT_ARMOR, fortitude * 0.35, AttributeModifier.Operation.ADD_VALUE);
-        applyModifier(player, Attributes.ARMOR_TOUGHNESS, MOD_FORT_TOUGHNESS, fortitude * 0.15, AttributeModifier.Operation.ADD_VALUE);
-        applyModifier(player, Attributes.KNOCKBACK_RESISTANCE, MOD_FORT_KNOCKBACK, fortitude * 0.015, AttributeModifier.Operation.ADD_VALUE);
-        applyModifier(player, Attributes.ATTACK_DAMAGE, MOD_FORT_DAMAGE, fortitude * 0.25, AttributeModifier.Operation.ADD_VALUE);
+        // 1. FORTITUDE (Max Health, Armor, Toughness, Knockback Resistance - ya NO da daño por sí sola)
+        // En Fortitud = 5 -> +0 HP (20 de vida total). Por encima de 5: +2.0 HP/pt. Por debajo de 5: -1.5 HP/pt.
+        double hpBonus = (fortDelta >= 0.0) ? (fortDelta * 2.0) : (fortDelta * 1.5);
+        applyModifier(player, Attributes.MAX_HEALTH, MOD_FORT_HP, hpBonus, AttributeModifier.Operation.ADD_VALUE);
+        if (player.getHealth() > player.getMaxHealth()) {
+            player.setHealth(player.getMaxHealth());
+        }
+        applyModifier(player, Attributes.ARMOR, MOD_FORT_ARMOR, Math.max(0.0, fortDelta * 0.35), AttributeModifier.Operation.ADD_VALUE);
+        applyModifier(player, Attributes.ARMOR_TOUGHNESS, MOD_FORT_TOUGHNESS, Math.max(0.0, fortDelta * 0.15), AttributeModifier.Operation.ADD_VALUE);
+        applyModifier(player, Attributes.KNOCKBACK_RESISTANCE, MOD_FORT_KNOCKBACK, Math.max(0.0, fortDelta * 0.015), AttributeModifier.Operation.ADD_VALUE);
 
-        // 2. DEXTERITY (Attack Speed, Movement Speed, Jump Strength, Safe Fall Distance)
-        applyModifier(player, Attributes.ATTACK_SPEED, MOD_DEX_ATTACK_SPEED, dexterity * 0.025 * atkSpeedRatio, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
-        applyModifier(player, Attributes.MOVEMENT_SPEED, MOD_DEX_SPEED, dexterity * 0.012 * moveRatio, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
-        applyModifier(player, Attributes.JUMP_STRENGTH, MOD_DEX_JUMP, dexterity * 0.01 * jumpRatio, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
-        applyModifier(player, Attributes.SAFE_FALL_DISTANCE, MOD_DEX_FALL, dexterity * 0.4 * jumpRatio, AttributeModifier.Operation.ADD_VALUE);
+        // 1b. DAÑO FÍSICO (Determinado por la relación entre Fortitud y Destreza; 0.0 cuando ambas son 5 -> 1.0 daño base)
+        double relationDamageBonus = data.getPhysicalRelationDamageBonus(player);
+        applyModifier(player, Attributes.ATTACK_DAMAGE, MOD_FORT_DAMAGE, relationDamageBonus, AttributeModifier.Operation.ADD_VALUE);
 
-        // 3. LUCK (Native Minecraft Luck: +0.2 per point for fishing and dungeon loot)
-        applyModifier(player, Attributes.LUCK, MOD_LUCK, luck * 0.2, AttributeModifier.Operation.ADD_VALUE);
+        // 1c. BONO DE ESPÍRITU EN ESPADAS ESPIRITUALES
+        boolean holdingSpiritualSword = player.getMainHandItem().getItem() instanceof SpiritualSwordItem
+                && !SpiritualSwordItem.isTemporarilyExhausted(player.getMainHandItem());
+        double spiritSwordBonus = holdingSpiritualSword ? data.getSpiritualSwordSpiritBonus(player) : 0.0;
+        applyModifier(player, Attributes.ATTACK_DAMAGE, MOD_SPIRIT_SWORD_DAMAGE, spiritSwordBonus, AttributeModifier.Operation.ADD_VALUE);
+
+        // 2. DEXTERITY (Attack Speed, Movement Speed, Jump Strength, Safe Fall Distance - estándar = 0% en Destreza 5)
+        applyModifier(player, Attributes.ATTACK_SPEED, MOD_DEX_ATTACK_SPEED, dexDelta * 0.025 * atkSpeedRatio, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+        applyModifier(player, Attributes.MOVEMENT_SPEED, MOD_DEX_SPEED, dexDelta * 0.012 * moveRatio, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+        applyModifier(player, Attributes.JUMP_STRENGTH, MOD_DEX_JUMP, dexDelta * 0.01 * jumpRatio, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+        applyModifier(player, Attributes.SAFE_FALL_DISTANCE, MOD_DEX_FALL, Math.max(0.0, dexDelta * 0.4 * jumpRatio), AttributeModifier.Operation.ADD_VALUE);
+
+        // 3. LUCK (Native Minecraft Luck: 0.0 en Suerte 5, +/-0.2 por punto)
+        applyModifier(player, Attributes.LUCK, MOD_LUCK, luckDelta * 0.2, AttributeModifier.Operation.ADD_VALUE);
 
         // 4. Physical Skill Tree Damage Bonuses (+1 damage per Strength / Fortitude node)
         int bonusDmg = data.getBonusPhysicalAttackDamage();
         applyModifier(player, Attributes.ATTACK_DAMAGE, MOD_SKILL_PHYSICAL_DAMAGE, (double) bonusDmg * powerRatio, AttributeModifier.Operation.ADD_VALUE);
 
-        // 5. SPIRIT (Poder Mágico Espiritual: +2.5% por punto de Espíritu)
+        // 5. SPIRIT (Poder Mágico Espiritual: +2.5% por punto de Espíritu sobre la base)
         applyModifier(player, com.pablo.rpglevels.magic.spiritual.SpiritualAttributes.SPIRITUAL_SPELL_POWER,
-                MOD_SPIRIT_SPELL_POWER, spirit * 0.025, AttributeModifier.Operation.ADD_VALUE);
+                MOD_SPIRIT_SPELL_POWER, Math.max(0.0, spiritDelta * 0.025), AttributeModifier.Operation.ADD_VALUE);
 
         if (com.pablo.rpglevels.compat.irons.IronsSpellsCompat.isLoaded()) {
             boolean surge = data.isSpiritSurgeActive(player.level().getGameTime());
-            com.pablo.rpglevels.compat.irons.IronsSpellsCompat.applySpiritModifiers(player, (int) spirit, data.getChannelMagicTier(), surge);
+            com.pablo.rpglevels.compat.irons.IronsSpellsCompat.applySpiritModifiers(player, (int) Math.round(spirit), data.getChannelMagicTier(), surge);
         }
     }
 
@@ -103,11 +125,11 @@ public class ModAttributesHandler {
         AttributeModifier existing = instance.getModifier(id);
         if (existing != null) {
             if (Math.abs(existing.amount() - value) < 0.0001 && existing.operation() == op) {
-                return; // Valor idéntico; no remover ni recrear para evitar sobrecarga y eventos de cambio constantes
+                return;
             }
             instance.removeModifier(id);
         }
-        if (value > 0.0) {
+        if (Math.abs(value) > 0.0001) {
             AttributeModifier modifier = new AttributeModifier(id, value, op);
             instance.addTransientModifier(modifier);
         }

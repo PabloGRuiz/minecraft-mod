@@ -16,11 +16,19 @@ public class ModDimensions {
     public static final ResourceKey<Level> VOID_TRIAL_LEVEL = ResourceKey.create(Registries.DIMENSION, VOID_TRIAL_ID);
     public static final ResourceKey<DimensionType> VOID_TRIAL_TYPE = ResourceKey.create(Registries.DIMENSION_TYPE, VOID_TRIAL_ID);
 
+    public static final ResourceLocation ASTRAL_ID = ResourceLocation.fromNamespaceAndPath(RpgLevelsMod.MOD_ID, "astral");
+    public static final ResourceKey<Level> ASTRAL_LEVEL = ResourceKey.create(Registries.DIMENSION, ASTRAL_ID);
+    public static final ResourceKey<DimensionType> ASTRAL_TYPE = ResourceKey.create(Registries.DIMENSION_TYPE, ASTRAL_ID);
+
     public static boolean isAbyssRift(Level level) {
         return level != null && level.dimension().equals(ABYSS_RIFT_LEVEL);
     }
 
     public static boolean isVoidTrial(Level level) {
-        return level != null && level.dimension().equals(VOID_TRIAL_LEVEL);
+        return level != null && (level.dimension().equals(VOID_TRIAL_LEVEL) || level.dimension().equals(ASTRAL_LEVEL));
+    }
+
+    public static boolean isAstral(Level level) {
+        return level != null && (level.dimension().equals(ASTRAL_LEVEL) || level.dimension().equals(VOID_TRIAL_LEVEL));
     }
 }

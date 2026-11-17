@@ -1,6 +1,7 @@
 package com.pablo.rpglevels.entities;
 
 import com.pablo.rpglevels.data.AdventurerRank;
+import com.pablo.rpglevels.data.GreekGod;
 import com.pablo.rpglevels.data.ModAttachments;
 import com.pablo.rpglevels.data.PlayerRpgData;
 import com.pablo.rpglevels.network.OpenNpcDialoguePayload;
@@ -94,22 +95,34 @@ public class GuildMasterNpcEntity extends PathfinderMob {
 
             int rep = data.getReputationScore();
             String masterName = this.getName().getString();
+            GreekGod god = data.getPatronGod();
+            String godName = (god != null) ? god.getDisplayName() : "los Dioses";
             String dialogue;
 
             if (rep < 0) {
-                dialogue = "¡Un criminal buscado! El Gremio de Aventureros no tolera forajidos ni escoria como tú. Márchate de aquí antes de que alerte a la guardia.";
+                dialogue = "¡Un criminal buscado! Aunque portes la mirada de " + godName + ", el Gremio de Aventureros no tolera forajidos en sus sedes. Márchate antes de que alerte a la guardia.";
                 this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
                         SoundEvents.VILLAGER_NO, SoundSource.NEUTRAL, 0.9F, 1.0F);
                 if (this.level() instanceof ServerLevel sl) {
                     sl.sendParticles(ParticleTypes.ANGRY_VILLAGER, this.getX(), this.getY() + 1.8, this.getZ(), 3, 0.2, 0.2, 0.2, 0.0);
                 }
             } else if (!data.isGuildRegistered()) {
-                dialogue = "Saludos, viajero. Soy " + masterName + ", Maestro del Gremio de Aventureros. Veo gran potencial en ti... ¿Deseas inscribirte formalmente en el gremio para iniciar tu carrera como Aventurero de Rango F?";
+                if (data.hasDivineBlessingUnlocked() && god != null) {
+                    dialogue = "Saludos, viajero. Soy " + masterName + ", Maestro del Gremio. Percibo en tu espíritu la Bendición Divina de " + god.getDisplayName() + ". ¿Deseas inscribirte como Aventurero de Rango F? Recuerda que para progresar en los rangos deberás alcanzar cada Hito de Nivel para que tu Dios te otorgue la Ascensión en el Plano Astral.";
+                } else {
+                    dialogue = "Saludos, viajero. Soy " + masterName + ", Maestro del Gremio. En este mundo los Dioses observan desde el Plano Astral: abate a tu primer enemigo y duerme para recibir su Bendición y poder subir de nivel. ¿Deseas inscribirte formalmente como Aventurero de Rango F?";
+                }
                 this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
                         SoundEvents.VILLAGER_YES, SoundSource.NEUTRAL, 0.9F, 1.1F);
             } else {
                 AdventurerRank rank = data.getRank();
-                dialogue = "¡Bienvenido de vuelta, Aventurero " + player.getName().getString() + " (Rango " + rank.getName() + ")! ¿Vienes a consultar las misiones disponibles del gremio o necesitas asistencia?";
+                if (!data.hasDivineBlessingUnlocked()) {
+                    dialogue = "¡Bienvenido, Aventurero " + player.getName().getString() + " (Rango " + rank.getName() + ")! Aún no posees la Bendición de un Dios. Derrota a tu primer monstruo y ve a dormir para que un Dios te convoque al Espacio Astral y desbloquee tu subida de nivel.";
+                } else if (data.isAtMilestoneCap()) {
+                    dialogue = "¡Asombroso, " + player.getName().getString() + "! Has alcanzado el Hito de Nivel " + data.getCurrentMilestoneCap() + " de Rango " + rank.getName() + ". Como dicta la ley divina, ve a dormir a una cama: " + godName + " te convocará al Espacio Astral para felicitarte y otorgarte la Ascensión al siguiente rango.";
+                } else {
+                    dialogue = "¡Bienvenido, " + player.getName().getString() + " (Rango " + rank.getName() + ", Bendecido por " + godName + ")! Para ascender de rango debes llegar al Hito de Nivel " + data.getCurrentMilestoneCap() + " (actual: Nivel " + data.getRpgLevel() + ") y dormir para que " + godName + " te otorgue la Ascensión en el Plano Astral.";
+                }
                 this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
                         SoundEvents.VILLAGER_YES, SoundSource.NEUTRAL, 0.9F, 1.2F);
             }
@@ -121,7 +134,6 @@ public class GuildMasterNpcEntity extends PathfinderMob {
             );
             boolean anyReady = !companions.isEmpty();
 
-            // Open Guild Master Dialogue Screen
             PacketDistributor.sendToPlayer(serverPlayer, new OpenNpcDialoguePayload(
                     this.getId(),
                     masterName,
@@ -129,7 +141,7 @@ public class GuildMasterNpcEntity extends PathfinderMob {
                     0,
                     data.getRank().getIndex(),
                     50,
-                    data.isGuildRegistered(), // repurposed to indicate registration status
+                    data.isGuildRegistered(),
                     false,
                     0L,
                     false,
@@ -148,4 +160,3 @@ public class GuildMasterNpcEntity extends PathfinderMob {
         return InteractionResult.sidedSuccess(this.level().isClientSide());
     }
 }
-
