@@ -158,6 +158,14 @@ public class ModItems {
                     0x9C36B5, // Violeta espiritual
                     new Item.Properties()));
 
+    // Huevo generador de Starry (Compañero zorro místico)
+    public static final DeferredItem<Item> STARRY_SPAWN_EGG = ITEMS.register("starry_spawn_egg",
+            () -> new DeferredSpawnEggItem(
+                    ModEntities.STARRY,
+                    0xFFA6D5, // Rosa pastel floreciente
+                    0x7EE8FA, // Celeste estelar celestial
+                    new Item.Properties()));
+
     // Grimorio del Segador Espiritual (Libro de Hechizos Oficial de Iron's Spells - 3 ranuras rápidas)
     public static final DeferredItem<Item> SPIRITUAL_SPELLBOOK = ITEMS.register("spiritual_spellbook",
             () -> new io.redspace.ironsspellbooks.item.SpellBook(3, new Item.Properties().rarity(Rarity.RARE).stacksTo(1))

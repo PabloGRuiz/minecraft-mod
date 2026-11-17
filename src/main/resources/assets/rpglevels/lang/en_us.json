@@ -388,6 +388,8 @@
     "item.rpglevels.horned_voidborn_spawn_egg": "Spawn Horned Voidborn",
     "entity.rpglevels.colossal_voidborn": "Colossal Voidborn",
     "item.rpglevels.colossal_voidborn_spawn_egg": "Spawn Colossal Voidborn",
+    "entity.rpglevels.starry": "Starry",
+    "item.rpglevels.starry_spawn_egg": "Spawn Starry",
     "ui.rpglevels.power_control.title": "Power Control & Regulation",
     "item.rpglevels.lesser_soul_fragment": "Lesser Soul Fragment",
     "item.rpglevels.lesser_soul_crystal.desc": "The crystallization of the purest and most fragile soul essence. Fundamental base for human metallurgy, forging alloys, and quenching.",

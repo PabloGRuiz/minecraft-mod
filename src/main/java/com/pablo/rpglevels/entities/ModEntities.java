@@ -157,4 +157,11 @@ public class ModEntities {
                     .clientTrackingRange(10)
                     .updateInterval(1)
                     .build("hollow_rock"));
+
+    public static final Supplier<EntityType<StarryEntity>> STARRY =
+            ENTITIES.register("starry", () -> EntityType.Builder.of(StarryEntity::new, MobCategory.CREATURE)
+                    .sized(0.7f, 0.75f)
+                    .eyeHeight(0.6f)
+                    .clientTrackingRange(10)
+                    .build("starry"));
 }

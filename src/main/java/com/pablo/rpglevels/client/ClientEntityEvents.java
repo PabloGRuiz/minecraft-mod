@@ -52,6 +52,8 @@ public class ClientEntityEvents {
                 com.pablo.rpglevels.client.model.HornedVoidbornModel::createBodyLayer);
         event.registerLayerDefinition(com.pablo.rpglevels.client.model.ColossalVoidbornModel.LAYER_LOCATION,
                 com.pablo.rpglevels.client.model.ColossalVoidbornModel::createBodyLayer);
+        event.registerLayerDefinition(com.pablo.rpglevels.client.model.StarryModel.LAYER_LOCATION,
+                com.pablo.rpglevels.client.model.StarryModel::createBodyLayer);
     }
 
     @SubscribeEvent
@@ -83,6 +85,8 @@ public class ClientEntityEvents {
                 com.pablo.rpglevels.client.renderer.HornedVoidbornRenderer::new);
         event.registerEntityRenderer(ModEntities.COLOSSAL_VOIDBORN.get(),
                 com.pablo.rpglevels.client.renderer.ColossalVoidbornRenderer::new);
+        event.registerEntityRenderer(ModEntities.STARRY.get(),
+                com.pablo.rpglevels.client.renderer.StarryRenderer::new);
         event.registerEntityRenderer(ModEntities.HOLLOW_ROCK.get(),
                 (ctx) -> new net.minecraft.client.renderer.entity.ThrownItemRenderer<>(ctx, 2.2f, false));
         event.registerEntityRenderer(ModEntities.SPIRITUAL_BEAM.get(),
