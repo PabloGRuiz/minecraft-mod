@@ -30,6 +30,7 @@ import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent;
 import com.pablo.rpglevels.entities.AdventurerNpcEntity;
+import com.pablo.rpglevels.data.AdventurerRank;
 import com.pablo.rpglevels.data.ThreatLevel;
 import java.util.List;
 import top.theillusivec4.curios.api.CuriosApi;
@@ -673,19 +674,19 @@ public class CombatEvents {
                 }
             }
 
-            int xpReward = switch (threat) {
-                case GENESIS -> 2500;
-                case CATASTROPHE -> 1800;
-                case GRAND_DISASTER -> 1200;
-                case DISASTER -> 800;
-                case CALAMITY -> 500;
-                case HAZARD -> 350;
-                case A -> 180;
-                case B -> 100;
-                case C -> 55;
-                case D -> 35;
-                case E -> 20;
-                default -> 12;
+            int baseReward = switch (threat) {
+                case GENESIS -> 9000;
+                case CATASTROPHE -> 5500;
+                case GRAND_DISASTER -> 3500;
+                case DISASTER -> 2200;
+                case CALAMITY -> 1400;
+                case HAZARD -> 800;
+                case A -> 450;
+                case B -> 250;
+                case C -> 140;
+                case D -> 80;
+                case E -> 45;
+                default -> 25;
             };
 
             // Detección y recompensa aumentada para Jefes Mundiales y Jefes del Mod
@@ -701,46 +702,65 @@ public class CombatEvents {
 
             if (isBoss) {
                 if (victim instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon) {
-                    xpReward = Math.max(xpReward, 1500);
+                    baseReward = Math.max(baseReward, 3500);
                 } else if (victim instanceof net.minecraft.world.entity.monster.warden.Warden) {
-                    xpReward = Math.max(xpReward, 1200);
+                    baseReward = Math.max(baseReward, 3000);
                 } else if (victim instanceof net.minecraft.world.entity.boss.wither.WitherBoss) {
-                    xpReward = Math.max(xpReward, 1000);
+                    baseReward = Math.max(baseReward, 2500);
                 } else if (victim instanceof com.pablo.rpglevels.entities.WindMasterBossEntity windMaster) {
-                    xpReward = windMaster.isEmpowered() ? 750 : 500;
+                    baseReward = windMaster.isEmpowered() ? 1800 : 1200;
                 } else if (victim instanceof com.pablo.rpglevels.entities.ColossalVoidbornEntity) {
-                    xpReward = Math.max(xpReward, 600);
+                    baseReward = Math.max(baseReward, 1400);
                 } else if (victim instanceof com.pablo.rpglevels.entities.VoidbornExecutorEntity) {
-                    xpReward = Math.max(xpReward, 450);
+                    baseReward = Math.max(baseReward, 1000);
                 } else if (victim instanceof com.pablo.rpglevels.entities.UndeadAdventurerBossEntity) {
-                    xpReward = Math.max(xpReward, 450);
+                    baseReward = Math.max(baseReward, 1000);
                 } else if (victim instanceof com.pablo.rpglevels.entities.CultistBossEntity) {
-                    xpReward = Math.max(xpReward, 400);
+                    baseReward = Math.max(baseReward, 900);
                 } else if (victim instanceof net.minecraft.world.entity.monster.ElderGuardian) {
-                    xpReward = Math.max(xpReward, 350);
+                    baseReward = Math.max(baseReward, 700);
                 } else {
-                    xpReward = Math.max(xpReward, 400);
+                    baseReward = Math.max(baseReward, 800);
                 }
-
-                serverPlayer.sendSystemMessage(Component.literal(
-                        "§6✦ §l[¡JEFE DERROTADO!] §eHas vencido a §f" + victim.getDisplayName().getString() + " §7(§a+" + xpReward + " XP RPG§7)"));
-                serverPlayer.serverLevel().playSound(null, serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(),
-                        SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 1.0f, 1.1f);
             }
 
-            // Otorgar XP RPG propia al jugador responsable (y compañeros de party jugadores) si ya tienen la Bendición Divina
+            // Otorgar XP RPG escalada exponencialmente al jugador responsable según la diferencia de rango
             PlayerRpgData killerData = serverPlayer.getData(ModAttachments.PLAYER_RPG_DATA);
-            if (killerData != null && killerData.hasDivineBlessingUnlocked()) {
-                killerData.addRpgXp(serverPlayer, xpReward);
+            int killerXp = baseReward;
+            if (killerData != null) {
+                AdventurerRank pRank = killerData.getRank();
+                killerXp = calculateRankScaledXp(baseReward, pRank, threat);
+
+                if (killerData.hasDivineBlessingUnlocked()) {
+                    killerData.addRpgXp(serverPlayer, killerXp);
+                }
+
+                int rankDiff = threat.ordinal() - pRank.getIndex();
+                if (rankDiff >= 2) {
+                    double mult = (double) killerXp / (double) baseReward;
+                    serverPlayer.sendSystemMessage(Component.literal(
+                            "§6✦ §l[¡PROEZA CONTRA EL DESTINO!] §eSiendo Rango §f" + pRank.getName()
+                                    + " §ehas abatido a un enemigo §b" + threat.getDisplayName()
+                                    + " §7(§a+" + killerXp + " XP RPG §econ bono exponencial §d×" + String.format(java.util.Locale.US, "%.1f", mult) + "§7)"));
+                    serverPlayer.serverLevel().playSound(null, serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(),
+                            SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 1.0f, 1.3f);
+                    serverPlayer.serverLevel().sendParticles(ParticleTypes.TOTEM_OF_UNDYING,
+                            serverPlayer.getX(), serverPlayer.getY() + 1.0, serverPlayer.getZ(), 30, 0.4, 0.5, 0.4, 0.2);
+                } else if (isBoss) {
+                    serverPlayer.sendSystemMessage(Component.literal(
+                            "§6✦ §l[¡JEFE DERROTADO!] §eHas vencido a §f" + victim.getDisplayName().getString() + " §7(§a+" + killerXp + " XP RPG§7)"));
+                    serverPlayer.serverLevel().playSound(null, serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(),
+                            SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 1.0f, 1.1f);
+                }
             }
 
             // Repartir experiencia a los aventureros NPC y aliados de party cercanos
             List<LivingEntity> recipients = com.pablo.rpglevels.party.PartyManager.getPartyXpRecipients(serverPlayer, 48.0);
             if (!recipients.isEmpty()) {
-                int share = Math.max(isBoss ? 100 : 15, xpReward / recipients.size());
                 for (LivingEntity recipient : recipients) {
                     if (recipient instanceof AdventurerNpcEntity adv) {
-                        adv.addExperience(Math.max(isBoss ? 150 : 20, share));
+                        int advShare = Math.max(isBoss ? 150 : 25, baseReward / recipients.size());
+                        adv.addExperience(advShare);
                         // Bonificación de afinidad en combate
                         if (adv.isHiredBy(serverPlayer) && (isBoss || threat.ordinal() >= ThreatLevel.C.ordinal())) {
                             adv.addAffinity(serverPlayer, isBoss ? 3 : 1);
@@ -748,16 +768,55 @@ public class CombatEvents {
                     } else if (recipient instanceof ServerPlayer allyPlayer && allyPlayer != serverPlayer) {
                         PlayerRpgData allyData = allyPlayer.getData(ModAttachments.PLAYER_RPG_DATA);
                         if (allyData != null && allyData.hasDivineBlessingUnlocked()) {
-                            int allyGain = Math.max(isBoss ? 150 : 8, xpReward / 2);
-                            allyData.addRpgXp(allyPlayer, allyGain);
-                            if (isBoss) {
+                            // Cada aliado en party calcula su propio escalamiento exponencial según su propio rango
+                            int allyBase = Math.max(15, baseReward / 2);
+                            int allyXp = calculateRankScaledXp(allyBase, allyData.getRank(), threat);
+                            allyData.addRpgXp(allyPlayer, allyXp);
+
+                            int allyRankDiff = threat.ordinal() - allyData.getRank().getIndex();
+                            if (allyRankDiff >= 2) {
+                                double allyMult = (double) allyXp / (double) allyBase;
                                 allyPlayer.sendSystemMessage(Component.literal(
-                                        "§6✦ §l[¡JEFE DERROTADO!] §eTu grupo venció a §f" + victim.getDisplayName().getString() + " §7(§a+" + allyGain + " XP RPG§7)"));
+                                        "§6✦ §l[¡PROEZA EN GRUPO!] §eTu grupo abatió a un enemigo §b" + threat.getDisplayName()
+                                                + " §7(§a+" + allyXp + " XP RPG §econ bono exponencial §d×" + String.format(java.util.Locale.US, "%.1f", allyMult) + "§7)"));
+                            } else if (isBoss) {
+                                allyPlayer.sendSystemMessage(Component.literal(
+                                        "§6✦ §l[¡JEFE DERROTADO!] §eTu grupo venció a §f" + victim.getDisplayName().getString() + " §7(§a+" + allyXp + " XP RPG§7)"));
                             }
                         }
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * Calculates exponential RPG XP based on the difference between the monster's threat level
+     * and the adventurer's rank. If a low-rank adventurer takes down a high-threat monster,
+     * they are rewarded exponentially (e.g. Rank F defeating a Rank B monster grants ~13x XP).
+     */
+    public static int calculateRankScaledXp(int baseReward, AdventurerRank playerRank, ThreatLevel threat) {
+        if (playerRank == null || threat == null || baseReward <= 0) {
+            return baseReward;
+        }
+
+        int playerRankIndex = playerRank.getIndex(); // 0 (F) to 5 (A)
+        int mobThreatIndex = threat.ordinal();       // 0 (F) to 11 (GENESIS)
+        int rankDiff = mobThreatIndex - playerRankIndex;
+
+        if (rankDiff > 0) {
+            // Escalamiento exponencial cuando el enemigo supera el rango del cazador:
+            // Cada rango de diferencia superior multiplica exponencialmente por 1.9^rankDiff (tope de exponente 7)
+            double exponent = Math.min(7.0, (double) rankDiff);
+            double exponentialMultiplier = Math.pow(1.9, exponent);
+            return Math.max(baseReward, (int) Math.round(baseReward * exponentialMultiplier));
+        } else if (rankDiff < 0) {
+            // Penalización suave cuando un cazador de rango alto elimina criaturas muy débiles
+            double underlevelMult = Math.max(0.25, 1.0 - (Math.abs(rankDiff) * 0.15));
+            return Math.max(1, (int) Math.round(baseReward * underlevelMult));
+        } else {
+            // Mismo rango: recompensa base completa
+            return baseReward;
         }
     }
 }

@@ -212,10 +212,12 @@ public class BanditAmbushManager {
 
         // Recompensa de Experiencia RPG para el jugador que superó la emboscada
         PlayerRpgData rpgData = player.getData(ModAttachments.PLAYER_RPG_DATA);
-        int ambushXp = 350 + (ambush.totalBandits * 20); // 450 a 650 XP de RPG
+        int baseAmbushXp = 400 + (ambush.totalBandits * 25);
         if (rpgData != null && rpgData.hasDivineBlessingUnlocked()) {
-            rpgData.addRpgXp(player, ambushXp);
-            player.sendSystemMessage(Component.literal("§6✦ §l[¡EMBOSCADA SUPERADA!] §eHas obtenido §a+" + ambushXp + " XP RPG §epor erradicar a la banda forajida."));
+            int finalAmbushXp = com.pablo.rpglevels.events.CombatEvents.calculateRankScaledXp(
+                    baseAmbushXp, rpgData.getRank(), com.pablo.rpglevels.data.ThreatLevel.C);
+            rpgData.addRpgXp(player, finalAmbushXp);
+            player.sendSystemMessage(Component.literal("§6✦ §l[¡EMBOSCADA SUPERADA!] §eHas obtenido §a+" + finalAmbushXp + " XP RPG §epor erradicar la banda forajida."));
         }
 
         // Repartir experiencia de emboscada a los compañeros de grupo
@@ -224,12 +226,14 @@ public class BanditAmbushManager {
             if (recipient instanceof ServerPlayer ally && ally != player) {
                 PlayerRpgData allyData = ally.getData(ModAttachments.PLAYER_RPG_DATA);
                 if (allyData != null && allyData.hasDivineBlessingUnlocked()) {
-                    int allyXp = Math.max(120, ambushXp / 2);
+                    int allyBase = 200 + (ambush.totalBandits * 12);
+                    int allyXp = com.pablo.rpglevels.events.CombatEvents.calculateRankScaledXp(
+                            allyBase, allyData.getRank(), com.pablo.rpglevels.data.ThreatLevel.C);
                     allyData.addRpgXp(ally, allyXp);
                     ally.sendSystemMessage(Component.literal("§6✦ §l[¡EMBOSCADA SUPERADA!] §eHas obtenido §a+" + allyXp + " XP RPG §epor cooperar en el grupo."));
                 }
             } else if (recipient instanceof AdventurerNpcEntity adv) {
-                adv.addExperience(250);
+                adv.addExperience(300);
             }
         }
 

@@ -17,11 +17,11 @@ import net.minecraft.world.entity.player.Player;
  */
 public enum ThreatLevel {
     F("F", "Rango F", ChatFormatting.GRAY, false, 0.0, 0.0),
-    E("E", "Rango E", ChatFormatting.GREEN, false, 15.0, 3.0),
-    D("D", "Rango D", ChatFormatting.AQUA, false, 31.0, 6.0),
-    C("C", "Rango C", ChatFormatting.BLUE, false, 51.0, 10.0),
-    B("B", "Rango B", ChatFormatting.DARK_PURPLE, false, 81.0, 14.0),
-    A("A", "Rango A", ChatFormatting.LIGHT_PURPLE, false, 120.0, 18.0),
+    E("E", "Rango E", ChatFormatting.GREEN, false, 25.0, 5.0),
+    D("D", "Rango D", ChatFormatting.AQUA, false, 36.0, 7.0),
+    C("C", "Rango C", ChatFormatting.BLUE, false, 55.0, 10.0),
+    B("B", "Rango B", ChatFormatting.DARK_PURPLE, false, 85.0, 14.0),
+    A("A", "Rango A", ChatFormatting.LIGHT_PURPLE, false, 125.0, 18.0),
     HAZARD("Hazard", "Hazard / Alerta", ChatFormatting.GOLD, true, 160.0, 22.0),
     CALAMITY("Calamity", "Calamity / Calamidad", ChatFormatting.RED, true, 251.0, 31.0),
     DISASTER("Disaster", "Disaster / Desastre", ChatFormatting.DARK_RED, true, 451.0, 46.0),
