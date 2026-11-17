@@ -215,15 +215,13 @@ public class AbyssDungeonEvents {
 
         // Run check every 2 seconds (40 ticks)
         if (player.tickCount % 40 == 0) {
-            // Comprobación de Rechazo del Vacío: si expira la protección o no tiene 500 MP Máximo, es expulsado
+            // Comprobación de Rechazo del Vacío: si expira el efecto de Inmunidad Abisal, es expulsado de inmediato
             if (!player.isCreative() && !player.isSpectator()) {
-                com.pablo.rpglevels.data.PlayerRpgData rpgData = player.getData(com.pablo.rpglevels.data.ModAttachments.PLAYER_RPG_DATA);
-                float maxMana = (rpgData != null) ? rpgData.getMaxMana(player) : 0.0f;
                 boolean hasWard = player.hasEffect(com.pablo.rpglevels.init.ModMobEffects.ABYSSAL_WARD);
 
-                if (maxMana < 500.0f && !hasWard) {
+                if (!hasWard) {
                     AbyssTeleportHelper.exitAbyssRift(player);
-                    com.pablo.rpglevels.world.dimension.AbyssPortalBlock.executeVoidRejection(player, maxMana);
+                    com.pablo.rpglevels.world.dimension.AbyssPortalBlock.executeVoidRejection(player);
                     return;
                 }
             }

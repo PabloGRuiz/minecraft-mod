@@ -66,14 +66,11 @@ public class AbyssTeleportHelper {
             return;
         }
 
-        // Validación de Rechazo del Vacío: Requiere 500 de Maná Máximo o la Protección de Alice
+        // Validación de Rechazo del Vacío: Requiere el efecto de Inmunidad de Alice
         if (!player.isCreative() && !player.isSpectator()) {
-            com.pablo.rpglevels.data.PlayerRpgData rpgData = player.getData(com.pablo.rpglevels.data.ModAttachments.PLAYER_RPG_DATA);
-            float maxMana = rpgData != null ? rpgData.getMaxMana(player) : 0.0f;
             boolean hasWard = player.hasEffect(com.pablo.rpglevels.init.ModMobEffects.ABYSSAL_WARD);
-
-            if (maxMana < 500.0f && !hasWard) {
-                AbyssPortalBlock.executeVoidRejection(player, maxMana);
+            if (!hasWard) {
+                AbyssPortalBlock.executeVoidRejection(player);
                 return;
             }
         }

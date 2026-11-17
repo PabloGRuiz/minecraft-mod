@@ -864,7 +864,6 @@ public record NpcDialogueActionPayload(int entityId, int actionType) implements 
                 }
             }
             case ACTION_ALICE_REQUEST_WARD -> {
-                float maxMana = rpgData != null ? rpgData.getMaxMana(player) : 0.0f;
                 player.addEffect(new net.minecraft.world.effect.MobEffectInstance(
                         com.pablo.rpglevels.init.ModMobEffects.ABYSSAL_WARD, 24000, 0, false, false, true
                 ));
@@ -878,11 +877,7 @@ public record NpcDialogueActionPayload(int entityId, int actionType) implements 
                 player.serverLevel().sendParticles(ParticleTypes.SOUL_FIRE_FLAME,
                         player.getX(), player.getY() + 1.2, player.getZ(), 25, 0.3, 0.5, 0.3, 0.08);
 
-                if (maxMana >= 500.0f) {
-                    responseDialogue = "§5«Tu energía espiritual ya es colosal (" + (int)maxMana + " MP). El Vacío del Abismo no tiene poder para expulsarte, pero aun así te otorgo mi bendición. ¡Ve con cuidado!»";
-                } else {
-                    responseDialogue = "§5«He sellado tu alma con mi manto protector. Durante los próximos 20 minutos el Vacío del Abismo no te expulsará. Aprovecha para explorar y hallar al Cultista. Si logras alcanzar 500 de Maná Máximo, no volverás a necesitar mi protección.»";
-                }
+                responseDialogue = "§5«He encantado tu alma con mi Manto de Inmunidad Abisal. El Vacío ejerce una fuerza de repulsión destructiva contra cualquier ser vivo, pero durante los próximos 20 minutos serás totalmente inmune a su rechazo. ¡Ve con cuidado y regresa antes de que se disipe!»";
             }
             case ACTION_GIFT -> {
                 ItemStack heldItem = player.getItemInHand(InteractionHand.MAIN_HAND);

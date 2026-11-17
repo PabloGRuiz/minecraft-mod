@@ -107,13 +107,11 @@ public class AbyssPortalBlock extends Block {
                 AbyssTeleportHelper.exitAbyssRift(player);
             } else {
                 // Entrando al Abismo desde el Overworld: Comprobar Rechazo del Vacío
-                PlayerRpgData rpgData = player.getData(ModAttachments.PLAYER_RPG_DATA);
-                float maxMana = rpgData != null ? rpgData.getMaxMana(player) : 0.0f;
                 boolean hasWard = player.hasEffect(ModMobEffects.ABYSSAL_WARD);
 
-                if (!player.isCreative() && !player.isSpectator() && maxMana < 500.0f && !hasWard) {
+                if (!player.isCreative() && !player.isSpectator() && !hasWard) {
                     // ¡RECHAZO DEL VACÍO!
-                    executeVoidRejection(player, maxMana);
+                    executeVoidRejection(player);
                     return;
                 }
 
@@ -126,7 +124,7 @@ public class AbyssPortalBlock extends Block {
     /**
      * Expulsa y repele al jugador con un impacto del Vacío si intenta entrar sin la preparación requerida.
      */
-    public static void executeVoidRejection(ServerPlayer player, float currentMaxMana) {
+    public static void executeVoidRejection(ServerPlayer player) {
         ServerLevel serverLevel = player.serverLevel();
 
         // Empuje violento hacia atrás
@@ -147,11 +145,10 @@ public class AbyssPortalBlock extends Block {
         // Títulos de alerta en pantalla
         player.connection.send(new ClientboundSetTitlesAnimationPacket(10, 60, 20));
         player.connection.send(new ClientboundSetTitleTextPacket(Component.literal("§c§l✦ ¡EL VACÍO TE RECHAZA! ✦")));
-        player.connection.send(new ClientboundSetSubtitleTextPacket(Component.literal("§7Requiere 500 MP Máximo o la Protección de Alice.")));
+        player.connection.send(new ClientboundSetSubtitleTextPacket(Component.literal("§7Requiere el efecto de Inmunidad Abisal de Alice.")));
 
-        player.sendSystemMessage(Component.literal("§c[Abismo] §7Tu energía espiritual es insuficiente (§e"
-                + (int) currentMaxMana + "§7/§a500 MP§7) para soportar la presión dimensional."));
-        player.sendSystemMessage(Component.literal("§7Habla con §dAlice §7en el Gremio para que encante tu alma con su §bProtección Espiritual (20 min)§7."));
+        player.sendSystemMessage(Component.literal("§c[Abismo] §7La fuerza de repulsión del Vacío te ha expulsado violentamente."));
+        player.sendSystemMessage(Component.literal("§7Habla con §dAlice §7en el Gremio para que te otorgue su §bInmunidad al Rechazo Abisal (20 min)§7."));
     }
 
     @Override
