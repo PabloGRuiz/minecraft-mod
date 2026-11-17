@@ -77,6 +77,7 @@ public class RpgLevelsMod {
         event.put(ModEntities.HORNED_VOIDBORN.get(), com.pablo.rpglevels.entities.HornedVoidbornEntity.createAttributes().build());
         event.put(ModEntities.COLOSSAL_VOIDBORN.get(), com.pablo.rpglevels.entities.ColossalVoidbornEntity.createAttributes().build());
         event.put(ModEntities.STARRY.get(), com.pablo.rpglevels.entities.StarryEntity.createAttributes().build());
+        event.put(ModEntities.BRAMBI.get(), com.pablo.rpglevels.entities.BrambiEntity.createAttributes().build());
     }
 
     private void registerSpawnPlacements(RegisterSpawnPlacementsEvent event) {
@@ -121,6 +122,11 @@ public class RpgLevelsMod {
                 net.minecraft.world.entity.monster.Monster::checkAnyLightMonsterSpawnRules,
                 RegisterSpawnPlacementsEvent.Operation.REPLACE);
         event.register(ModEntities.STARRY.get(),
+                SpawnPlacementTypes.ON_GROUND,
+                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                net.minecraft.world.entity.animal.Animal::checkAnimalSpawnRules,
+                RegisterSpawnPlacementsEvent.Operation.REPLACE);
+        event.register(ModEntities.BRAMBI.get(),
                 SpawnPlacementTypes.ON_GROUND,
                 Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
                 net.minecraft.world.entity.animal.Animal::checkAnimalSpawnRules,

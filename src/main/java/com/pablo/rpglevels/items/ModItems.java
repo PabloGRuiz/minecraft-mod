@@ -166,6 +166,14 @@ public class ModItems {
                     0x7EE8FA, // Celeste estelar celestial
                     new Item.Properties()));
 
+    // Huevo generador de Brambi (Compañero venado espiritual de la naturaleza)
+    public static final DeferredItem<Item> BRAMBI_SPAWN_EGG = ITEMS.register("brambi_spawn_egg",
+            () -> new DeferredSpawnEggItem(
+                    ModEntities.BRAMBI,
+                    0x935B37, // Marrón ciervo bosque
+                    0x55A065, // Verde flora viva
+                    new Item.Properties()));
+
     // Grimorio del Segador Espiritual (Libro de Hechizos Oficial de Iron's Spells - 3 ranuras rápidas)
     public static final DeferredItem<Item> SPIRITUAL_SPELLBOOK = ITEMS.register("spiritual_spellbook",
             () -> new io.redspace.ironsspellbooks.item.SpellBook(3, new Item.Properties().rarity(Rarity.RARE).stacksTo(1))

@@ -32,6 +32,7 @@ public class ModCreativeTabs {
                         output.accept(ModItems.ALICE_SPAWN_EGG.get());
                         output.accept(ModItems.PELOTITA_SPAWN_EGG.get());
                         output.accept(ModItems.STARRY_SPAWN_EGG.get());
+                        output.accept(ModItems.BRAMBI_SPAWN_EGG.get());
                         output.accept(ModItems.VOIDBORN_SPAWN_EGG.get());
                         output.accept(ModItems.VOIDBORN_EXECUTOR_SPAWN_EGG.get());
                         output.accept(ModItems.HORNLESS_VOIDBORN_SPAWN_EGG.get());
