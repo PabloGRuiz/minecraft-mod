@@ -86,7 +86,11 @@ public class ElementalBallSpell extends AbstractSpell {
                 held = caster.getOffhandItem();
             }
             if (held.getItem() instanceof SpiritualSwordItem) {
-                elem = SpiritualSwordItem.getBladeElement(held).getId();
+                if (SpiritualSwordItem.isSenbonzakura(held)) {
+                    elem = "senbonzakura";
+                } else {
+                    elem = SpiritualSwordItem.getBladeElement(held).getId();
+                }
             }
 
             int spirit = 0;

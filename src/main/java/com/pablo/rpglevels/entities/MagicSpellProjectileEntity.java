@@ -81,6 +81,7 @@ public class MagicSpellProjectileEntity extends ThrowableProjectile implements I
                     case "glacies", "hielo" -> new ItemStack(Items.SNOWBALL);
                     case "fulgur", "rayo" -> new ItemStack(Items.AMETHYST_SHARD);
                     case "umbra", "sombra" -> new ItemStack(Items.ECHO_SHARD);
+                    case "senbonzakura" -> new ItemStack(Items.PINK_PETALS);
                     default -> new ItemStack(Items.FIRE_CHARGE);
                 };
             }
@@ -132,6 +133,10 @@ public class MagicSpellProjectileEntity extends ThrowableProjectile implements I
                             case "umbra", "sombra" -> {
                                 this.level().addParticle(ParticleTypes.PORTAL, pos.x + ox, pos.y + oy, pos.z + oz, ox, oy, oz);
                                 this.level().addParticle(ParticleTypes.SCULK_SOUL, pos.x, pos.y, pos.z, 0, 0.01, 0);
+                            }
+                            case "senbonzakura" -> {
+                                this.level().addParticle(ParticleTypes.CHERRY_LEAVES, pos.x + ox, pos.y + oy, pos.z + oz, ox * 0.05, oy * 0.05, oz * 0.05);
+                                this.level().addParticle(ParticleTypes.CRIT, pos.x, pos.y, pos.z, 0, 0.02, 0);
                             }
                             default -> {
                                 this.level().addParticle(ParticleTypes.SOUL_FIRE_FLAME, pos.x + ox, pos.y + oy, pos.z + oz, 0, 0.01, 0);
@@ -272,6 +277,12 @@ public class MagicSpellProjectileEntity extends ThrowableProjectile implements I
                 serverLevel.playSound(null, hitPos.x, hitPos.y, hitPos.z, SoundEvents.WARDEN_SONIC_BOOM, SoundSource.PLAYERS, 0.6f, 1.8f);
                 serverLevel.playSound(null, hitPos.x, hitPos.y, hitPos.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 0.7f, 1.2f);
             }
+            case "senbonzakura" -> {
+                serverLevel.sendParticles(ParticleTypes.CHERRY_LEAVES, hitPos.x, hitPos.y + 0.5, hitPos.z, 45, 0.6, 0.6, 0.6, 0.12);
+                serverLevel.sendParticles(ParticleTypes.SWEEP_ATTACK, hitPos.x, hitPos.y + 0.5, hitPos.z, 2, 0, 0, 0, 0);
+                serverLevel.playSound(null, hitPos.x, hitPos.y, hitPos.z, SoundEvents.CHERRY_LEAVES_BREAK, SoundSource.PLAYERS, 1.5f, 1.2f);
+                serverLevel.playSound(null, hitPos.x, hitPos.y, hitPos.z, SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.3f, 1.4f);
+            }
             default -> {
                 serverLevel.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, hitPos.x, hitPos.y + 0.5, hitPos.z, 25, 0.5, 0.5, 0.5, 0.1);
                 serverLevel.playSound(null, hitPos.x, hitPos.y, hitPos.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 0.9f, 1.2f);
@@ -309,6 +320,10 @@ public class MagicSpellProjectileEntity extends ThrowableProjectile implements I
             case "umbra", "sombra" -> {
                 target.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 60, 0));
                 target.addEffect(new MobEffectInstance(MobEffects.WITHER, 40, 0));
+            }
+            case "senbonzakura" -> {
+                target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 80, 1));
+                target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 50, 1));
             }
         }
     }

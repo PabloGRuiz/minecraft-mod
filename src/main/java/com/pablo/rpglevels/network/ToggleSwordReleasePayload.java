@@ -112,16 +112,29 @@ public record ToggleSwordReleasePayload(boolean unused) implements CustomPacketP
 
                 ServerLevel sl = player.serverLevel();
                 if (next) {
-                    SpiritualSwordItem.BladeElement elem = SpiritualSwordItem.getBladeElement(stack);
-                    SpiritualSwordItem.spawnHeldElementalAura(sl, player, elem);
-                    sl.sendParticles(ParticleTypes.TOTEM_OF_UNDYING, player.getX(), player.getY() + 1.0, player.getZ(), 35, 0.4, 0.5, 0.4, 0.15);
-                    sl.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.TRIDENT_RIPTIDE_3.value(), SoundSource.PLAYERS, 1.0f, 1.2f);
-                    sl.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 0.8f, 1.4f);
-                    player.displayClientMessage(Component.literal("§d✦ §l¡Primera Liberación Activada! §e(+50% Poder General: Daño, Atributos y Hechizos)"), true);
+                    if (SpiritualSwordItem.isSenbonzakura(stack)) {
+                        sl.sendParticles(ParticleTypes.CHERRY_LEAVES, player.getX(), player.getY() + 1.0, player.getZ(), 80, 0.6, 0.8, 0.6, 0.15);
+                        sl.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.CHERRY_WOOD_BREAK, SoundSource.PLAYERS, 1.3f, 1.0f);
+                        sl.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.PLAYERS, 1.4f, 1.2f);
+                        player.displayClientMessage(Component.literal("§d✦ §l« Dispersa... Senbonzakura » §e(+50% Poder General)"), true);
+                    } else {
+                        SpiritualSwordItem.BladeElement elem = SpiritualSwordItem.getBladeElement(stack);
+                        SpiritualSwordItem.spawnHeldElementalAura(sl, player, elem);
+                        sl.sendParticles(ParticleTypes.TOTEM_OF_UNDYING, player.getX(), player.getY() + 1.0, player.getZ(), 35, 0.4, 0.5, 0.4, 0.15);
+                        sl.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.TRIDENT_RIPTIDE_3.value(), SoundSource.PLAYERS, 1.0f, 1.2f);
+                        sl.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 0.8f, 1.4f);
+                        player.displayClientMessage(Component.literal("§d✦ §l¡Primera Liberación Activada! §e(+50% Poder General: Daño, Atributos y Hechizos)"), true);
+                    }
                     com.pablo.rpglevels.advancements.ModAdvancements.award(player, com.pablo.rpglevels.advancements.ModAdvancements.FIRST_RELEASE);
                 } else {
-                    sl.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ARMOR_EQUIP_IRON.value(), SoundSource.PLAYERS, 1.0f, 1.0f);
-                    player.displayClientMessage(Component.literal("§7Primera Liberación desactivada."), true);
+                    if (SpiritualSwordItem.isSenbonzakura(stack)) {
+                        sl.sendParticles(ParticleTypes.CHERRY_LEAVES, player.getX(), player.getY() + 1.0, player.getZ(), 20, 0.3, 0.4, 0.3, 0.05);
+                        sl.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ARMOR_EQUIP_IRON.value(), SoundSource.PLAYERS, 1.0f, 1.0f);
+                        player.displayClientMessage(Component.literal("§7Senbonzakura se recompone en su vaina."), true);
+                    } else {
+                        sl.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ARMOR_EQUIP_IRON.value(), SoundSource.PLAYERS, 1.0f, 1.0f);
+                        player.displayClientMessage(Component.literal("§7Primera Liberación desactivada."), true);
+                    }
                 }
                 return;
             }

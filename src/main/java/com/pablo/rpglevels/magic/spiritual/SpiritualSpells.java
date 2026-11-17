@@ -65,5 +65,14 @@ public class SpiritualSpells {
 
     public static final DeferredHolder<AbstractSpell, SpiritualBeamSpell> SPIRITUAL_BEAM =
             SPELLS.register("spiritual_beam", SpiritualBeamSpell::new);
+
+    // =========================================================================
+    // HABILIDADES EXCLUSIVAS DE ZANPAKUTO: SENBONZAKURA (BYAKUYA KUCHIKI)
+    // =========================================================================
+    public static final DeferredHolder<AbstractSpell, SenbonzakuraChireSpell> SENBONZAKURA_CHIRE =
+            SPELLS.register("senbonzakura_chire", SenbonzakuraChireSpell::new);
+
+    public static final DeferredHolder<AbstractSpell, SenbonzakuraVortexSpell> SENBONZAKURA_VORTEX =
+            SPELLS.register("senbonzakura_vortex", SenbonzakuraVortexSpell::new);
 }
 

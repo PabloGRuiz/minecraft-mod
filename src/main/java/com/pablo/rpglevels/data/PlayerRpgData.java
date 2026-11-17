@@ -1055,7 +1055,7 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
     }
 
     public int getNextPendingMilestone(int ignoredLevel) {
-        return (getPendingPointsCount() > 0) ? Math.min(125, getCurrentMilestoneCap()) : -1;
+        return (getPendingPointsCount() > 0) ? Math.min(90, getCurrentMilestoneCap()) : -1;
     }
 
     /**

@@ -191,6 +191,16 @@ public enum SpiritualTechnique {
      * Resuelve el nombre dinámico de Elemental Ball según el elemento de la espada sostenida o vinculada.
      */
     public static String getDynamicElementalBallName(Player player) {
+        if (player != null) {
+            ItemStack main = player.getMainHandItem();
+            if (main.getItem() instanceof SpiritualSwordItem && SpiritualSwordItem.isSenbonzakura(main)) {
+                return "Técnica Espiritual Nro. 5: Senbonzakura (Pétalos de Reiryoku)";
+            }
+            ItemStack off = player.getOffhandItem();
+            if (off.getItem() instanceof SpiritualSwordItem && SpiritualSwordItem.isSenbonzakura(off)) {
+                return "Técnica Espiritual Nro. 5: Senbonzakura (Pétalos de Reiryoku)";
+            }
+        }
         SpiritualSwordItem.BladeElement elem = getPlayerElement(player);
         return switch (elem) {
             case IGNIS -> "Técnica Espiritual Nro. 5: Fire Ball";

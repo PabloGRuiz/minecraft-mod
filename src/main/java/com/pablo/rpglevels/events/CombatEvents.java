@@ -735,18 +735,7 @@ public class CombatEvents {
                     killerData.addRpgXp(serverPlayer, killerXp);
                 }
 
-                int rankDiff = threat.ordinal() - pRank.getIndex();
-                if (rankDiff >= 2) {
-                    double mult = (double) killerXp / (double) baseReward;
-                    serverPlayer.sendSystemMessage(Component.literal(
-                            "§6✦ §l[¡PROEZA CONTRA EL DESTINO!] §eSiendo Rango §f" + pRank.getName()
-                                    + " §ehas abatido a un enemigo §b" + threat.getDisplayName()
-                                    + " §7(§a+" + killerXp + " XP RPG §econ bono exponencial §d×" + String.format(java.util.Locale.US, "%.1f", mult) + "§7)"));
-                    serverPlayer.serverLevel().playSound(null, serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(),
-                            SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 1.0f, 1.3f);
-                    serverPlayer.serverLevel().sendParticles(ParticleTypes.TOTEM_OF_UNDYING,
-                            serverPlayer.getX(), serverPlayer.getY() + 1.0, serverPlayer.getZ(), 30, 0.4, 0.5, 0.4, 0.2);
-                } else if (isBoss) {
+                if (isBoss) {
                     serverPlayer.sendSystemMessage(Component.literal(
                             "§6✦ §l[¡JEFE DERROTADO!] §eHas vencido a §f" + victim.getDisplayName().getString() + " §7(§a+" + killerXp + " XP RPG§7)"));
                     serverPlayer.serverLevel().playSound(null, serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(),
@@ -773,13 +762,7 @@ public class CombatEvents {
                             int allyXp = calculateRankScaledXp(allyBase, allyData.getRank(), threat);
                             allyData.addRpgXp(allyPlayer, allyXp);
 
-                            int allyRankDiff = threat.ordinal() - allyData.getRank().getIndex();
-                            if (allyRankDiff >= 2) {
-                                double allyMult = (double) allyXp / (double) allyBase;
-                                allyPlayer.sendSystemMessage(Component.literal(
-                                        "§6✦ §l[¡PROEZA EN GRUPO!] §eTu grupo abatió a un enemigo §b" + threat.getDisplayName()
-                                                + " §7(§a+" + allyXp + " XP RPG §econ bono exponencial §d×" + String.format(java.util.Locale.US, "%.1f", allyMult) + "§7)"));
-                            } else if (isBoss) {
+                            if (isBoss) {
                                 allyPlayer.sendSystemMessage(Component.literal(
                                         "§6✦ §l[¡JEFE DERROTADO!] §eTu grupo venció a §f" + victim.getDisplayName().getString() + " §7(§a+" + allyXp + " XP RPG§7)"));
                             }

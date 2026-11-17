@@ -302,6 +302,36 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
         return tag != null && tag.getBoolean(TAG_SOUL_BOUND);
     }
 
+    public static boolean isSenbonzakura(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        if (stack.has(DataComponents.CUSTOM_NAME)) {
+            Component custom = stack.get(DataComponents.CUSTOM_NAME);
+            if (custom != null) {
+                String raw = custom.getString();
+                if (raw != null) {
+                    String clean = raw.replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
+                    if (clean.equalsIgnoreCase("senbonzakura") || clean.equalsIgnoreCase("senbon zakura")) {
+                        return true;
+                    }
+                }
+            }
+        }
+        CompoundTag tag = getReadOnlyTag(stack);
+        if (tag != null) {
+            if (tag.contains("display", net.minecraft.nbt.Tag.TAG_COMPOUND)) {
+                CompoundTag disp = tag.getCompound("display");
+                if (disp.contains("Name", net.minecraft.nbt.Tag.TAG_STRING)) {
+                    String nameStr = disp.getString("Name");
+                    String clean = nameStr.replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
+                    if (clean.equalsIgnoreCase("senbonzakura") || clean.equalsIgnoreCase("senbon zakura")) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     public static boolean isFirstRelease(ItemStack stack) {
         CompoundTag tag = getReadOnlyTag(stack);
         return tag != null && tag.getBoolean(TAG_FIRST_RELEASE);
@@ -319,7 +349,11 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
             int cmd = style.getCustomModelData() + (variant == 1 ? 10 : 0);
             stack.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(cmd));
         } else {
-            stack.remove(DataComponents.CUSTOM_MODEL_DATA);
+            if (isSenbonzakura(stack)) {
+                stack.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(BladeStyle.PHANTOM.getCustomModelData()));
+            } else {
+                stack.remove(DataComponents.CUSTOM_MODEL_DATA);
+            }
         }
     }
 
@@ -512,6 +546,7 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
     }
 
     public static BladeStyle getBladeStyle(ItemStack stack) {
+        if (isSenbonzakura(stack)) return BladeStyle.PHANTOM;
         CompoundTag tag = getReadOnlyTag(stack);
         if (tag != null && tag.contains(TAG_STYLE)) {
             BladeStyle parsed = BladeStyle.byId(tag.getString(TAG_STYLE));
@@ -551,6 +586,7 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
     }
 
     public static BladeElement getBladeElement(ItemStack stack) {
+        if (isSenbonzakura(stack)) return BladeElement.NONE;
         CompoundTag tag = getReadOnlyTag(stack);
         if (tag != null && tag.contains(TAG_ELEMENT)) {
             BladeElement parsed = BladeElement.byId(tag.getString(TAG_ELEMENT));
@@ -771,6 +807,10 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
         boolean soulBound = isSoulBound(stack);
         boolean firstRelease = isFirstRelease(stack);
 
+        if (isSenbonzakura(stack)) {
+            return Component.literal("✦ Senbonzakura ✦").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD);
+        }
+
         if (stack.has(DataComponents.CUSTOM_NAME)) {
             Component custom = stack.get(DataComponents.CUSTOM_NAME);
             String nameStr = custom != null ? custom.getString() : "";
@@ -817,15 +857,20 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
             return false;
         }
 
+        boolean senbon = isSenbonzakura(stack);
         BladeRelease release = getBladeRelease(stack);
-        io.redspace.ironsspellbooks.api.spells.AbstractSpell primarySpell = getPrimaryAwakenedSpell(release);
+        io.redspace.ironsspellbooks.api.spells.AbstractSpell primarySpell = senbon
+                ? com.pablo.rpglevels.magic.spiritual.SpiritualSpells.SENBONZAKURA_CHIRE.get()
+                : getPrimaryAwakenedSpell(release);
         if (primarySpell == null) return false;
 
         int affinity = getAffinity(stack);
         int targetLevel = getAwakenedSpellLevel(stack);
-        boolean hasSecondary = affinity >= 150;
+        boolean hasSecondary = senbon || (affinity >= 150);
         boolean hasTertiary = affinity >= 200;
-        io.redspace.ironsspellbooks.api.spells.AbstractSpell secondarySpell = hasSecondary ? getSecondaryAwakenedSpell(release) : null;
+        io.redspace.ironsspellbooks.api.spells.AbstractSpell secondarySpell = hasSecondary
+                ? (senbon ? com.pablo.rpglevels.magic.spiritual.SpiritualSpells.SENBONZAKURA_VORTEX.get() : getSecondaryAwakenedSpell(release))
+                : null;
         io.redspace.ironsspellbooks.api.spells.AbstractSpell tertiarySpell = hasTertiary ? com.pablo.rpglevels.magic.spiritual.SpiritualSpells.SPIRITUAL_BEAM.get() : null;
 
         ISpellContainer container = ISpellContainer.get(stack);
@@ -952,7 +997,15 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
 
         // Si la hoja aún no ha despertado su Primera Liberación, solo emite destellos sutiles si está vinculada
         if (!isFirstRelease(stack)) {
-            if (isSoulBound(stack) && entity.tickCount % 30 == 0 && living instanceof ServerPlayer serverPlayer) {
+            if (isSenbonzakura(stack)) {
+                if (entity.tickCount % 20 == 0 && living instanceof ServerPlayer serverPlayer) {
+                    serverLevel.sendParticles(ParticleTypes.CHERRY_LEAVES, serverPlayer.getX(), serverPlayer.getY() + 1.0, serverPlayer.getZ(), 1, 0.2, 0.3, 0.2, 0.02);
+                }
+                CustomModelData cmd = stack.get(DataComponents.CUSTOM_MODEL_DATA);
+                if (cmd == null || cmd.value() != 4) {
+                    stack.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(4));
+                }
+            } else if (isSoulBound(stack) && entity.tickCount % 30 == 0 && living instanceof ServerPlayer serverPlayer) {
                 serverLevel.sendParticles(ParticleTypes.ENCHANT, serverPlayer.getX(), serverPlayer.getY() + 1.0, serverPlayer.getZ(), 2, 0.2, 0.3, 0.2, 0.05);
             }
             return;
@@ -1016,25 +1069,35 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
             }
         }
 
+        boolean senbon = isSenbonzakura(stack);
         BladeElement element = getBladeElement(stack);
         BladeStyle style = getBladeStyle(stack);
 
         // 1. Arco de partículas elementales al dar un tajo al aire o en combate + Onda de Filo Fantasma
         if (isSelected && living.swinging && living.swingTime == 1) {
-            if (element != BladeElement.NONE) {
+            if (senbon) {
+                spawnSenbonzakuraSlashArc(serverLevel, living);
+            } else if (element != BladeElement.NONE) {
                 spawnElementalSlashArc(serverLevel, living, element);
             }
             // Si el estilo es FILO FANTASMA (Katana), proyecta una onda de corte a 4.8 bloques
             if (style == BladeStyle.PHANTOM && living instanceof ServerPlayer serverPlayer && !isTemporarilyExhausted(stack)) {
                 Vec3 look = serverPlayer.getLookAngle().normalize();
                 Vec3 wavePos = serverPlayer.getEyePosition().add(look.scale(3.8));
+                if (senbon) {
+                    serverLevel.sendParticles(ParticleTypes.CHERRY_LEAVES, wavePos.x, wavePos.y - 0.2, wavePos.z, 8, 0.2, 0.2, 0.2, 0.05);
+                }
                 serverLevel.sendParticles(ParticleTypes.SWEEP_ATTACK, wavePos.x, wavePos.y - 0.2, wavePos.z, 1, 0.1, 0.1, 0.1, 0.0);
                 AABB waveBox = new AABB(wavePos.x - 1.1, wavePos.y - 1.0, wavePos.z - 1.1, wavePos.x + 1.1, wavePos.y + 1.0, wavePos.z + 1.1);
                 for (LivingEntity target : serverLevel.getEntitiesOfClass(LivingEntity.class, waveBox,
                         e -> isValidCombatTarget(serverPlayer, e) && e.distanceToSqr(serverPlayer) > 6.25)) {
                     if (target.hurt(serverPlayer.damageSources().playerAttack(serverPlayer), 4.0f)) {
-                        spawnElementalImpactBurst(serverLevel, target, element);
-                        applyElementalStatusEffect(serverLevel, serverPlayer, target, element, 4.0f);
+                        if (senbon) {
+                            serverLevel.sendParticles(ParticleTypes.CHERRY_LEAVES, target.getX(), target.getY() + 0.6, target.getZ(), 15, 0.3, 0.4, 0.3, 0.08);
+                        } else {
+                            spawnElementalImpactBurst(serverLevel, target, element);
+                            applyElementalStatusEffect(serverLevel, serverPlayer, target, element, 4.0f);
+                        }
                     }
                 }
             }
@@ -1042,8 +1105,12 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
 
         // 2. Aura pasiva de partículas alrededor de la hoja cada 4 ticks (o cada 2 ticks en Overdrive)
         boolean overdrive = living.getPersistentData().getLong("RpgSwordOverdriveUntil") > level.getGameTime();
-        if (entity.tickCount % (overdrive ? 2 : 4) == 0 && element != BladeElement.NONE) {
-            spawnHeldElementalAura(serverLevel, living, element);
+        if (entity.tickCount % (overdrive ? 2 : 4) == 0) {
+            if (senbon) {
+                spawnSenbonzakuraHeldAura(serverLevel, living);
+            } else if (element != BladeElement.NONE) {
+                spawnHeldElementalAura(serverLevel, living, element);
+            }
         }
 
         // 3. Pulso elemental de Trance Espiritual (Overdrive) cada segundo alrededor del portador
@@ -1141,7 +1208,31 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
             }
 
             // Solo se activa el elemento en golpe si tiene afinidad al máximo (100) o está liberada
-            if (element != BladeElement.NONE && (affinity >= 100 || released)) {
+            if (isSenbonzakura(stack)) {
+                serverLevel.playSound(null, target.blockPosition(), SoundEvents.CHERRY_LEAVES_BREAK, SoundSource.PLAYERS, 1.2F, 1.3F);
+                serverLevel.sendParticles(ParticleTypes.CHERRY_LEAVES, target.getX(), target.getY() + target.getBbHeight() * 0.5, target.getZ(), 20, 0.4, 0.4, 0.4, 0.08);
+                serverLevel.sendParticles(ParticleTypes.SWEEP_ATTACK, target.getX(), target.getY() + target.getBbHeight() * 0.5, target.getZ(), 1, 0, 0, 0, 0);
+
+                // Ataque en área característico: Pétalos cortantes a todos los enemigos en 4.0 bloques
+                AABB cleaveArea = target.getBoundingBox().inflate(4.0, 1.5, 4.0);
+                float cleaveDamage = 4.0f + (affinity * 0.04f);
+                if (attacker instanceof Player p) {
+                    PlayerRpgData pData = p.getData(ModAttachments.PLAYER_RPG_DATA);
+                    if (pData != null) {
+                        int sp = pData.getTotalStatPoints(p, StatType.SPIRIT);
+                        int dx = pData.getTotalStatPoints(p, StatType.DEXTERITY);
+                        cleaveDamage += (float) (sp * 0.35 + dx * 0.20);
+                    }
+                }
+                List<LivingEntity> nearbyTargets = serverLevel.getEntitiesOfClass(LivingEntity.class, cleaveArea,
+                        e -> e != target && e != attacker && isValidCombatTarget(attacker, e));
+                for (LivingEntity nearby : nearbyTargets) {
+                    DamageSource src = (attacker instanceof Player p) ? attacker.damageSources().playerAttack(p) : serverLevel.damageSources().magic();
+                    nearby.hurt(src, cleaveDamage);
+                    nearby.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 40, 0, false, true));
+                    serverLevel.sendParticles(ParticleTypes.CHERRY_LEAVES, nearby.getX(), nearby.getY() + nearby.getBbHeight() * 0.5, nearby.getZ(), 10, 0.3, 0.3, 0.3, 0.05);
+                }
+            } else if (element != BladeElement.NONE && (affinity >= 100 || released)) {
                 spawnElementalImpactBurst(serverLevel, target, element);
                 if (attacker instanceof ServerPlayer serverPlayer) {
                     applyElementalStatusEffect(serverLevel, serverPlayer, target, element, 4.0f);
@@ -1149,6 +1240,43 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
             }
         }
         return result;
+    }
+
+    public static void spawnSenbonzakuraHeldAura(ServerLevel level, LivingEntity wielder) {
+        Vec3 look = wielder.getLookAngle();
+        Vec3 right = new Vec3(-look.z, 0, look.x).normalize();
+        double bx = wielder.getX() + look.x * 0.65 + right.x * 0.38;
+        double by = wielder.getY() + wielder.getEyeHeight() - 0.35 + look.y * 0.45;
+        double bz = wielder.getZ() + look.z * 0.65 + right.z * 0.38;
+
+        level.sendParticles(ParticleTypes.CHERRY_LEAVES, bx, by, bz, 2, 0.12, 0.18, 0.12, 0.02);
+        if (wielder.getRandom().nextFloat() < 0.25f) {
+            level.sendParticles(ParticleTypes.CRIT, bx, by, bz, 1, 0.05, 0.05, 0.05, 0.02);
+        }
+    }
+
+    public static void spawnSenbonzakuraSlashArc(ServerLevel level, LivingEntity wielder) {
+        Vec3 look = wielder.getLookAngle().normalize();
+        Vec3 right = new Vec3(-look.z, 0, look.x);
+        if (right.lengthSqr() < 1.0E-4) {
+            right = new Vec3(1, 0, 0);
+        } else {
+            right = right.normalize();
+        }
+
+        double centerX = wielder.getX() + look.x * 1.45;
+        double centerY = wielder.getY() + wielder.getEyeHeight() - 0.2 + look.y * 1.1;
+        double centerZ = wielder.getZ() + look.z * 1.45;
+
+        for (int i = -3; i <= 3; i++) {
+            double offset = i * 0.32;
+            double curveBack = -Math.abs(i) * 0.08;
+            double px = centerX + right.x * offset + look.x * curveBack;
+            double py = centerY - i * 0.06;
+            double pz = centerZ + right.z * offset + look.z * curveBack;
+
+            level.sendParticles(ParticleTypes.CHERRY_LEAVES, px, py, pz, 3, 0.08, 0.08, 0.08, 0.03);
+        }
     }
 
     public static void spawnHeldElementalAura(ServerLevel level, LivingEntity wielder, BladeElement element) {
@@ -1283,6 +1411,15 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
 
         tooltipComponents.add(Component.empty());
 
+        if (isSenbonzakura(stack)) {
+            tooltipComponents.add(Component.literal("§d✦ Zanpakuto: Senbonzakura (Byakuya Kuchiki) ✦").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD));
+            tooltipComponents.add(Component.literal("§7« Dispersa... Senbonzakura »").withStyle(ChatFormatting.DARK_PURPLE, ChatFormatting.ITALIC));
+            tooltipComponents.add(Component.literal("§f• Hoja Desintegrada: §dTodos los ataques y habilidades son en Área.").withStyle(ChatFormatting.WHITE));
+            tooltipComponents.add(Component.literal("§f• Elemento: §bNeutro §7(Reiryoku puro sin elemento)").withStyle(ChatFormatting.GRAY));
+            tooltipComponents.add(Component.literal("§f• Pétalos Cortantes: §dLos tajos normales dañan en área a enemigos cercanos.").withStyle(ChatFormatting.LIGHT_PURPLE));
+            tooltipComponents.add(Component.empty());
+        }
+
         if (!soulBound) {
             tooltipComponents.add(Component.literal("§7[Espada Espiritual Base - Sin Vincular]").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
             tooltipComponents.add(Component.literal("§e1. Grábale un nombre en un yunque.").withStyle(ChatFormatting.YELLOW));
@@ -1377,28 +1514,48 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
         tooltipComponents.add(Component.translatable(resonance.getDescriptionKey()).withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
 
         // 4. Técnicas de la Hoja Liberada (ISB HUD)
-        io.redspace.ironsspellbooks.api.spells.AbstractSpell primarySpell = getPrimaryAwakenedSpell(release);
-        tooltipComponents.add(Component.literal("§d✦ Técnica Principal: ")
-                .append(primarySpell.getDisplayName(null).copy().withStyle(release.getColor(), ChatFormatting.BOLD))
-                .append(Component.literal(" §7[HUD ISB Ranura 1]")));
+        if (isSenbonzakura(stack)) {
+            tooltipComponents.add(Component.literal("§d✦ Técnica Shikai I: ")
+                    .append(com.pablo.rpglevels.magic.spiritual.SpiritualSpells.SENBONZAKURA_CHIRE.get().getDisplayName(null).copy().withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD))
+                    .append(Component.literal(" §7[HUD ISB Ranura 1]")));
 
-        if (affinity >= 150) {
-            io.redspace.ironsspellbooks.api.spells.AbstractSpell secSpell = getSecondaryAwakenedSpell(release);
-            tooltipComponents.add(Component.literal("§6✦ Segunda Técnica Suprema: ")
-                    .append(secSpell.getDisplayName(null).copy().withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD))
+            tooltipComponents.add(Component.literal("§d✦ Técnica Shikai II: ")
+                    .append(com.pablo.rpglevels.magic.spiritual.SpiritualSpells.SENBONZAKURA_VORTEX.get().getDisplayName(null).copy().withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD))
                     .append(Component.literal(" §7[HUD ISB Ranura 2]")));
-        } else {
-            tooltipComponents.add(Component.literal("§8✦ Segunda Técnica Suprema: §7(Bloqueada - Requiere 150 de Afinidad)"));
-        }
 
-        if (affinity >= 200) {
-            io.redspace.ironsspellbooks.api.spells.AbstractSpell tertSpell = com.pablo.rpglevels.magic.spiritual.SpiritualSpells.SPIRITUAL_BEAM.get();
-            tooltipComponents.add(Component.literal("§b✦ Técnica Definitiva: ")
-                    .append(tertSpell.getDisplayName(null).copy().withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
-                    .append(Component.literal(" §7[HUD ISB Ranura 3]")));
-            tooltipComponents.add(Component.literal("   §3↳ §o(Haz continuo destructivo. ¡Desencadena Choques de Poderes!)"));
+            if (affinity >= 200) {
+                io.redspace.ironsspellbooks.api.spells.AbstractSpell tertSpell = com.pablo.rpglevels.magic.spiritual.SpiritualSpells.SPIRITUAL_BEAM.get();
+                tooltipComponents.add(Component.literal("§b✦ Técnica Definitiva: ")
+                        .append(tertSpell.getDisplayName(null).copy().withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
+                        .append(Component.literal(" §7[HUD ISB Ranura 3]")));
+                tooltipComponents.add(Component.literal("   §3↳ §o(Haz continuo destructivo. ¡Desencadena Choques de Poderes!)"));
+            } else {
+                tooltipComponents.add(Component.literal("§8✦ Técnica Definitiva: §7(Bloqueada - Requiere 200 de Afinidad)"));
+            }
         } else {
-            tooltipComponents.add(Component.literal("§8✦ Técnica Definitiva: §7(Bloqueada - Requiere 200 de Afinidad)"));
+            io.redspace.ironsspellbooks.api.spells.AbstractSpell primarySpell = getPrimaryAwakenedSpell(release);
+            tooltipComponents.add(Component.literal("§d✦ Técnica Principal: ")
+                    .append(primarySpell.getDisplayName(null).copy().withStyle(release.getColor(), ChatFormatting.BOLD))
+                    .append(Component.literal(" §7[HUD ISB Ranura 1]")));
+
+            if (affinity >= 150) {
+                io.redspace.ironsspellbooks.api.spells.AbstractSpell secSpell = getSecondaryAwakenedSpell(release);
+                tooltipComponents.add(Component.literal("§6✦ Segunda Técnica Suprema: ")
+                        .append(secSpell.getDisplayName(null).copy().withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD))
+                        .append(Component.literal(" §7[HUD ISB Ranura 2]")));
+            } else {
+                tooltipComponents.add(Component.literal("§8✦ Segunda Técnica Suprema: §7(Bloqueada - Requiere 150 de Afinidad)"));
+            }
+
+            if (affinity >= 200) {
+                io.redspace.ironsspellbooks.api.spells.AbstractSpell tertSpell = com.pablo.rpglevels.magic.spiritual.SpiritualSpells.SPIRITUAL_BEAM.get();
+                tooltipComponents.add(Component.literal("§b✦ Técnica Definitiva: ")
+                        .append(tertSpell.getDisplayName(null).copy().withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
+                        .append(Component.literal(" §7[HUD ISB Ranura 3]")));
+                tooltipComponents.add(Component.literal("   §3↳ §o(Haz continuo destructivo. ¡Desencadena Choques de Poderes!)"));
+            } else {
+                tooltipComponents.add(Component.literal("§8✦ Técnica Definitiva: §7(Bloqueada - Requiere 200 de Afinidad)"));
+            }
         }
 
         tooltipComponents.add(Component.empty());

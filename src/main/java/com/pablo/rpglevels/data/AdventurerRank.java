@@ -56,12 +56,12 @@ public enum AdventurerRank {
 
     public int getRequiredAscensionLevel() {
         return switch (this) {
-            case F -> 20;
-            case E -> 35;
-            case D -> 55;
-            case C -> 75;
-            case B -> 100;
-            case A -> 125;
+            case F -> 15;
+            case E -> 30;
+            case D -> 45;
+            case C -> 60;
+            case B -> 75;
+            case A -> 90;
         };
     }
 
