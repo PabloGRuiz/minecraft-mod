@@ -301,8 +301,16 @@ public class PartyManager {
      * Devuelve true si pertenecen al mismo jugador, a la misma party o son compañeros/mascotas aliados.
      */
     public static boolean isAllied(Entity a, Entity b) {
-        if (a == null || b == null || a == b) {
+        if (a == null || b == null) {
             return false;
+        }
+        if (a == b) {
+            return true;
+        }
+
+        // Mascotas y animales domesticados son siempre aliados entre sí
+        if (a instanceof TamableAnimal petA && petA.isTame() && b instanceof TamableAnimal petB && petB.isTame()) {
+            return true;
         }
 
         UUID ownerA = getEntityOwnerUUID(a);

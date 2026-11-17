@@ -201,16 +201,34 @@ public class ChubbyEntity extends TamableAnimal {
         this.chargingTicks = 25;
         this.setChargingLightning(true);
 
-        // Rayo real en la posición del objetivo
+        // Rayo visual espectacular del cielo sin fuego amigo
         LightningBolt lightning = EntityType.LIGHTNING_BOLT.create(serverLevel);
         if (lightning != null) {
             lightning.moveTo(target.position());
-            lightning.setVisualOnly(false); // Inflige daño y electricidad
+            lightning.setVisualOnly(true); // Solo visual y sonoro para no dañar aliados ni mascotas
             serverLevel.addFreshEntity(lightning);
         }
 
         serverLevel.playSound(null, target.getX(), target.getY(), target.getZ(),
                 SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.WEATHER, 1.2F, 1.3F);
+
+        // Daño eléctrico directo y exclusivo a monstruos hostiles en el área
+        PlayerRpgData data = owner.getData(ModAttachments.PLAYER_RPG_DATA);
+        int spirit = (data != null) ? data.getTotalStatPoints(owner, StatType.SPIRIT) : 0;
+        float damage = 14.0F + (spirit * 0.4F);
+
+        List<Monster> hostiles = serverLevel.getEntitiesOfClass(Monster.class, target.getBoundingBox().inflate(3.5D), Monster::isAlive);
+        DamageSource thunderSource = this.damageSources().mobAttack(this);
+        for (Monster m : hostiles) {
+            m.hurt(thunderSource, damage);
+            m.setRemainingFireTicks(60);
+            serverLevel.sendParticles(ParticleTypes.ELECTRIC_SPARK, m.getX(), m.getY() + 0.5D, m.getZ(),
+                    15, 0.3D, 0.3D, 0.3D, 0.1D);
+        }
+        if (!hostiles.contains(target)) {
+            target.hurt(thunderSource, damage);
+            target.setRemainingFireTicks(60);
+        }
 
         owner.displayClientMessage(
                 Component.literal("§e[⚡] §f¡Chubby descargó un §6Rayo Devastador §fsobre " + target.getDisplayName().getString() + "!"),
@@ -443,6 +461,31 @@ public class ChubbyEntity extends TamableAnimal {
     @Override
     public float getVoicePitch() {
         return 1.8F;
+    }
+
+    @Override
+    public boolean wantsToAttack(LivingEntity target, LivingEntity owner) {
+        if (PartyManager.isAllied(this, target)) {
+            return false;
+        }
+        if (owner != null && PartyManager.isAllied(owner, target)) {
+            return false;
+        }
+        if (target instanceof TamableAnimal tamable && tamable.isTame()) {
+            return false;
+        }
+        return super.wantsToAttack(target, owner);
+    }
+
+    @Override
+    public boolean canAttack(LivingEntity target) {
+        if (PartyManager.isAllied(this, target)) {
+            return false;
+        }
+        if (target instanceof TamableAnimal tamable && tamable.isTame()) {
+            return false;
+        }
+        return super.canAttack(target);
     }
 
     /**

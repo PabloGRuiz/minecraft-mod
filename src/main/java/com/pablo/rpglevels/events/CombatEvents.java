@@ -28,6 +28,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent;
 import com.pablo.rpglevels.entities.AdventurerNpcEntity;
 import com.pablo.rpglevels.data.ThreatLevel;
 import java.util.List;
@@ -271,6 +272,18 @@ public class CombatEvents {
         Entity target = event.getTarget();
         if (target != null && com.pablo.rpglevels.party.PartyManager.isAllied(player, target)) {
             event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onLivingChangeTarget(LivingChangeTargetEvent event) {
+        LivingEntity newTarget = event.getNewAboutToBeSetTarget();
+        if (newTarget != null) {
+            LivingEntity entity = event.getEntity();
+            if (com.pablo.rpglevels.party.PartyManager.isAllied(entity, newTarget)) {
+                event.setNewAboutToBeSetTarget(null);
+                event.setCanceled(true);
+            }
         }
     }
 

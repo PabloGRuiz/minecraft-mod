@@ -473,4 +473,29 @@ public class BrambiEntity extends TamableAnimal {
     public float getVoicePitch() {
         return 1.45F;
     }
+
+    @Override
+    public boolean wantsToAttack(LivingEntity target, LivingEntity owner) {
+        if (com.pablo.rpglevels.party.PartyManager.isAllied(this, target)) {
+            return false;
+        }
+        if (owner != null && com.pablo.rpglevels.party.PartyManager.isAllied(owner, target)) {
+            return false;
+        }
+        if (target instanceof TamableAnimal tamable && tamable.isTame()) {
+            return false;
+        }
+        return super.wantsToAttack(target, owner);
+    }
+
+    @Override
+    public boolean canAttack(LivingEntity target) {
+        if (com.pablo.rpglevels.party.PartyManager.isAllied(this, target)) {
+            return false;
+        }
+        if (target instanceof TamableAnimal tamable && tamable.isTame()) {
+            return false;
+        }
+        return super.canAttack(target);
+    }
 }
