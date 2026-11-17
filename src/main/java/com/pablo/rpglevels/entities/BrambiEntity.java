@@ -39,19 +39,18 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.BonemealableBlock;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
 
 /**
- * Brambi: Venado Guardián de la Tierra & Montura del Bosque.
- * - Personalidad: Combatiente terrestre, arrollador y montura ágil para el jugador.
- * - Ataque 1 (Cornada Arrolladora): Embestida física con gran retroceso.
- * - Ataque 2 (Pisotón Sísmico): Se alza en dos patas y golpea el suelo aturdiendo a enemigos con Lentitud IV.
- * - Utilidad (Hurgador del Bosque): Escarba periódicamente la tierra buscando bayas y vegetales para su dueño.
+ * Brambi: Venado de la Naturaleza & Espíritu del Bosque.
+ * - Personalidad: Guardián dócil y noble, con sonidos tiernos y poderes de flora.
+ * - Ataque 1 (Cornada Silvestre): Embestida con ráfagas de hojas y esporas.
+ * - Ataque 2 (Estallido Floral de Raíces): Se alza y golpea el suelo liberando hojas, musgo y esporas que enraízan a los enemigos.
+ * - Hurgador del Bosque: Escarba periódicamente la tierra buscando bayas y vegetales para su dueño.
  * - Fertilidad Viva: Acelera el crecimiento de cultivos cercanos a su paso.
- * - Montura: Puede ser montado por su dueño para correr velozmente por el bosque y saltar obstáculos.
+ * - Acariciar: Acariciarlo con la mano vacía tiene probabilidad de otorgar Velocidad I por 5 segundos.
  */
 public class BrambiEntity extends TamableAnimal {
 
@@ -99,7 +98,7 @@ public class BrambiEntity extends TamableAnimal {
                 .add(Attributes.ATTACK_DAMAGE, 8.5D)
                 .add(Attributes.ARMOR, 6.0D)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 0.4D)
-                .add(Attributes.STEP_HEIGHT, 1.0D); // Sube 1 bloque sin saltar
+                .add(Attributes.STEP_HEIGHT, 1.0D);
     }
 
     @Override
@@ -138,14 +137,19 @@ public class BrambiEntity extends TamableAnimal {
     public void aiStep() {
         super.aiStep();
 
-        // Partículas sutiles de hojas/tierra al caminar
-        if (this.level().isClientSide() && this.getDeltaMovement().horizontalDistanceSqr() > 0.01D && this.random.nextFloat() < 0.25F) {
-            this.level().addParticle(ParticleTypes.COMPOSTER,
-                    this.getRandomX(0.6D), this.getY() + 0.1D, this.getRandomZ(0.6D),
-                    0.0D, 0.05D, 0.0D);
+        // Partículas sutiles de hojas/esporas al caminar
+        if (this.level().isClientSide() && this.getDeltaMovement().horizontalDistanceSqr() > 0.005D && this.random.nextFloat() < 0.35F) {
+            this.level().addParticle(ParticleTypes.SPORE_BLOSSOM_AIR,
+                    this.getRandomX(0.6D), this.getY() + 0.3D, this.getRandomZ(0.6D),
+                    0.0D, 0.03D, 0.0D);
+            if (this.random.nextFloat() < 0.20F) {
+                this.level().addParticle(ParticleTypes.CHERRY_LEAVES,
+                        this.getRandomX(0.5D), this.getY() + 0.4D, this.getRandomZ(0.5D),
+                        0.0D, 0.01D, 0.0D);
+            }
         }
 
-        // Animación de Pisotón Sísmico
+        // Animación de Pisotón Floral
         if (stompingAnimationTicks > 0) {
             stompingAnimationTicks--;
             if (stompingAnimationTicks <= 0 && isStomping()) {
@@ -171,13 +175,13 @@ public class BrambiEntity extends TamableAnimal {
                     updateStatsFromOwner(playerOwner);
                 }
 
-                if (!this.isOrderedToSit() && this.getPassengers().isEmpty()) {
-                    // Pisotón Sísmico en combate si hay monstruos cerca (Cooldown: 15-20s)
+                if (!this.isOrderedToSit()) {
+                    // Estallido Floral de Raíces en combate si hay monstruos cerca (Cooldown: 20s)
                     if (stompCooldownTicks <= 0 && isOwnerOrSelfInCombat(playerOwner)) {
                         List<Monster> hostiles = this.level().getEntitiesOfClass(Monster.class,
-                                this.getBoundingBox().inflate(5.0D), Monster::isAlive);
+                                this.getBoundingBox().inflate(5.5D), Monster::isAlive);
                         if (!hostiles.isEmpty()) {
-                            executeEarthTremor(hostiles, playerOwner);
+                            executeFloraBurst(hostiles, playerOwner);
                             this.stompCooldownTicks = 400; // 20 segundos
                         }
                     }
@@ -198,44 +202,58 @@ public class BrambiEntity extends TamableAnimal {
     }
 
     /**
-     * Pisotón Sísmico: Se alza y golpea el suelo provocando una onda expansiva de tierra y aturdimiento.
+     * Estallido Floral de Raíces: Se alza y golpea el suelo liberando una explosión de plantas, hojas y esporas
      */
-    private void executeEarthTremor(List<Monster> targets, ServerPlayer owner) {
+    private void executeFloraBurst(List<Monster> targets, ServerPlayer owner) {
         ServerLevel serverLevel = (ServerLevel) this.level();
 
         this.stompingAnimationTicks = 30;
         this.setStomping(true);
 
         serverLevel.playSound(null, this.getX(), this.getY(), this.getZ(),
-                SoundEvents.RAVAGER_STUNNED, SoundSource.NEUTRAL, 1.2F, 1.2F);
+                SoundEvents.CHERRY_LEAVES_BREAK, SoundSource.NEUTRAL, 1.4F, 1.1F);
         serverLevel.playSound(null, this.getX(), this.getY(), this.getZ(),
-                SoundEvents.ROOTED_DIRT_BREAK, SoundSource.NEUTRAL, 1.4F, 0.9F);
+                SoundEvents.MOSS_BREAK, SoundSource.NEUTRAL, 1.2F, 1.3F);
+        serverLevel.playSound(null, this.getX(), this.getY(), this.getZ(),
+                SoundEvents.ROOTED_DIRT_BREAK, SoundSource.NEUTRAL, 1.2F, 1.4F);
 
-        // Ondas de partículas de tierra desprendida
-        BlockParticleOption dirtOption = new BlockParticleOption(ParticleTypes.BLOCK, Blocks.ROOTED_DIRT.defaultBlockState());
-        for (int i = 0; i < 32; i++) {
-            double angle = (i / 32.0D) * Math.PI * 2;
-            double vx = Math.cos(angle) * 0.45D;
-            double vz = Math.sin(angle) * 0.45D;
-            serverLevel.sendParticles(dirtOption, this.getX(), this.getY() + 0.1D, this.getZ(),
-                    1, vx, 0.25D, vz, 0.15D);
+        // Ondas expansivas de hojas, musgo y esporas de la naturaleza
+        BlockParticleOption mossOption = new BlockParticleOption(ParticleTypes.BLOCK, Blocks.MOSS_BLOCK.defaultBlockState());
+        BlockParticleOption leavesOption = new BlockParticleOption(ParticleTypes.BLOCK, Blocks.AZALEA_LEAVES.defaultBlockState());
+
+        for (int i = 0; i < 36; i++) {
+            double angle = (i / 36.0D) * Math.PI * 2;
+            double vx = Math.cos(angle) * 0.42D;
+            double vz = Math.sin(angle) * 0.42D;
+
+            serverLevel.sendParticles(leavesOption, this.getX(), this.getY() + 0.1D, this.getZ(),
+                    1, vx, 0.22D, vz, 0.14D);
+            serverLevel.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, this.getX(), this.getY() + 0.3D, this.getZ(),
+                    1, vx * 0.7D, 0.15D, vz * 0.7D, 0.06D);
             if (i % 2 == 0) {
-                serverLevel.sendParticles(ParticleTypes.COMPOSTER, this.getX(), this.getY() + 0.2D, this.getZ(),
-                        1, vx * 0.7D, 0.15D, vz * 0.7D, 0.08D);
+                serverLevel.sendParticles(mossOption, this.getX(), this.getY() + 0.1D, this.getZ(),
+                        1, vx * 0.8D, 0.18D, vz * 0.8D, 0.1D);
+                serverLevel.sendParticles(ParticleTypes.CHERRY_LEAVES, this.getX(), this.getY() + 0.4D, this.getZ(),
+                        1, vx * 0.5D, 0.2D, vz * 0.5D, 0.08D);
             }
         }
 
         DamageSource damageSource = this.damageSources().mobAttack(this);
         for (Monster m : targets) {
             m.hurt(damageSource, 8.5F);
-            // Empuja hacia arriba y aturde fuertemente
-            m.setDeltaMovement(m.getDeltaMovement().add(0, 0.45D, 0));
+            m.setDeltaMovement(m.getDeltaMovement().add(0, 0.40D, 0));
             m.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 80, 3, false, false, true));
             m.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 80, 0, false, false, true));
+
+            // Enredaderas en los pies del enemigo
+            serverLevel.sendParticles(leavesOption, m.getX(), m.getY() + 0.2D, m.getZ(),
+                    10, 0.3D, 0.1D, 0.3D, 0.05D);
+            serverLevel.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, m.getX(), m.getY() + 0.5D, m.getZ(),
+                    8, 0.25D, 0.25D, 0.25D, 0.05D);
         }
 
         owner.displayClientMessage(
-                Component.literal("§2[🦌] §f¡Brambi ejecuta un §6Pisotón Sísmico §fque aturde a los enemigos!"),
+                Component.literal("§2[🦌] §f¡Brambi desata un §aEstallido Floral de Raíces §fque inmoviliza a los enemigos!"),
                 true
         );
     }
@@ -251,8 +269,8 @@ public class BrambiEntity extends TamableAnimal {
             this.foragingAnimationTicks = 45;
             this.setForaging(true);
 
-            this.playSound(SoundEvents.ROOTED_DIRT_BREAK, 1.0F, 1.2F);
-            this.playSound(SoundEvents.FOX_SNIFF, 1.0F, 1.1F);
+            this.playSound(SoundEvents.ROOTED_DIRT_BREAK, 0.9F, 1.4F);
+            this.playSound(SoundEvents.FOX_SNIFF, 1.0F, 1.4F);
 
             ItemStack gift = switch (this.random.nextInt(6)) {
                 case 0 -> new ItemStack(Items.SWEET_BERRIES, 2 + this.random.nextInt(3));
@@ -268,6 +286,9 @@ public class BrambiEntity extends TamableAnimal {
                 serverLevel.sendParticles(ParticleTypes.HAPPY_VILLAGER,
                         this.getX(), this.getY() + 0.3D, this.getZ(),
                         8, 0.3D, 0.2D, 0.3D, 0.05D);
+                serverLevel.sendParticles(ParticleTypes.CHERRY_LEAVES,
+                        this.getX(), this.getY() + 0.3D, this.getZ(),
+                        5, 0.2D, 0.1D, 0.2D, 0.02D);
             }
 
             owner.displayClientMessage(
@@ -296,15 +317,19 @@ public class BrambiEntity extends TamableAnimal {
     public boolean doHurtTarget(Entity target) {
         boolean hurt = super.doHurtTarget(target);
         if (hurt && target instanceof LivingEntity living) {
-            // Embestida de astas: gran empuje físico
             Vec3 knockbackDir = living.position().subtract(this.position()).normalize().scale(0.8D);
             living.setDeltaMovement(living.getDeltaMovement().add(knockbackDir.x, 0.2D, knockbackDir.z));
-            this.playSound(SoundEvents.RAVAGER_ATTACK, 1.0F, 1.6F);
+
+            this.playSound(SoundEvents.AZALEA_LEAVES_BREAK, 1.0F, 1.4F);
+            this.playSound(SoundEvents.MOSS_STEP, 1.2F, 1.2F);
 
             if (this.level() instanceof ServerLevel serverLevel) {
-                serverLevel.sendParticles(ParticleTypes.CRIT,
+                serverLevel.sendParticles(ParticleTypes.CHERRY_LEAVES,
                         living.getX(), living.getY() + living.getBbHeight() * 0.5D, living.getZ(),
-                        8, 0.25D, 0.25D, 0.25D, 0.1D);
+                        8, 0.25D, 0.25D, 0.25D, 0.08D);
+                serverLevel.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR,
+                        living.getX(), living.getY() + living.getBbHeight() * 0.5D, living.getZ(),
+                        8, 0.25D, 0.25D, 0.25D, 0.05D);
             }
         }
         return hurt;
@@ -332,10 +357,13 @@ public class BrambiEntity extends TamableAnimal {
                             serverLevel.sendParticles(ParticleTypes.HEART,
                                     this.getX(), this.getY() + 1.0D, this.getZ(),
                                     16, 0.4D, 0.4D, 0.4D, 0.1D);
+                            serverLevel.sendParticles(ParticleTypes.CHERRY_LEAVES,
+                                    this.getX(), this.getY() + 0.8D, this.getZ(),
+                                    12, 0.3D, 0.3D, 0.3D, 0.05D);
                         }
                         this.playSound(SoundEvents.PLAYER_LEVELUP, 1.0F, 1.5F);
                         player.displayClientMessage(
-                                Component.literal("§2[🦌] §a¡Brambi confía en ti y te permitirá cabalgarlo y luchar a tu lado!"),
+                                Component.literal("§2[🦌] §a¡Brambi confía en ti y te acompañará como guardián leal!"),
                                 false
                         );
                     } else {
@@ -344,7 +372,7 @@ public class BrambiEntity extends TamableAnimal {
                                     this.getX(), this.getY() + 0.8D, this.getZ(),
                                     6, 0.2D, 0.2D, 0.2D, 0.02D);
                         }
-                        this.playSound(SoundEvents.FOX_SNIFF, 1.0F, 1.2F);
+                        this.playSound(SoundEvents.FOX_SNIFF, 1.0F, 1.4F);
                     }
                 } else {
                     // Alimentar: sana y da vigor
@@ -352,14 +380,15 @@ public class BrambiEntity extends TamableAnimal {
                     this.playSound(SoundEvents.HORSE_EAT, 1.0F, 1.3F);
                     this.playSound(SoundEvents.EXPERIENCE_ORB_PICKUP, 0.8F, 1.6F);
 
-                    this.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 300, 1, false, false, true));
-                    this.addEffect(new MobEffectInstance(MobEffects.JUMP, 300, 1, false, false, true));
-                    player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 300, 0, false, false, true));
+                    this.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 200, 0, false, false, true));
 
                     if (this.level() instanceof ServerLevel serverLevel) {
                         serverLevel.sendParticles(ParticleTypes.HEART,
                                 this.getX(), this.getY() + 1.0D, this.getZ(),
                                 8, 0.3D, 0.3D, 0.3D, 0.1D);
+                        serverLevel.sendParticles(ParticleTypes.CHERRY_LEAVES,
+                                this.getX(), this.getY() + 0.8D, this.getZ(),
+                                6, 0.25D, 0.25D, 0.25D, 0.05D);
                     }
                 }
             }
@@ -371,23 +400,46 @@ public class BrambiEntity extends TamableAnimal {
             this.setOrderedToSit(!this.isOrderedToSit());
             this.jumping = false;
             this.navigation.stop();
-            this.playSound(SoundEvents.CAMEL_AMBIENT, 1.0F, 1.4F);
+            this.playSound(SoundEvents.FOX_SNIFF, 1.0F, 1.4F);
             player.displayClientMessage(
                     Component.literal("§e[Brambi] " + (this.isOrderedToSit() ?
                             "§7Se echa pacíficamente en la hierba a montar guardia." :
-                            "§a¡Se pone en pie con brío y vigor!")),
+                            "§a¡Se pone en pie con brío y alegría!")),
                     true
             );
             return InteractionResult.sidedSuccess(this.level().isClientSide());
         }
 
-        // 3. Montar a Brambi: Dueño con mano vacía sin agacharse cuando no está sentado
-        if (this.isOwnedBy(player) && !this.isOrderedToSit() && itemstack.isEmpty() && !player.isPassenger()) {
-            if (!this.level().isClientSide()) {
-                player.startRiding(this);
-                this.playSound(SoundEvents.HORSE_ARMOR, 1.0F, 1.4F);
+        // 3. Dueño con mano vacía (sin agacharse) -> Acariciar a Brambi
+        if (this.isOwnedBy(player) && !this.level().isClientSide() && itemstack.isEmpty()) {
+            this.foragingAnimationTicks = 20;
+            this.setForaging(true); // Hace una reverencia tierna agachando la cabecita
+            this.playSound(SoundEvents.FOX_SNIFF, 1.0F, 1.5F);
+            this.playSound(SoundEvents.CHERRY_LEAVES_BREAK, 0.8F, 1.6F);
+
+            if (this.level() instanceof ServerLevel serverLevel) {
+                serverLevel.sendParticles(ParticleTypes.HEART,
+                        this.getX(), this.getY() + 1.1D, this.getZ(),
+                        6, 0.25D, 0.25D, 0.25D, 0.08D);
+                serverLevel.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR,
+                        this.getX(), this.getY() + 1.2D, this.getZ(),
+                        8, 0.3D, 0.3D, 0.3D, 0.05D);
+                serverLevel.sendParticles(ParticleTypes.CHERRY_LEAVES,
+                        this.getX(), this.getY() + 0.8D, this.getZ(),
+                        5, 0.2D, 0.2D, 0.2D, 0.03D);
+            }
+
+            // Probabilidad (50%) de otorgar velocidad de movimiento por 5 segundos
+            if (this.random.nextBoolean()) {
+                player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 100, 0, false, false, true));
+                this.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 100, 0, false, false, true));
                 player.displayClientMessage(
-                        Component.literal("§2[🦌] §a¡Cabalgas sobre Brambi! (Usa SHIFT para desmontar)"),
+                        Component.literal("§a[🦌] §fAcaricias a Brambi. ¡La brisa del bosque te llena de ligereza! §b(Velocidad I por 5s)"),
+                        true
+                );
+            } else {
+                player.displayClientMessage(
+                        Component.literal("§a[🦌] §fAcaricias tiernamente las suaves astas de Brambi. ¡Menea su colita feliz!"),
                         true
                 );
             }
@@ -395,30 +447,6 @@ public class BrambiEntity extends TamableAnimal {
         }
 
         return super.mobInteract(player, hand);
-    }
-
-    @Override
-    public LivingEntity getControllingPassenger() {
-        Entity passenger = this.getFirstPassenger();
-        if (passenger instanceof Player player && this.isOwnedBy(player)) {
-            return player;
-        }
-        return null;
-    }
-
-    @Override
-    protected Vec3 getRiddenInput(Player player, Vec3 travelVector) {
-        float f = player.xxa * 0.5F;
-        float f1 = player.zza;
-        if (f1 <= 0.0F) {
-            f1 *= 0.25F;
-        }
-        return new Vec3(f, 0.0D, f1);
-    }
-
-    @Override
-    protected float getRiddenSpeed(Player player) {
-        return (float) this.getAttributeValue(Attributes.MOVEMENT_SPEED) * 1.15F;
     }
 
     private boolean isOwnerOrSelfInCombat(Player owner) {
@@ -456,22 +484,22 @@ public class BrambiEntity extends TamableAnimal {
 
     @Override
     protected SoundEvent getAmbientSound() {
-        return SoundEvents.CAMEL_AMBIENT;
+        return SoundEvents.FOX_SNIFF;
     }
 
     @Override
     protected SoundEvent getHurtSound(DamageSource source) {
-        return SoundEvents.CAMEL_HURT;
+        return SoundEvents.FOX_HURT;
     }
 
     @Override
     protected SoundEvent getDeathSound() {
-        return SoundEvents.CAMEL_DEATH;
+        return SoundEvents.FOX_DEATH;
     }
 
     @Override
     public float getVoicePitch() {
-        return 1.45F;
+        return 1.35F;
     }
 
     @Override
