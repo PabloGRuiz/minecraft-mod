@@ -32,6 +32,7 @@ Thumbs.db
 *.log
 
 # Scratch & temporary development folders
+scratch/
 updatedfiles/
 mobprueba/
 guild_house.nbt

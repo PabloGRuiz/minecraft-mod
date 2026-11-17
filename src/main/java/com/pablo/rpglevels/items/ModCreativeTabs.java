@@ -44,6 +44,10 @@ public class ModCreativeTabs {
                         output.accept(ModItems.RESONANT_SOUL_CRYSTAL.get());
                         output.accept(ModItems.RADIANT_SOUL_GEM.get());
                         output.accept(ModItems.PRIMORDIAL_SOUL_CORE.get());
+                        output.accept(com.pablo.rpglevels.init.ModBlocks.ABYSSAL_STONE.get());
+                        output.accept(com.pablo.rpglevels.init.ModBlocks.VOIDSTEEL_ORE.get());
+                        output.accept(ModItems.RAW_VOIDSTEEL.get());
+                        output.accept(ModItems.VOIDSTEEL_INGOT.get());
                         output.accept(com.pablo.rpglevels.init.ModBlocks.RIFT_MONOLITH.get());
                     })
                     .build());

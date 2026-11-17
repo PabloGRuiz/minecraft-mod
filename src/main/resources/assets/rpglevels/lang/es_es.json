@@ -396,5 +396,9 @@
     "item.rpglevels.radiant_soul_gem": "Gema de Alma Radiante",
     "item.rpglevels.radiant_soul_crystal.desc": "Una joya deslumbrante condensada bajo inmensa presión espiritual. Permite a los herreros del gremio forjar filos capaces de cortar barreras mágicas.",
     "item.rpglevels.primordial_soul_core": "Núcleo de Alma Primordial",
-    "item.rpglevels.primordial_soul_crystal.desc": "El vestigio eterno de un alma de poder cataclísmico. El núcleo definitivo para la creación de armas y armaduras legendarias capaces de desafiar a seres supremos."
+    "item.rpglevels.primordial_soul_crystal.desc": "El vestigio eterno de un alma de poder cataclísmico. El núcleo definitivo para la creación de armas y armaduras legendarias capaces de desafiar a seres supremos.",
+    "block.rpglevels.abyssal_stone": "Piedra del Abismo",
+    "block.rpglevels.voidsteel_ore": "Mineral de Voidsteel",
+    "item.rpglevels.raw_voidsteel": "Voidsteel en Bruto",
+    "item.rpglevels.voidsteel_ingot": "Lingote de Voidsteel"
 }

@@ -21,53 +21,34 @@
     }
   },
   "spawners": {
-    "ambient": [
-      {
-        "type": "minecraft:bat",
-        "maxCount": 8,
-        "minCount": 4,
-        "weight": 10
-      }
-    ],
+    "ambient": [],
     "axolotls": [],
     "creature": [],
     "misc": [],
     "monster": [
       {
-        "type": "minecraft:skeleton",
-        "maxCount": 4,
-        "minCount": 2,
+        "type": "rpglevels:voidborn",
+        "maxCount": 3,
+        "minCount": 1,
         "weight": 100
       },
       {
-        "type": "minecraft:zombie",
-        "maxCount": 4,
-        "minCount": 2,
-        "weight": 100
-      },
-      {
-        "type": "minecraft:spider",
-        "maxCount": 4,
+        "type": "rpglevels:hornless_voidborn",
+        "maxCount": 3,
         "minCount": 1,
         "weight": 80
       },
       {
-        "type": "minecraft:creeper",
-        "maxCount": 3,
-        "minCount": 1,
-        "weight": 70
-      },
-      {
-        "type": "minecraft:enderman",
+        "type": "rpglevels:horned_voidborn",
         "maxCount": 2,
         "minCount": 1,
-        "weight": 15
+        "weight": 60
       },
       {
-        "type": "minecraft:witch",
+        "type": "rpglevels:colossal_voidborn",
         "maxCount": 1,
         "minCount": 1,
-        "weight": 10
+        "weight": 25
       }
     ],
     "underground_water_creature": [],
@@ -85,36 +66,16 @@
   "features": [
     [],
     [],
-    [
-      "minecraft:amethyst_geode"
-    ],
-    [
-      "minecraft:monster_room",
-      "minecraft:monster_room_deep"
-    ],
+    [],
+    [],
     [],
     [],
     [
-      "minecraft:ore_iron_middle",
-      "minecraft:ore_iron_small",
-      "minecraft:ore_gold",
-      "minecraft:ore_gold_lower",
-      "minecraft:ore_redstone",
-      "minecraft:ore_redstone_lower",
-      "minecraft:ore_diamond",
-      "minecraft:ore_diamond_medium",
-      "minecraft:ore_lapis",
-      "minecraft:ore_copper_large",
-      "minecraft:ore_tuff"
-    ],
-    [
-      "minecraft:dripstone_cluster",
-      "minecraft:pointed_dripstone"
+      "rpglevels:ore_voidsteel"
     ],
     [],
-    [
-      "minecraft:glow_lichen"
-    ],
+    [],
+    [],
     []
   ]
 }

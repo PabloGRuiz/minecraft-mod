@@ -1,11 +1,11 @@
 {
-  "has_precipitation": false,
-  "temperature": -0.7,
+  "has_precipitation": true,
+  "temperature": -0.5,
   "downfall": 0.5,
   "effects": {
-    "fog_color": 859434,
+    "fog_color": 1450293,
     "sky_color": 0,
-    "water_color": 4159204,
+    "water_color": 3757470,
     "water_fog_color": 329011,
     "mood_sound": {
       "sound": "minecraft:ambient.cave",
@@ -27,48 +27,34 @@
     }
   },
   "spawners": {
-    "ambient": [
-      {
-        "type": "minecraft:bat",
-        "maxCount": 4,
-        "minCount": 2,
-        "weight": 10
-      }
-    ],
+    "ambient": [],
     "axolotls": [],
-    "creature": [
-      {
-        "type": "minecraft:polar_bear",
-        "maxCount": 2,
-        "minCount": 1,
-        "weight": 15
-      }
-    ],
+    "creature": [],
     "misc": [],
     "monster": [
       {
-        "type": "minecraft:stray",
-        "maxCount": 4,
-        "minCount": 2,
+        "type": "rpglevels:voidborn",
+        "maxCount": 3,
+        "minCount": 1,
         "weight": 100
       },
       {
-        "type": "minecraft:skeleton",
-        "maxCount": 4,
-        "minCount": 2,
+        "type": "rpglevels:hornless_voidborn",
+        "maxCount": 3,
+        "minCount": 1,
         "weight": 80
       },
       {
-        "type": "minecraft:spider",
-        "maxCount": 3,
+        "type": "rpglevels:horned_voidborn",
+        "maxCount": 2,
         "minCount": 1,
         "weight": 60
       },
       {
-        "type": "minecraft:creeper",
-        "maxCount": 3,
+        "type": "rpglevels:colossal_voidborn",
+        "maxCount": 1,
         "minCount": 1,
-        "weight": 50
+        "weight": 25
       }
     ],
     "underground_water_creature": [],
@@ -86,30 +72,16 @@
   "features": [
     [],
     [],
-    [
-      "minecraft:amethyst_geode"
-    ],
-    [
-      "minecraft:monster_room",
-      "minecraft:monster_room_deep"
-    ],
+    [],
+    [],
     [],
     [],
     [
-      "minecraft:ore_iron_middle",
-      "minecraft:ore_iron_small",
-      "minecraft:ore_gold",
-      "minecraft:ore_redstone",
-      "minecraft:ore_diamond",
-      "minecraft:ore_lapis"
+      "rpglevels:ore_voidsteel"
     ],
     [],
     [],
-    [
-      "minecraft:glow_lichen"
-    ],
-    [
-      "minecraft:freeze_top_layer"
-    ]
+    [],
+    []
   ]
 }

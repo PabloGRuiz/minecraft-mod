@@ -36,6 +36,28 @@ public class AbyssDungeonEvents {
     // Tracks player-placed blocks in the Abyss Rift to prevent place-and-break ore farming exploits
     private static final Set<Long> PLAYER_PLACED_ORES = ConcurrentHashMap.newKeySet();
 
+    /**
+     * En el Abismo solo se permite el spawn de criaturas abisales (Voidborns y Bosses del Abismo).
+     * Se bloquean todos los monstruos normales vanilla y modded comunes (zombies, creepers, etc.).
+     */
+    @SubscribeEvent
+    public static void onEntityJoinAbyss(net.neoforged.neoforge.event.entity.EntityJoinLevelEvent event) {
+        if (event.getLevel().isClientSide()) return;
+        if (ModDimensions.isAbyssRift(event.getLevel())) {
+            net.minecraft.world.entity.Entity entity = event.getEntity();
+            if (entity instanceof net.minecraft.world.entity.monster.Enemy || entity instanceof net.minecraft.world.entity.monster.Monster) {
+                if (!(entity instanceof com.pablo.rpglevels.entities.VoidbornEntity)
+                        && !(entity instanceof com.pablo.rpglevels.entities.ColossalVoidbornEntity)
+                        && !(entity instanceof com.pablo.rpglevels.entities.HornedVoidbornEntity)
+                        && !(entity instanceof com.pablo.rpglevels.entities.HornlessVoidbornEntity)
+                        && !(entity instanceof com.pablo.rpglevels.entities.CultistBossEntity)
+                        && !(entity instanceof com.pablo.rpglevels.entities.PelotitaEntity)) {
+                    event.setCanceled(true);
+                }
+            }
+        }
+    }
+
     @SubscribeEvent
     public static void onBlockPlace(BlockEvent.EntityPlaceEvent event) {
         if (event.getLevel().isClientSide()) {

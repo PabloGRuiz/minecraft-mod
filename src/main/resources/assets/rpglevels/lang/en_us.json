@@ -396,5 +396,9 @@
     "item.rpglevels.radiant_soul_gem": "Radiant Soul Gem",
     "item.rpglevels.radiant_soul_crystal.desc": "A dazzling gem condensed under immense spiritual pressure. Empowers guild blacksmiths to forge edges that shear through magical barriers.",
     "item.rpglevels.primordial_soul_core": "Primordial Soul Core",
-    "item.rpglevels.primordial_soul_crystal.desc": "The timeless vestige of a cataclysmic soul. The supreme core for crafting legendary armaments capable of defying spiritual gods."
+    "item.rpglevels.primordial_soul_crystal.desc": "The timeless vestige of a cataclysmic soul. The supreme core for crafting legendary armaments capable of defying spiritual gods.",
+    "block.rpglevels.abyssal_stone": "Abyssal Stone",
+    "block.rpglevels.voidsteel_ore": "Voidsteel Ore",
+    "item.rpglevels.raw_voidsteel": "Raw Voidsteel",
+    "item.rpglevels.voidsteel_ingot": "Voidsteel Ingot"
 }

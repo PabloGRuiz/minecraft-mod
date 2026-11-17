@@ -181,4 +181,11 @@ public class ModItems {
 
     public static final DeferredItem<Item> PRIMORDIAL_SOUL_CORE = ITEMS.register("primordial_soul_core",
             () -> new SoulCrystalItem(SoulCrystalItem.Tier.PRIMORDIAL));
+
+    // Voidsteel: Mineral exclusivo del Abismo (Violeta fluorescente)
+    public static final DeferredItem<Item> RAW_VOIDSTEEL = ITEMS.register("raw_voidsteel",
+            () -> new Item(new Item.Properties().rarity(Rarity.RARE)));
+
+    public static final DeferredItem<Item> VOIDSTEEL_INGOT = ITEMS.register("voidsteel_ingot",
+            () -> new Item(new Item.Properties().rarity(Rarity.EPIC)));
 }

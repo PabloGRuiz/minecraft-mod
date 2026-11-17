@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:blasting",
+  "category": "misc",
+  "cookingtime": 200,
+  "experience": 3.0,
+  "ingredient": {
+    "item": "rpglevels:voidsteel_ore"
+  },
+  "result": {
+    "id": "rpglevels:voidsteel_ingot"
+  }
+}
