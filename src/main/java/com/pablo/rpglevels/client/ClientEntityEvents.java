@@ -56,6 +56,8 @@ public class ClientEntityEvents {
                 com.pablo.rpglevels.client.model.StarryModel::createBodyLayer);
         event.registerLayerDefinition(com.pablo.rpglevels.client.model.BrambiModel.LAYER_LOCATION,
                 com.pablo.rpglevels.client.model.BrambiModel::createBodyLayer);
+        event.registerLayerDefinition(com.pablo.rpglevels.client.model.ChubbyModel.LAYER_LOCATION,
+                com.pablo.rpglevels.client.model.ChubbyModel::createBodyLayer);
     }
 
     @SubscribeEvent
@@ -91,6 +93,8 @@ public class ClientEntityEvents {
                 com.pablo.rpglevels.client.renderer.StarryRenderer::new);
         event.registerEntityRenderer(ModEntities.BRAMBI.get(),
                 com.pablo.rpglevels.client.renderer.BrambiRenderer::new);
+        event.registerEntityRenderer(ModEntities.CHUBBY.get(),
+                com.pablo.rpglevels.client.renderer.ChubbyRenderer::new);
         event.registerEntityRenderer(ModEntities.HOLLOW_ROCK.get(),
                 (ctx) -> new net.minecraft.client.renderer.entity.ThrownItemRenderer<>(ctx, 2.2f, false));
         event.registerEntityRenderer(ModEntities.SPIRITUAL_BEAM.get(),

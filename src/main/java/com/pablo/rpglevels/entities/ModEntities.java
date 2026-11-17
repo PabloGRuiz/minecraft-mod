@@ -171,4 +171,11 @@ public class ModEntities {
                     .eyeHeight(0.95f)
                     .clientTrackingRange(10)
                     .build("brambi"));
+
+    public static final Supplier<EntityType<ChubbyEntity>> CHUBBY =
+            ENTITIES.register("chubby", () -> EntityType.Builder.of(ChubbyEntity::new, MobCategory.CREATURE)
+                    .sized(0.7f, 0.6f)
+                    .eyeHeight(0.35f)
+                    .clientTrackingRange(10)
+                    .build("chubby"));
 }

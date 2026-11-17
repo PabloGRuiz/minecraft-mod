@@ -174,6 +174,14 @@ public class ModItems {
                     0x55A065, // Verde flora viva
                     new Item.Properties()));
 
+    // Huevo generador de Chubby (Compañero nubecita de tormenta)
+    public static final DeferredItem<Item> CHUBBY_SPAWN_EGG = ITEMS.register("chubby_spawn_egg",
+            () -> new DeferredSpawnEggItem(
+                    ModEntities.CHUBBY,
+                    0xCFE6F8, // Blanco nube celeste
+                    0xFAD02C, // Amarillo relámpago
+                    new Item.Properties()));
+
     // Grimorio del Segador Espiritual (Libro de Hechizos Oficial de Iron's Spells - 3 ranuras rápidas)
     public static final DeferredItem<Item> SPIRITUAL_SPELLBOOK = ITEMS.register("spiritual_spellbook",
             () -> new io.redspace.ironsspellbooks.item.SpellBook(3, new Item.Properties().rarity(Rarity.RARE).stacksTo(1))

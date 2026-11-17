@@ -392,6 +392,8 @@
     "item.rpglevels.starry_spawn_egg": "Generar a Starry",
     "entity.rpglevels.brambi": "Brambi",
     "item.rpglevels.brambi_spawn_egg": "Generar a Brambi",
+    "entity.rpglevels.chubby": "Chubby",
+    "item.rpglevels.chubby_spawn_egg": "Generar a Chubby",
     "ui.rpglevels.power_control.title": "Control y Regulación de Poder",
     "item.rpglevels.lesser_soul_fragment": "Fragmento de Alma Menor",
     "item.rpglevels.lesser_soul_crystal.desc": "La cristalización de la energía anímica más pura y frágil. Base fundamental para aleaciones y temples de herrería humana.",
