@@ -57,6 +57,7 @@ public class StarryEntity extends TamableAnimal {
     private int shieldCooldownTicks = 160;
     private int celestialRegenCooldownTicks = 600;
     private int danceTicks = 0;
+    private long lastPetGameTime = 0L;
 
     public StarryEntity(EntityType<? extends TamableAnimal> type, Level level) {
         super(type, level);
@@ -468,8 +469,14 @@ public class StarryEntity extends TamableAnimal {
             return InteractionResult.sidedSuccess(this.level().isClientSide());
         }
 
-        // 3. Dueño: Clic Derecho sin nada en la mano -> Acariciar a Starry
+        // 3. Dueño: Clic Derecho sin nada en la mano -> Acariciar a Starry (cooldown 2 segundos / 40 ticks)
         if (this.isOwnedBy(player) && !this.level().isClientSide() && itemstack.isEmpty()) {
+            long gameTime = this.level().getGameTime();
+            if (gameTime - this.lastPetGameTime < 40L) {
+                return InteractionResult.sidedSuccess(this.level().isClientSide());
+            }
+            this.lastPetGameTime = gameTime;
+
             this.danceTicks = 20;
             this.setDancing(true);
             this.playSound(SoundEvents.FOX_AMBIENT, 1.0F, 1.6F);

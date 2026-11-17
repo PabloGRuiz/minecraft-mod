@@ -115,5 +115,14 @@ public class ChubbyModel extends HierarchicalModel<ChubbyEntity> {
             this.leftArm.zRot = 0.6F;
             this.horn.xRot = 0.6981F + Mth.sin(ageInTicks * 0.8F) * 0.3F;
         }
+
+        // Si fue acariciado: gira alegremente en pirueta de 360° con flotación emocionada
+        if (entity.isExcitedSpin()) {
+            this.cuerpo.yRot += ageInTicks * 0.95F;
+            this.cuerpo.y = 12.0F + Mth.sin(ageInTicks * 0.4F) * 3.5F;
+            this.rightArm.zRot = -0.75F + Mth.sin(ageInTicks * 0.6F) * 0.3F;
+            this.leftArm.zRot = 0.75F - Mth.sin(ageInTicks * 0.6F) * 0.3F;
+            this.nubeCola.yRot = Mth.sin(ageInTicks * 0.8F) * 0.4F;
+        }
     }
 }

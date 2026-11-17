@@ -309,6 +309,21 @@ public class CombatEvents {
             return;
         }
 
+        // --- DEFENSA DE BRASAS DE BRAMBI ---
+        // Si un enemigo golpea a su dueño o a un aliado, Brambi contraataca con un cabezazo ardiente
+        if (attacker instanceof LivingEntity livingAttacker && !victim.level().isClientSide()) {
+            List<com.pablo.rpglevels.entities.BrambiEntity> brambis = victim.level().getEntitiesOfClass(
+                    com.pablo.rpglevels.entities.BrambiEntity.class,
+                    victim.getBoundingBox().inflate(8.0D),
+                    b -> b.isAlive() && !b.isOrderedToSit() && com.pablo.rpglevels.party.PartyManager.isAllied(b, victim)
+            );
+            for (var b : brambis) {
+                if (b.triggerEmberDefense(livingAttacker)) {
+                    break;
+                }
+            }
+        }
+
         // Check for Riposte against Staggered target
         boolean isRiposte = false;
         if (attacker instanceof ServerPlayer player) {

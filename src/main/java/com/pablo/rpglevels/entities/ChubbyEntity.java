@@ -57,10 +57,14 @@ public class ChubbyEntity extends TamableAnimal {
 
     private static final EntityDataAccessor<Boolean> CHARGING_LIGHTNING =
             SynchedEntityData.defineId(ChubbyEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> EXCITED_SPIN =
+            SynchedEntityData.defineId(ChubbyEntity.class, EntityDataSerializers.BOOLEAN);
 
     private int thunderStrikeCooldownTicks = 160;
     private int rainCooldownTicks = 100;
     private int chargingTicks = 0;
+    private int spinTicks = 0;
+    private long lastPetGameTime = 0L;
 
     public ChubbyEntity(EntityType<? extends TamableAnimal> type, Level level) {
         super(type, level);
@@ -72,6 +76,7 @@ public class ChubbyEntity extends TamableAnimal {
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
         builder.define(CHARGING_LIGHTNING, false);
+        builder.define(EXCITED_SPIN, false);
     }
 
     public boolean isChargingLightning() {
@@ -80,6 +85,14 @@ public class ChubbyEntity extends TamableAnimal {
 
     public void setChargingLightning(boolean charging) {
         this.entityData.set(CHARGING_LIGHTNING, charging);
+    }
+
+    public boolean isExcitedSpin() {
+        return this.entityData.get(EXCITED_SPIN);
+    }
+
+    public void setExcitedSpin(boolean spin) {
+        this.entityData.set(EXCITED_SPIN, spin);
     }
 
     @Override
@@ -163,6 +176,14 @@ public class ChubbyEntity extends TamableAnimal {
             chargingTicks--;
             if (chargingTicks <= 0 && isChargingLightning()) {
                 setChargingLightning(false);
+            }
+        }
+
+        // Control de animación de giro alegre por caricia
+        if (spinTicks > 0) {
+            spinTicks--;
+            if (spinTicks <= 0 && isExcitedSpin()) {
+                setExcitedSpin(false);
             }
         }
 
@@ -405,22 +426,33 @@ public class ChubbyEntity extends TamableAnimal {
             return InteractionResult.sidedSuccess(this.level().isClientSide());
         }
 
-        // 3. Dueño con mano vacía -> Acariciar
+        // 3. Dueño con mano vacía -> Acariciar a Chubby (cooldown 2 segundos / 40 ticks)
         if (this.isOwnedBy(player) && !this.level().isClientSide() && itemstack.isEmpty()) {
-            this.chargingTicks = 20;
-            this.setChargingLightning(true);
+            long gameTime = this.level().getGameTime();
+            if (gameTime - this.lastPetGameTime < 40L) {
+                return InteractionResult.sidedSuccess(this.level().isClientSide());
+            }
+            this.lastPetGameTime = gameTime;
+
+            this.spinTicks = 35;
+            this.setExcitedSpin(true);
+            this.setDeltaMovement(this.getDeltaMovement().add(0, 0.22D, 0)); // Salto de alegría en el aire
+            this.playSound(SoundEvents.AMETHYST_BLOCK_CHIME, 1.2F, 1.6F);
             this.playSound(SoundEvents.BEE_POLLINATE, 1.0F, 1.8F);
 
             if (this.level() instanceof ServerLevel serverLevel) {
                 serverLevel.sendParticles(ParticleTypes.HEART,
-                        this.getX(), this.getY() + 0.5D, this.getZ(),
-                        6, 0.25D, 0.25D, 0.25D, 0.08D);
+                        this.getX(), this.getY() + 0.6D, this.getZ(),
+                        8, 0.3D, 0.3D, 0.3D, 0.08D);
                 serverLevel.sendParticles(ParticleTypes.ELECTRIC_SPARK,
                         this.getX(), this.getY() + 0.5D, this.getZ(),
-                        8, 0.25D, 0.25D, 0.25D, 0.05D);
+                        10, 0.25D, 0.25D, 0.25D, 0.05D);
+                serverLevel.sendParticles(ParticleTypes.CLOUD,
+                        this.getX(), this.getY() + 0.4D, this.getZ(),
+                        6, 0.3D, 0.2D, 0.3D, 0.02D);
             }
             player.displayClientMessage(
-                    Component.literal("§e[⚡] §fAcaricias la esponjosa nubecita de Chubby. ¡Ronronea con truenos de felicidad!"),
+                    Component.literal("§e[⚡] §fAcaricias la esponjosa nubecita de Chubby. ¡Gira alegremente dando piruetas de emoción!"),
                     true
             );
             return InteractionResult.sidedSuccess(this.level().isClientSide());

@@ -119,26 +119,22 @@ public class BrambiModel extends HierarchicalModel<BrambiEntity> {
         this.leftEar.zRot = 0.829F + Mth.sin(ageInTicks * 0.15F) * 0.08F;
 
         boolean isSitting = entity.isOrderedToSit();
-        boolean isStomping = entity.isStomping();
+        boolean isHeadbutting = entity.isHeadbutting();
         boolean isForaging = entity.isForaging();
 
-        if (isStomping) {
-            // Animación de alzarse en dos patas y dar pisotón devastador
-            this.bbMain.y = 21.0F;
-            this.bbMain.xRot = -0.45F;
-            this.hair.y = 8.0F;
-            this.hair.xRot = -0.45F;
+        if (isHeadbutting) {
+            // Animación de embestida con cabezazo hacia delante con cuernos de rama
+            this.bbMain.y = 22.5F;
+            this.bbMain.xRot = -0.2F;
+            this.hair.y = 9.5F;
+            this.hair.xRot = -0.2F;
 
-            this.head.y = 2.0F;
-            this.head.xRot = -0.2F;
+            this.head.y = 6.0F;
+            this.head.z = -9.0F;
+            this.head.xRot = 0.65F;
 
-            this.rightLegs.y = 12.0F;
-            this.rightLegs.xRot = -0.8F;
-            this.leftLegs.y = 12.0F;
-            this.leftLegs.xRot = -0.8F;
-
-            this.tail.y = 12.0F;
-            this.tail.xRot = 0.5F;
+            this.tail.y = 11.0F;
+            this.tail.xRot = 0.4F;
         } else if (isForaging) {
             // Cabeza agachada al suelo hurgando y rascando la tierra
             this.head.y = 12.0F;

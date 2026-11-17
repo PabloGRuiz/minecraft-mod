@@ -60,6 +60,22 @@ public class VoidbornModel<T extends VoidbornEntity> extends HierarchicalModel<T
                         .addBox(-6.0F, -22.0F, -2.0F, 8.0F, 12.0F, 4.0F, new CubeDeformation(0.0F)),
                 PartPose.offset(0.0F, 24.0F, 0.0F));
 
+        // Hueco de Hollow en el pecho
+        cuerpo.addOrReplaceChild("hueco",
+                CubeListBuilder.create().texOffs(44, 44).addBox(2.0F, 1.0F, -2.0F, 0.0F, 2.0F, 4.0F, new CubeDeformation(0.0F))
+                        .texOffs(32, 44).addBox(-1.0F, 0.0F, -2.0F, 2.0F, 0.0F, 4.0F, new CubeDeformation(0.0F))
+                        .texOffs(44, 44).addBox(-2.0F, 1.0F, -2.0F, 0.0F, 2.0F, 4.0F, new CubeDeformation(0.0F))
+                        .texOffs(32, 44).addBox(-1.0F, 4.0F, -2.0F, 2.0F, 0.0F, 4.0F, new CubeDeformation(0.0F))
+                        .texOffs(0, 48).addBox(1.0F, 1.0F, -2.0F, 1.0F, 0.0F, 4.0F, new CubeDeformation(0.0F))
+                        .texOffs(0, 48).addBox(-2.0F, 1.0F, -2.0F, 1.0F, 0.0F, 4.0F, new CubeDeformation(0.0F))
+                        .texOffs(0, 48).addBox(-2.0F, 3.0F, -2.0F, 1.0F, 0.0F, 4.0F, new CubeDeformation(0.0F))
+                        .texOffs(0, 48).addBox(1.0F, 3.0F, -2.0F, 1.0F, 0.0F, 4.0F, new CubeDeformation(0.0F))
+                        .texOffs(10, 48).addBox(1.0F, 3.0F, -2.0F, 0.0F, 1.0F, 4.0F, new CubeDeformation(0.0F))
+                        .texOffs(10, 48).addBox(1.0F, 0.0F, -2.0F, 0.0F, 1.0F, 4.0F, new CubeDeformation(0.0F))
+                        .texOffs(10, 48).addBox(-1.0F, 0.0F, -2.0F, 0.0F, 1.0F, 4.0F, new CubeDeformation(0.0F))
+                        .texOffs(10, 48).addBox(-1.0F, 3.0F, -2.0F, 0.0F, 1.0F, 4.0F, new CubeDeformation(0.0F)),
+                PartPose.offset(-2.0F, -18.0F, 0.0F));
+
         // Cabeza con máscara de Hollow separada para rotar al mirar al jugador
         cuerpo.addOrReplaceChild("cabeza",
                 CubeListBuilder.create().texOffs(0, 16)
