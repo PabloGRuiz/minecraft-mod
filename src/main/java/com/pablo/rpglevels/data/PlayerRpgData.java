@@ -55,6 +55,10 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
     private long auraSenseUntilTick = 0;
     private long oppressiveAuraUntilTick = 0;
 
+    // Resonancia Espiritual (Modo Supremo a 200 de Afinidad)
+    private long spiritualResonanceUntilTick = 0;
+    private long spiritualResonanceCinematicUntilTick = 0;
+
     // 360 Dash / Dodge State
     private long lastDashTick = -10000L;
     private long dashIFrameUntilTick = -100;
@@ -651,6 +655,29 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         return oppressiveAuraUntilTick;
     }
 
+    public void activateSpiritualResonance(long currentTick, int durationTicks, int cinematicTicks) {
+        this.spiritualResonanceUntilTick = currentTick + durationTicks;
+        this.spiritualResonanceCinematicUntilTick = currentTick + cinematicTicks;
+        this.auraVisibleUntilTick = currentTick + durationTicks;
+        this.oppressiveAuraUntilTick = currentTick + cinematicTicks;
+    }
+
+    public boolean isSpiritualResonanceActive(long currentTick) {
+        return currentTick < spiritualResonanceUntilTick;
+    }
+
+    public boolean isSpiritualResonanceCinematicActive(long currentTick) {
+        return currentTick < spiritualResonanceCinematicUntilTick;
+    }
+
+    public long getSpiritualResonanceUntilTick() {
+        return spiritualResonanceUntilTick;
+    }
+
+    public long getSpiritualResonanceCinematicUntilTick() {
+        return spiritualResonanceCinematicUntilTick;
+    }
+
     /**
      * Calcula la estadística de Aura (Poder del Alma):
      * Promedio equilibrado de todas las estadísticas activas del jugador.
@@ -1057,6 +1084,10 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
             // Power-up masivo de Primera Liberación: +50% a todas las estadísticas RPG (+5 puntos base)
             total = (int) Math.round(total * 1.5) + 5;
         }
+        if (player != null && player.level() != null && isSpiritualResonanceActive(player.level().getGameTime())) {
+            // Resonancia Espiritual (Modo Supremo a 200 de Afinidad): ¡x2 (DUPLICACIÓN) a todas las estadísticas RPG!
+            total = total * 2;
+        }
         return total;
     }
 
@@ -1213,6 +1244,8 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         this.lastAmbushCheckDay = other.lastAmbushCheckDay;
         this.pendingAmbushToday = other.pendingAmbushToday;
         this.lastDashTick = other.lastDashTick;
+        this.spiritualResonanceUntilTick = other.spiritualResonanceUntilTick;
+        this.spiritualResonanceCinematicUntilTick = other.spiritualResonanceCinematicUntilTick;
         this.currentLocationName = other.currentLocationName;
         this.skillCooldownUntilTick.clear();
         this.skillCooldownUntilTick.putAll(other.skillCooldownUntilTick);
@@ -1246,6 +1279,8 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         tag.putLong("AuraVisibleUntilTick", auraVisibleUntilTick);
         tag.putLong("AuraSenseUntilTick", auraSenseUntilTick);
         tag.putLong("OppressiveAuraUntilTick", oppressiveAuraUntilTick);
+        tag.putLong("SpiritualResonanceUntilTick", spiritualResonanceUntilTick);
+        tag.putLong("SpiritualResonanceCinematicUntilTick", spiritualResonanceCinematicUntilTick);
         tag.putFloat("CurrentMana", currentMana);
         tag.putFloat("PowerOutputRatio", powerOutputRatio);
         tag.putFloat("MoveSpeedRatio", moveSpeedRatio);
@@ -1342,6 +1377,12 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         }
         if (tag.contains("OppressiveAuraUntilTick", Tag.TAG_LONG)) {
             this.oppressiveAuraUntilTick = tag.getLong("OppressiveAuraUntilTick");
+        }
+        if (tag.contains("SpiritualResonanceUntilTick", Tag.TAG_LONG)) {
+            this.spiritualResonanceUntilTick = tag.getLong("SpiritualResonanceUntilTick");
+        }
+        if (tag.contains("SpiritualResonanceCinematicUntilTick", Tag.TAG_LONG)) {
+            this.spiritualResonanceCinematicUntilTick = tag.getLong("SpiritualResonanceCinematicUntilTick");
         }
         if (tag.contains("CurrentMana", Tag.TAG_FLOAT)) {
             this.currentMana = tag.getFloat("CurrentMana");

@@ -852,8 +852,8 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
         // Regla: Las técnicas de la Espada Espiritual SOLO aparecen en la interfaz/rueda del ISB al tener la espada liberada (Primera Liberación activa).
         if (!isFirstRelease(stack)) {
             ISpellContainer cur = ISpellContainer.get(stack);
-            if (cur == null || !cur.isEmpty() || !cur.isSpellWheel() || cur.mustEquip() || cur.getMaxSpellCount() != 3) {
-                ISpellContainer.set(stack, ISpellContainer.create(3, true, false));
+            if (cur == null || !cur.isEmpty() || !cur.isSpellWheel() || cur.mustEquip() || cur.getMaxSpellCount() != 4) {
+                ISpellContainer.set(stack, ISpellContainer.create(4, true, false));
                 return true;
             }
             return false;
@@ -870,17 +870,20 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
         int targetLevel = getAwakenedSpellLevel(stack);
         boolean hasSecondary = senbon || (affinity >= 150);
         boolean hasTertiary = affinity >= 200;
+        boolean hasQuaternary = affinity >= 200;
         io.redspace.ironsspellbooks.api.spells.AbstractSpell secondarySpell = hasSecondary
                 ? (senbon ? com.pablo.rpglevels.magic.spiritual.SpiritualSpells.SENBONZAKURA_VORTEX.get() : getSecondaryAwakenedSpell(release))
                 : null;
         io.redspace.ironsspellbooks.api.spells.AbstractSpell tertiarySpell = hasTertiary ? com.pablo.rpglevels.magic.spiritual.SpiritualSpells.SPIRITUAL_BEAM.get() : null;
+        io.redspace.ironsspellbooks.api.spells.AbstractSpell quaternarySpell = hasQuaternary ? com.pablo.rpglevels.magic.spiritual.SpiritualSpells.SPIRITUAL_RESONANCE.get() : null;
 
         ISpellContainer container = ISpellContainer.get(stack);
         boolean needsUpdate = true;
-        if (container != null && container.getMaxSpellCount() == 3 && container.isSpellWheel() && !container.mustEquip()) {
+        if (container != null && container.getMaxSpellCount() == 4 && container.isSpellWheel() && !container.mustEquip()) {
             io.redspace.ironsspellbooks.api.spells.SpellData slot0 = container.getSpellAtIndex(0);
             io.redspace.ironsspellbooks.api.spells.SpellData slot1 = container.getSpellAtIndex(1);
             io.redspace.ironsspellbooks.api.spells.SpellData slot2 = container.getSpellAtIndex(2);
+            io.redspace.ironsspellbooks.api.spells.SpellData slot3 = container.getSpellAtIndex(3);
 
             boolean slot0Ok = (slot0 != null && slot0.getSpell() == primarySpell && slot0.getLevel() == targetLevel && slot0.isLocked());
             boolean slot1Ok = hasSecondary
@@ -889,18 +892,22 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
             boolean slot2Ok = hasTertiary
                     ? (slot2 != null && slot2.getSpell() == tertiarySpell && slot2.getLevel() == targetLevel && slot2.isLocked())
                     : (slot2 == null);
+            boolean slot3Ok = hasQuaternary
+                    ? (slot3 != null && slot3.getSpell() == quaternarySpell && slot3.getLevel() == targetLevel && slot3.isLocked())
+                    : (slot3 == null);
 
-            if (slot0Ok && slot1Ok && slot2Ok) {
+            if (slot0Ok && slot1Ok && slot2Ok && slot3Ok) {
                 needsUpdate = false;
             }
         }
 
         if (needsUpdate) {
-            // maxSpells=3, spellWheel=true, mustEquip=false
+            // maxSpells=4, spellWheel=true, mustEquip=false
             // Slot 0: Técnica de liberación principal
             // Slot 1: Segunda técnica suprema desbloqueada al alcanzar 150 de Afinidad
             // Slot 2: Tercera técnica universal (Spiritual Beam) desbloqueada al alcanzar 200 de Afinidad
-            ISpellContainer newContainer = ISpellContainer.create(3, true, false);
+            // Slot 3: Cuarta técnica universal suprema (Spiritual Resonance) desbloqueada al alcanzar 200 de Afinidad
+            ISpellContainer newContainer = ISpellContainer.create(4, true, false);
             io.redspace.ironsspellbooks.api.spells.ISpellContainerMutable mutable = newContainer.mutableCopy();
             mutable.addSpellAtIndex(primarySpell, targetLevel, 0, true);
             if (hasSecondary && secondarySpell != null) {
@@ -908,6 +915,9 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
             }
             if (hasTertiary && tertiarySpell != null) {
                 mutable.addSpellAtIndex(tertiarySpell, targetLevel, 2, true);
+            }
+            if (hasQuaternary && quaternarySpell != null) {
+                mutable.addSpellAtIndex(quaternarySpell, targetLevel, 3, true);
             }
             ISpellContainer.set(stack, mutable.toImmutable());
             return true;
@@ -1531,8 +1541,15 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
                         .append(tertSpell.getDisplayName(null).copy().withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
                         .append(Component.literal(" §7[HUD ISB Ranura 3]")));
                 tooltipComponents.add(Component.literal("   §3↳ §o(Haz continuo destructivo. ¡Desencadena Choques de Poderes!)"));
+
+                io.redspace.ironsspellbooks.api.spells.AbstractSpell quatSpell = com.pablo.rpglevels.magic.spiritual.SpiritualSpells.SPIRITUAL_RESONANCE.get();
+                tooltipComponents.add(Component.literal("§5✦ Forma Suprema Universal: ")
+                        .append(quatSpell.getDisplayName(null).copy().withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD))
+                        .append(Component.literal(" §7[HUD ISB Ranura 4]")));
+                tooltipComponents.add(Component.literal("   §d↳ §o(Resonancia Espiritual: x2 a todas las stats durante 30s. Aura exaltada)"));
             } else {
                 tooltipComponents.add(Component.literal("§8✦ Técnica Definitiva: §7(Bloqueada - Requiere 200 de Afinidad)"));
+                tooltipComponents.add(Component.literal("§8✦ Forma Suprema: §7(Bloqueada - Requiere 200 de Afinidad)"));
             }
         } else {
             io.redspace.ironsspellbooks.api.spells.AbstractSpell primarySpell = getPrimaryAwakenedSpell(release);
@@ -1555,8 +1572,15 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
                         .append(tertSpell.getDisplayName(null).copy().withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
                         .append(Component.literal(" §7[HUD ISB Ranura 3]")));
                 tooltipComponents.add(Component.literal("   §3↳ §o(Haz continuo destructivo. ¡Desencadena Choques de Poderes!)"));
+
+                io.redspace.ironsspellbooks.api.spells.AbstractSpell quatSpell = com.pablo.rpglevels.magic.spiritual.SpiritualSpells.SPIRITUAL_RESONANCE.get();
+                tooltipComponents.add(Component.literal("§5✦ Forma Suprema Universal: ")
+                        .append(quatSpell.getDisplayName(null).copy().withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD))
+                        .append(Component.literal(" §7[HUD ISB Ranura 4]")));
+                tooltipComponents.add(Component.literal("   §d↳ §o(Resonancia Espiritual: x2 a todas las stats durante 30s. Aura exaltada)"));
             } else {
                 tooltipComponents.add(Component.literal("§8✦ Técnica Definitiva: §7(Bloqueada - Requiere 200 de Afinidad)"));
+                tooltipComponents.add(Component.literal("§8✦ Forma Suprema: §7(Bloqueada - Requiere 200 de Afinidad)"));
             }
         }
 

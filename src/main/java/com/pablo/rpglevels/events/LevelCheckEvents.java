@@ -19,6 +19,9 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
@@ -151,16 +154,22 @@ public class LevelCheckEvents {
             return;
         }
 
+        PlayerRpgData rpgData = serverPlayer.getData(ModAttachments.PLAYER_RPG_DATA);
+        long gameTime = serverPlayer.level().getGameTime();
+
+        // Control y protección de la Cinemática de Resonancia Espiritual
+        if (rpgData != null && rpgData.isSpiritualResonanceCinematicActive(gameTime)) {
+            handleSpiritualResonanceCinematicTick(serverPlayer, rpgData, gameTime);
+        }
+
         if (serverPlayer.onGround() || serverPlayer.isInWater() || serverPlayer.isInLava() || serverPlayer.onClimbable()) {
-            PlayerRpgData rpgData = serverPlayer.getData(ModAttachments.PLAYER_RPG_DATA);
             if (rpgData != null && !rpgData.canDoubleJumpAirborne()) {
                 rpgData.setCanDoubleJumpAirborne(true);
             }
         }
 
         if (serverPlayer.tickCount % 10 == 0) {
-            PlayerRpgData rpgData = serverPlayer.getData(ModAttachments.PLAYER_RPG_DATA);
-            if (rpgData != null && rpgData.isOppressiveAuraActive(serverPlayer.level().getGameTime())) {
+            if (rpgData != null && rpgData.isOppressiveAuraActive(gameTime)) {
                 applyOppressiveAuraTick(serverPlayer, rpgData);
             }
         }
@@ -246,6 +255,102 @@ public class LevelCheckEvents {
                 );
             }
         }
+    }
+
+    private static void handleSpiritualResonanceCinematicTick(ServerPlayer player, PlayerRpgData data, long gameTime) {
+        // 1. Invulnerabilidad absoluta mediante Resistencia V
+        player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 20, 4, false, false, false));
+
+        // 2. Estabilizar movimiento horizontal durante la pose cinemática
+        player.setDeltaMovement(player.getDeltaMovement().multiply(0.1, 1.0, 0.1));
+
+        // 3. Ralentizar fuertemente a enemigos cercanos (Slowness V, Weakness III) en radio de 16 bloques
+        if (player.tickCount % 5 == 0) {
+            AABB auraBox = player.getBoundingBox().inflate(16.0);
+            java.util.List<LivingEntity> nearby = player.serverLevel().getEntitiesOfClass(
+                    LivingEntity.class, auraBox,
+                    e -> e != player && e.isAlive() && !e.isAlliedTo(player) && !e.isSpectator()
+            );
+            for (LivingEntity mob : nearby) {
+                if (mob instanceof TamableAnimal tamed && tamed.isOwnedBy(player)) continue;
+                mob.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 25, 4, false, false, false)); // Slowness V
+                mob.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 25, 2, false, false, false)); // Weakness III
+            }
+        }
+
+        // 4. Repeler proyectiles en radio de 10 bloques
+        AABB projBox = player.getBoundingBox().inflate(10.0);
+        java.util.List<Projectile> projectiles = player.serverLevel().getEntitiesOfClass(
+                Projectile.class, projBox,
+                p -> p.getOwner() != player
+        );
+        for (Projectile proj : projectiles) {
+            Vec3 diff = proj.position().subtract(player.position());
+            Vec3 repelDir = new Vec3(diff.x, 0.35, diff.z).normalize().scale(1.25);
+            proj.setDeltaMovement(repelDir);
+            proj.hasImpulse = true;
+            player.serverLevel().sendParticles(ParticleTypes.CRIT, proj.getX(), proj.getY(), proj.getZ(), 4, 0.1, 0.1, 0.1, 0.05);
+        }
+
+        // 5. Partículas de carga o explosión de shockwave
+        long remaining = data.getSpiritualResonanceCinematicUntilTick() - gameTime;
+        if (remaining > 35) {
+            // Fase de concentración de energía hacia el personaje
+            if (player.tickCount % 2 == 0) {
+                player.serverLevel().sendParticles(
+                        ParticleTypes.SOUL_FIRE_FLAME,
+                        player.getX() + (Math.random() - 0.5) * 1.8,
+                        player.getY() + Math.random() * 2.0,
+                        player.getZ() + (Math.random() - 0.5) * 1.8,
+                        3, 0.05, 0.1, 0.05, 0.02
+                );
+            }
+        } else if (remaining == 35) {
+            // ¡MOMENTO EXACTO DE LA EXPLOSIÓN SHOCKWAVE EN TICK 35!
+            triggerSpiritualResonanceShockwave(player);
+        }
+    }
+
+    private static void triggerSpiritualResonanceShockwave(ServerPlayer player) {
+        ServerLevel level = player.serverLevel();
+        double px = player.getX();
+        double py = player.getY();
+        double pz = player.getZ();
+
+        // Sonidos colosales de explosión y trueno
+        level.playSound(null, player.blockPosition(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 2.0f, 0.85f);
+        level.playSound(null, player.blockPosition(), SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 1.8f, 1.15f);
+        level.playSound(null, player.blockPosition(), SoundEvents.WARDEN_SONIC_BOOM, SoundSource.PLAYERS, 1.4f, 1.35f);
+
+        // Flash blanco y onda expansiva de partículas
+        level.sendParticles(ParticleTypes.FLASH, px, py + 1.2, pz, 2, 0, 0, 0, 0);
+
+        // Anillo de choque expansivo (36 partículas en círculo)
+        int ringParticles = 36;
+        for (int i = 0; i < ringParticles; i++) {
+            double angle = (2 * Math.PI * i) / ringParticles;
+            double vx = Math.cos(angle) * 0.85;
+            double vz = Math.sin(angle) * 0.85;
+            level.sendParticles(ParticleTypes.SONIC_BOOM, px, py + 1.0, pz, 1, vx, 0.0, vz, 0.4);
+            level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, px, py + 0.5, pz, 2, vx * 0.5, 0.1, vz * 0.5, 0.2);
+        }
+
+        // Empujar hacia atrás (knockback) a todos los enemigos en un radio de 10 bloques
+        AABB blastBox = player.getBoundingBox().inflate(10.0);
+        java.util.List<LivingEntity> targets = level.getEntitiesOfClass(
+                LivingEntity.class, blastBox,
+                e -> e != player && e.isAlive() && !e.isAlliedTo(player) && !e.isSpectator()
+        );
+        for (LivingEntity target : targets) {
+            if (target instanceof TamableAnimal tamed && tamed.isOwnedBy(player)) continue;
+            Vec3 dir = target.position().subtract(player.position());
+            Vec3 knock = new Vec3(dir.x, 0.45, dir.z).normalize().scale(1.85);
+            target.setDeltaMovement(knock);
+            target.hurtMarked = true;
+        }
+
+        // Recalcular atributos inmediatamente
+        ModAttributesHandler.updatePlayerAttributes(player);
     }
 
     public static void checkAndNotifyDawnAscension(ServerPlayer player) {

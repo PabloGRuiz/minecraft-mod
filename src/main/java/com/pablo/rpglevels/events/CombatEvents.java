@@ -310,6 +310,15 @@ public class CombatEvents {
             return;
         }
 
+        // Invulnerabilidad total durante la cinemática de Resonancia Espiritual
+        if (victim instanceof net.minecraft.world.entity.player.Player victimPlayer) {
+            com.pablo.rpglevels.data.PlayerRpgData victimData = victimPlayer.getData(com.pablo.rpglevels.data.ModAttachments.PLAYER_RPG_DATA);
+            if (victimData != null && victimData.isSpiritualResonanceCinematicActive(victim.level().getGameTime())) {
+                event.setNewDamage(0.0f);
+                return;
+            }
+        }
+
         // --- DEFENSA DE BRASAS DE BRAMBI ---
         // Si un enemigo golpea a su dueño o a un aliado, Brambi contraataca con un cabezazo ardiente
         if (attacker instanceof LivingEntity livingAttacker && !victim.level().isClientSide()) {

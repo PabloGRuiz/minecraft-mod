@@ -224,6 +224,21 @@ public class KiAuraRenderer {
         float pulse = 1.0f + Mth.sin((gameTime + partialTick) * 0.35F) * 0.05F;
         auraRadius *= pulse;
 
+        // Si la Resonancia Espiritual está activa, el aura se exalta de forma colosal
+        boolean isResonance = false;
+        if (entity instanceof Player p) {
+            PlayerRpgData pData = p.getData(ModAttachments.PLAYER_RPG_DATA);
+            if (pData != null && pData.isSpiritualResonanceActive(gameTime)) {
+                isResonance = true;
+            }
+        }
+        if (isResonance) {
+            auraRadius *= 1.45f;
+            auraHeight *= 1.55f;
+            float extraPulse = 1.0f + Mth.sin((gameTime + partialTick) * 0.65F) * 0.08F;
+            auraRadius *= extraPulse;
+        }
+
         // Desplazamiento de textura vertical continuo rápido (flujo ascendente)
         float vOffset = -((gameTime + partialTick) * 0.11F) % 1.0F;
 
@@ -335,6 +350,9 @@ public class KiAuraRenderer {
             held = player.getOffhandItem();
         }
         if (held.getItem() instanceof SpiritualSwordItem) {
+            if (SpiritualSwordItem.isSenbonzakura(held)) {
+                return new float[]{1.0f, 0.65f, 0.85f}; // Rosa pétalo de cerezo (Sakura)
+            }
             SpiritualSwordItem.BladeElement elem = SpiritualSwordItem.getBladeElement(held);
             return switch (elem) {
                 case IGNIS -> new float[]{1.0f, 0.50f, 0.08f};   // Fuego dorado/naranja

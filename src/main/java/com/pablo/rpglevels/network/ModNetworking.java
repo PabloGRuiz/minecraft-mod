@@ -200,6 +200,13 @@ public class ModNetworking {
                 SyncXpGainPayload.STREAM_CODEC,
                 SyncXpGainPayload::handle
         );
+
+        // Spiritual Resonance Cinematic (Server -> Client)
+        registrar.playToClient(
+                StartSpiritualResonanceCinematicPayload.TYPE,
+                StartSpiritualResonanceCinematicPayload.STREAM_CODEC,
+                StartSpiritualResonanceCinematicPayload::handle
+        );
     }
 
     public static void openPartyScreen(ServerPlayer player) {
