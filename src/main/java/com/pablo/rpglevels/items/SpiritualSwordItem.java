@@ -310,7 +310,8 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
                 String raw = custom.getString();
                 if (raw != null) {
                     String clean = raw.replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
-                    if (clean.equalsIgnoreCase("senbonzakura") || clean.equalsIgnoreCase("senbon zakura")) {
+                    String norm = clean.toLowerCase(Locale.ROOT);
+                    if (norm.contains("senbonzakura") || norm.contains("senbon zakura")) {
                         return true;
                     }
                 }
@@ -323,7 +324,8 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
                 if (disp.contains("Name", net.minecraft.nbt.Tag.TAG_STRING)) {
                     String nameStr = disp.getString("Name");
                     String clean = nameStr.replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
-                    if (clean.equalsIgnoreCase("senbonzakura") || clean.equalsIgnoreCase("senbon zakura")) {
+                    String norm = clean.toLowerCase(Locale.ROOT);
+                    if (norm.contains("senbonzakura") || norm.contains("senbon zakura")) {
                         return true;
                     }
                 }
@@ -931,9 +933,9 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
         if (level.isClientSide() || !(level instanceof ServerLevel serverLevel)) return;
         if (!(entity instanceof LivingEntity living)) return;
 
-        // En una misma partida el jugador solo puede tener espadas con sus habilidades únicas de alma.
+        // En una misma partida el jugador solo puede tener espadas con sus habilidades únicas de alma (a excepción de Senbonzakura).
         // Optimización: Verificar rasgos de NBT y mutación solo cada 20 ticks (1s) en lugar de cada tick.
-        if (entity.tickCount % 20 == 0 && entity instanceof ServerPlayer serverPlayer) {
+        if (!isSenbonzakura(stack) && entity.tickCount % 20 == 0 && entity instanceof ServerPlayer serverPlayer) {
             PlayerRpgData data = serverPlayer.getData(ModAttachments.PLAYER_RPG_DATA);
             if (data != null && data.hasRolledSoulBlade()) {
                 String ownerUuid = getOwnerUUID(stack);

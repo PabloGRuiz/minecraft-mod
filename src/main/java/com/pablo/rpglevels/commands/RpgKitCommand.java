@@ -3,15 +3,19 @@ package com.pablo.rpglevels.commands;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.pablo.rpglevels.RpgLevelsMod;
+import com.pablo.rpglevels.data.AdventurerRank;
+import com.pablo.rpglevels.data.GreekGod;
 import com.pablo.rpglevels.data.ModAttachments;
 import com.pablo.rpglevels.data.PlayerRpgData;
 import com.pablo.rpglevels.data.StatType;
 import com.pablo.rpglevels.events.ModAttributesHandler;
 import com.pablo.rpglevels.items.AdventurerCardItem;
 import com.pablo.rpglevels.items.ModItems;
+import com.pablo.rpglevels.items.SpiritualSwordItem;
 import com.pablo.rpglevels.network.ModNetworking;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -44,33 +48,78 @@ public class RpgKitCommand {
     }
 
     public static void giveTestKit(ServerPlayer player) {
-        // 1. Armadura de Diamante completa y Escudo
+        // 1. Configurar Progreso RPG: Rango A de Aventurero, Nivel 90 y 89 Puntos repartidos equitativamente
+        PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
+        if (data != null) {
+            // Asegurar estadísticas base de nacimiento
+            data.rollBirthStatsIfNeeded(player.getRandom());
+
+            // Desbloqueo divino
+            data.setDivineBlessingUnlocked(true);
+            if (data.getPatronGodId().isEmpty()) {
+                data.setPatronGodId(GreekGod.ARES.getId());
+            }
+
+            // Establecer Rango A de Aventurero (Tope de aventurero / Midgame)
+            data.setRank(AdventurerRank.A);
+            data.setGuildRegistered(true);
+            data.setReceivedAdventurerCard(true);
+
+            // Nivel RPG 90
+            data.setRpgLevel(90);
+            data.setRpgXp(0);
+            data.resetAllocatedPoints();
+            data.setBonusPendingPoints(0);
+
+            // Repartir 89 puntos de forma equitativa entre los 4 atributos RPG (22 c/u + 1 a Fortaleza)
+            data.setLifePoints(StatType.FORTITUDE, 23);
+            data.setLifePoints(StatType.DEXTERITY, 22);
+            data.setLifePoints(StatType.SPIRIT, 22);
+            data.setLifePoints(StatType.LUCK, 22);
+
+            // Actualizar y sincronizar atributos y maná
+            ModAttributesHandler.updatePlayerAttributes(player);
+            data.setCurrentMana(player, data.getMaxMana(player));
+            data.setLastReleasedManaCap(data.getMaxMana(player));
+            ModNetworking.syncToPlayer(player);
+            ModNetworking.syncMana(player);
+        }
+
+        // Sincronizar nivel de experiencia de Minecraft a 90
+        player.setExperienceLevels(Math.max(player.experienceLevel, 90));
+
+        // 2. Armadura de Diamante completa y Escudo
         equipOrGive(player, EquipmentSlot.HEAD, new ItemStack(Items.DIAMOND_HELMET));
         equipOrGive(player, EquipmentSlot.CHEST, new ItemStack(Items.DIAMOND_CHESTPLATE));
         equipOrGive(player, EquipmentSlot.LEGS, new ItemStack(Items.DIAMOND_LEGGINGS));
         equipOrGive(player, EquipmentSlot.FEET, new ItemStack(Items.DIAMOND_BOOTS));
         equipOrGive(player, EquipmentSlot.OFFHAND, new ItemStack(Items.SHIELD));
 
-        // 2. Espada Espiritual vinculada y lista para probar inmediatamente Primera Liberación y hechizos (150 de Afinidad: ambas técnicas desbloqueadas)
+        // 3. Entregar Zanpakuto Senbonzakura (Afinidad 200/200, Primera Liberación Despertada y Activa con los 3 Hechizos)
         ItemStack kitSword = new ItemStack(ModItems.SPIRITUAL_SWORD.get());
-        com.pablo.rpglevels.items.SpiritualSwordItem.bindSoulVassal(kitSword, player);
-        com.pablo.rpglevels.items.SpiritualSwordItem.setFirstReleaseUnlocked(kitSword, true);
-        com.pablo.rpglevels.items.SpiritualSwordItem.setAffinity(kitSword, 150);
-        com.pablo.rpglevels.items.SpiritualSwordItem.syncAwakenedSpell(kitSword);
+        kitSword.set(DataComponents.CUSTOM_NAME, Component.literal("Senbonzakura"));
+        SpiritualSwordItem.bindSoulVassal(kitSword, player);
+        SpiritualSwordItem.setBladeStyle(kitSword, SpiritualSwordItem.BladeStyle.PHANTOM);
+        SpiritualSwordItem.setBladeElement(kitSword, SpiritualSwordItem.BladeElement.NONE);
+        SpiritualSwordItem.setFirstReleaseUnlocked(kitSword, true);
+        SpiritualSwordItem.setTrialReady(kitSword, true);
+        SpiritualSwordItem.setAffinity(kitSword, 200);
+        SpiritualSwordItem.setFirstRelease(kitSword, true);
+        SpiritualSwordItem.syncAwakenedSpell(kitSword);
         equipOrGive(player, EquipmentSlot.MAINHAND, kitSword);
         net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(
                 player,
                 new io.redspace.ironsspellbooks.network.EquipmentChangedPacket()
         );
 
-        // 3. Yunque para nombrar la espada al instante
+        // 4. Yunque
         giveItem(player, new ItemStack(Items.ANVIL));
 
-        // 4. Comida y sustento
+        // 5. Comida y sustento
         giveItem(player, new ItemStack(Items.COOKED_BEEF, 64));
         giveItem(player, new ItemStack(Items.GOLDEN_APPLE, 16));
 
-        // 5. Huevos de Bandidos y Jefes para pruebas de combate
+        // 6. Huevos de Bandidos y Jefes para pruebas de combate
         giveItem(player, new ItemStack(ModItems.BANDIT_SPAWN_EGG.get(), 16));
         giveItem(player, new ItemStack(ModItems.ALICE_SPAWN_EGG.get(), 2));
         giveItem(player, new ItemStack(ModItems.GUILD_MASTER_SPAWN_EGG.get(), 2));
@@ -78,38 +127,31 @@ public class RpgKitCommand {
         giveItem(player, new ItemStack(ModItems.UNDEAD_ADVENTURER_SPAWN_EGG.get(), 2));
         giveItem(player, new ItemStack(ModItems.ADVENTURER_SPAWN_EGG.get(), 2));
 
-        // 6. Botellas de Gran Experiencia (10x XP cada una)
+        // 7. Botellas de Gran Experiencia (10x XP cada una)
         giveItem(player, new ItemStack(ModItems.HIGH_EXPERIENCE_BOTTLE.get(), 16));
 
-        // 7. Grimorio del Segador Espiritual y Tarjeta de Aventurero
+        // 8. Grimorio del Segador Espiritual y Tarjeta de Aventurero (Rango A, Nivel 90)
         giveItem(player, new ItemStack(ModItems.SPIRITUAL_SPELLBOOK.get()));
         giveItem(player, AdventurerCardItem.createPlayerCard(player, player.getData(ModAttachments.PLAYER_RPG_DATA)));
 
-        // 8. Incrementar +15 puntos a todos los atributos RPG
-        PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
-        if (data != null) {
-            for (StatType type : StatType.values()) {
-                data.addPermanentPoints(type, 15);
-            }
-            ModAttributesHandler.updatePlayerAttributes(player);
-            ModNetworking.syncToPlayer(player);
-        }
-
-        // Efectos de sonido y retroalimentación
+        // Efectos de sonido y retroalimentación épicos
         player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.0F, 1.2F);
         player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 0.8F, 1.5F);
+        player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
+                SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 1.0F, 1.0F);
 
         player.sendSystemMessage(Component.empty());
         player.sendSystemMessage(Component.literal("§a§l✦ [RPG KIT DE PRUEBAS ENTREGADO] ✦"));
-        player.sendSystemMessage(Component.literal("§d• Espada Espiritual + Yunque §7(Lista para nombrar y forjar el vínculo)"));
-        player.sendSystemMessage(Component.literal("§e• +15 Puntos a todos los Atributos §7(Fortaleza, Destreza, Espíritu, Suerte)"));
+        player.sendSystemMessage(Component.literal("§d• Zanpakuto: Senbonzakura §e(Afinidad 200/200 Máxima, Shikai Despertado y Activo)"));
+        player.sendSystemMessage(Component.literal("§6• Rango de Aventurero: §e[RANGO A] §7(Tope de aventurero y umbral al Midgame)"));
+        player.sendSystemMessage(Component.literal("§e• Nivel RPG 90: §f89 Puntos repartidos equitativamente (Fortaleza: 23, Destreza: 22, Espíritu: 22, Suerte: 22)"));
         player.sendSystemMessage(Component.literal("§b• Armadura de Diamante completa y Escudo"));
         player.sendSystemMessage(Component.literal("§6• 64 Ternera cocida y 16 Manzanas doradas"));
         player.sendSystemMessage(Component.literal("§c• 16 Huevos de Bandido y Huevos de Jefes"));
         player.sendSystemMessage(Component.literal("§a• 16 Botellas de Gran Experiencia §8(10x XP)"));
-        player.sendSystemMessage(Component.literal("§5• Grimorio del Segador Espiritual"));
+        player.sendSystemMessage(Component.literal("§5• Grimorio del Segador Espiritual + Tarjeta de Aventurero Rango A"));
         player.sendSystemMessage(Component.empty());
     }
 
@@ -128,3 +170,4 @@ public class RpgKitCommand {
         }
     }
 }
+

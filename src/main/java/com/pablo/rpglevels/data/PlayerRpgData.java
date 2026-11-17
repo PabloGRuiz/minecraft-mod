@@ -998,6 +998,22 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         };
     }
 
+    public void setLifePoints(StatType statType, int points) {
+        switch (statType) {
+            case FORTITUDE -> currentLifeFortitude = Math.max(0, points);
+            case DEXTERITY -> currentLifeDexterity = Math.max(0, points);
+            case SPIRIT -> currentLifeSpirit = Math.max(0, points);
+            case LUCK -> currentLifeLuck = Math.max(0, points);
+        }
+    }
+
+    public void resetAllocatedPoints() {
+        this.currentLifeFortitude = 0;
+        this.currentLifeDexterity = 0;
+        this.currentLifeSpirit = 0;
+        this.currentLifeLuck = 0;
+    }
+
     public int getActiveMilestonePoints(StatType statType, int ignoredLevel) {
         return getLifePoints(statType);
     }
