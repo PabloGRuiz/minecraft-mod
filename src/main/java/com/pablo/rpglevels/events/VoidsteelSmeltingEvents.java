@@ -118,7 +118,7 @@ public class VoidsteelSmeltingEvents {
     private static void validateFurnaceHeat(ServerLevel level, BlockPos pos, AbstractFurnaceBlockEntity furnace, ServerPlayer player) {
         // En AbstractFurnaceBlockEntity, los datos de cocción están en dataAccess:
         // Slot 0: litTime
-        // Slot 1: litDuration (Lava Bucket = 20000)
+        // Slot 1: litDuration (En Blast Furnace el Balde de Lava dura 10000 ticks; carbón dura 800)
         // Slot 2: cookingProgress
         // Slot 3: cookingTotalTime
         try {
@@ -128,9 +128,13 @@ public class VoidsteelSmeltingEvents {
             int litTime = data.get(0);
             int litDuration = data.get(1);
 
-            // Si el horno está encendido pero con combustible de baja temperatura (< 20000 ticks)
-            if (litTime > 0 && litDuration < 20000) {
-                // Reiniciar progreso de fundición a 0
+            // En un Alto Horno (Blast Furnace), el Balde de Lava otorga 10,000 ticks de quemado.
+            // Los demás combustibles otorgan 8,000 ticks o menos (Bloque carbón = 8000, Vara blaze = 1200, Carbón = 800).
+            // Por tanto, si litDuration < 9,500, el combustible NO es lava volcánica.
+            boolean isLavaFuel = litDuration >= 9500;
+
+            if (litTime > 0 && !isLavaFuel) {
+                // Combustible insuficiente: congelar y reiniciar progreso de fundición a 0
                 data.set(2, 0);
 
                 // Efectos de enfriamiento / humo

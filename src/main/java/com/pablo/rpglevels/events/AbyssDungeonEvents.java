@@ -86,7 +86,7 @@ public class AbyssDungeonEvents {
     @SubscribeEvent
     public static void onBlockBreak(BlockEvent.BreakEvent event) {
         Level level = (Level) event.getLevel();
-        if (level.isClientSide() || !ModDimensions.isAbyssRift(level)) {
+        if (level.isClientSide()) {
             return;
         }
 
@@ -96,6 +96,25 @@ public class AbyssDungeonEvents {
 
         BlockPos pos = event.getPos();
         BlockState state = event.getState();
+
+        // Control de dureza y requerimiento de Pico de Netherite para el Mineral de Voidsteel
+        if (state.is(com.pablo.rpglevels.init.ModBlocks.VOIDSTEEL_ORE.get())) {
+            ItemStack tool = event.getPlayer().getMainHandItem();
+            boolean isNetheritePickaxe = tool.is(Items.NETHERITE_PICKAXE);
+            if (!isNetheritePickaxe) {
+                event.getPlayer().displayClientMessage(
+                        Component.literal("§c⚠️ ¡El Mineral de Voidsteel es impenetrable! Requiere como mínimo un Pico de Netherite."),
+                        true
+                );
+                event.getPlayer().playNotifySound(SoundEvents.ANVIL_HIT, SoundSource.BLOCKS, 0.6f, 0.7f);
+                event.setCanceled(true);
+                return;
+            }
+        }
+
+        if (!ModDimensions.isAbyssRift(level)) {
+            return;
+        }
         if (!isOreBlock(state)) {
             return;
         }

@@ -13,10 +13,10 @@
                 {
                   "condition": "minecraft:match_tool",
                   "predicate": {
-                    "sub_predicates": {
+                    "predicates": {
                       "minecraft:enchantments": [
                         {
-                          "enchantment": "minecraft:silk_touch",
+                          "enchantments": "minecraft:silk_touch",
                           "levels": {
                             "min": 1
                           }
@@ -47,5 +47,6 @@
       ],
       "rolls": 1.0
     }
-  ]
+  ],
+  "random_sequence": "rpglevels:blocks/voidsteel_ore"
 }
