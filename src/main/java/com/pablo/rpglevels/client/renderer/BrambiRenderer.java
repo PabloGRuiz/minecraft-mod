@@ -13,7 +13,7 @@ public class BrambiRenderer extends MobRenderer<BrambiEntity, BrambiModel> {
             ResourceLocation.fromNamespaceAndPath(RpgLevelsMod.MOD_ID, "textures/entity/brambi.png");
 
     public BrambiRenderer(EntityRendererProvider.Context context) {
-        super(context, new BrambiModel(context.bakeLayer(BrambiModel.LAYER_LOCATION)), 0.55F);
+        super(context, new BrambiModel(context.bakeLayer(BrambiModel.LAYER_LOCATION)), 0.35F);
     }
 
     @Override

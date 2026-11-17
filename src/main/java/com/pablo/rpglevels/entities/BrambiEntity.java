@@ -98,7 +98,8 @@ public class BrambiEntity extends TamableAnimal {
                 .add(Attributes.ATTACK_DAMAGE, 8.5D)
                 .add(Attributes.ARMOR, 6.0D)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 0.4D)
-                .add(Attributes.STEP_HEIGHT, 1.0D);
+                .add(Attributes.STEP_HEIGHT, 1.0D)
+                .add(Attributes.SCALE, 0.68D);
     }
 
     @Override
