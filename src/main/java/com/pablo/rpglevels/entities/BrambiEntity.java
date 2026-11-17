@@ -206,11 +206,6 @@ public class BrambiEntity extends TamableAnimal {
                 meltSnowBeneath();
             }
 
-            // 3. Pasos Fértiles: Actúa como polvo de hueso automático en cultivos cercanos
-            if (this.onGround() && this.tickCount % 25 == 0) {
-                fertilizeCropsAround();
-            }
-
             LivingEntity owner = this.getOwner();
             if (owner instanceof ServerPlayer playerOwner && playerOwner.isAlive()) {
                 if (this.tickCount % 200 == 0) {
@@ -316,33 +311,36 @@ public class BrambiEntity extends TamableAnimal {
     }
 
     /**
-     * Pasos fértiles: Aplica efecto de polvo de hueso a cultivos cercanos (trigo, zanahorias, patatas, etc.)
-     * con hermosas partículas de flores y esporas.
+     * Suspiro fértil: Aplica efecto de polvo de hueso a cultivos cercanos (trigo, zanahorias, patatas, etc.)
+     * Excluye expresamente el bloque de pasto común para evitar generar maleza/pasto alto por todos lados.
+     * @return true si logró fertilizar al menos un cultivo
      */
-    private void fertilizeCropsAround() {
-        if (!(this.level() instanceof ServerLevel sl)) return;
+    private boolean fertilizeCropsAround() {
+        if (!(this.level() instanceof ServerLevel sl)) return false;
         BlockPos current = this.blockPosition();
         int applied = 0;
-        for (BlockPos p : BlockPos.betweenClosed(current.offset(-2, -1, -2), current.offset(2, 1, 2))) {
+        for (BlockPos p : BlockPos.betweenClosed(current.offset(-3, -1, -3), current.offset(3, 2, 3))) {
             BlockState st = sl.getBlockState(p);
-            if (st.getBlock() instanceof BonemealableBlock bonemealable) {
+            if (st.getBlock() instanceof BonemealableBlock bonemealable && !(st.getBlock() instanceof net.minecraft.world.level.block.GrassBlock)) {
                 if (bonemealable.isValidBonemealTarget(sl, p, st)) {
                     bonemealable.performBonemeal(sl, sl.random, p, st);
                     sl.sendParticles(ParticleTypes.HAPPY_VILLAGER, p.getX() + 0.5D, p.getY() + 0.4D, p.getZ() + 0.5D,
-                            4, 0.25D, 0.25D, 0.25D, 0.02D);
+                            5, 0.25D, 0.25D, 0.25D, 0.02D);
                     sl.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, p.getX() + 0.5D, p.getY() + 0.5D, p.getZ() + 0.5D,
-                            3, 0.2D, 0.2D, 0.2D, 0.02D);
+                            4, 0.2D, 0.2D, 0.2D, 0.02D);
                     sl.sendParticles(ParticleTypes.CHERRY_LEAVES, p.getX() + 0.5D, p.getY() + 0.5D, p.getZ() + 0.5D,
-                            2, 0.2D, 0.2D, 0.2D, 0.02D);
+                            3, 0.2D, 0.2D, 0.2D, 0.02D);
                     applied++;
-                    if (applied >= 2) break; // Máx 2 cultivos por pulso
+                    if (applied >= 4) break; // Máx 4 cultivos por caricia
                 }
             }
         }
         if (applied > 0) {
             sl.playSound(null, this.getX(), this.getY(), this.getZ(),
-                    SoundEvents.BONE_MEAL_USE, SoundSource.NEUTRAL, 0.6F, 1.4F);
+                    SoundEvents.BONE_MEAL_USE, SoundSource.NEUTRAL, 0.8F, 1.4F);
+            return true;
         }
+        return false;
     }
 
     /**
@@ -546,46 +544,59 @@ public class BrambiEntity extends TamableAnimal {
         }
 
         // 3. Dueño con mano vacía (sin agacharse) -> Acariciar a Brambi (cooldown 2 segundos / 40 ticks)
-        if (this.isOwnedBy(player) && !this.level().isClientSide() && itemstack.isEmpty()) {
-            long gameTime = this.level().getGameTime();
-            if (gameTime - this.lastPetGameTime < 40L) {
-                return InteractionResult.sidedSuccess(this.level().isClientSide());
-            }
-            this.lastPetGameTime = gameTime;
+        if (this.isOwnedBy(player) && itemstack.isEmpty()) {
+            player.swing(hand, true);
+            if (!this.level().isClientSide()) {
+                long gameTime = this.level().getGameTime();
+                if (gameTime - this.lastPetGameTime < 40L) {
+                    return InteractionResult.sidedSuccess(this.level().isClientSide());
+                }
+                this.lastPetGameTime = gameTime;
 
-            this.foragingAnimationTicks = 20;
-            this.setForaging(true); // Hace una reverencia agachando la cabecita
-            this.playSound(SoundEvents.FOX_SNIFF, 1.0F, 1.5F);
-            this.playSound(SoundEvents.CHERRY_LEAVES_BREAK, 0.8F, 1.6F);
+                this.foragingAnimationTicks = 20;
+                this.setForaging(true); // Hace una reverencia agachando la cabecita
+                this.playSound(SoundEvents.FOX_SNIFF, 1.0F, 1.5F);
+                this.playSound(SoundEvents.CHERRY_LEAVES_BREAK, 0.8F, 1.6F);
 
-            if (this.level() instanceof ServerLevel serverLevel) {
-                serverLevel.sendParticles(ParticleTypes.HEART,
-                        this.getX(), this.getY() + 1.1D, this.getZ(),
-                        6, 0.25D, 0.25D, 0.25D, 0.08D);
-                serverLevel.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR,
-                        this.getX(), this.getY() + 1.2D, this.getZ(),
-                        8, 0.3D, 0.3D, 0.3D, 0.05D);
-                serverLevel.sendParticles(ParticleTypes.CHERRY_LEAVES,
-                        this.getX(), this.getY() + 0.8D, this.getZ(),
-                        5, 0.2D, 0.2D, 0.2D, 0.03D);
-                serverLevel.sendParticles(ParticleTypes.SMALL_FLAME,
-                        this.getX(), this.getY() + 0.6D, this.getZ(),
-                        4, 0.15D, 0.15D, 0.15D, 0.02D);
-            }
+                if (this.level() instanceof ServerLevel serverLevel) {
+                    serverLevel.sendParticles(ParticleTypes.HEART,
+                            this.getX(), this.getY() + 1.1D, this.getZ(),
+                            6, 0.25D, 0.25D, 0.25D, 0.08D);
+                    serverLevel.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR,
+                            this.getX(), this.getY() + 1.2D, this.getZ(),
+                            8, 0.3D, 0.3D, 0.3D, 0.05D);
+                    serverLevel.sendParticles(ParticleTypes.CHERRY_LEAVES,
+                            this.getX(), this.getY() + 0.8D, this.getZ(),
+                            5, 0.2D, 0.2D, 0.2D, 0.03D);
+                    serverLevel.sendParticles(ParticleTypes.SMALL_FLAME,
+                            this.getX(), this.getY() + 0.6D, this.getZ(),
+                            4, 0.15D, 0.15D, 0.15D, 0.02D);
+                }
 
-            // Probabilidad (50%) de otorgar velocidad de movimiento por 5 segundos
-            if (this.random.nextBoolean()) {
-                player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 100, 0, false, false, true));
-                this.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 100, 0, false, false, true));
-                player.displayClientMessage(
-                        Component.literal("§a[🦌] §fAcaricias a Brambi. ¡La brisa del bosque te llena de ligereza! §b(Velocidad I por 5s)"),
-                        true
-                );
-            } else {
-                player.displayClientMessage(
-                        Component.literal("§a[🦌] §fAcaricias tiernamente las suaves astas de Brambi. ¡Menea su colita de brasa feliz!"),
-                        true
-                );
+                // Baja probabilidad (20%) de bendición floral para cultivos cercanos (no afecta a pasto)
+                boolean fertileBurst = false;
+                if (this.random.nextFloat() < 0.20F) {
+                    fertileBurst = fertilizeCropsAround();
+                }
+
+                if (fertileBurst) {
+                    player.displayClientMessage(
+                            Component.literal("§a[🦌] §fAcaricias a Brambi. ¡Un suspiro de la naturaleza hace florecer tus cultivos!"),
+                            true
+                    );
+                } else if (this.random.nextBoolean()) {
+                    player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 100, 0, false, false, true));
+                    this.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 100, 0, false, false, true));
+                    player.displayClientMessage(
+                            Component.literal("§a[🦌] §fAcaricias a Brambi. ¡La brisa del bosque te llena de ligereza! §b(Velocidad I por 5s)"),
+                            true
+                    );
+                } else {
+                    player.displayClientMessage(
+                            Component.literal("§a[🦌] §fAcaricias tiernamente las suaves astas de Brambi. ¡Menea su colita de brasa feliz!"),
+                            true
+                    );
+                }
             }
             return InteractionResult.sidedSuccess(this.level().isClientSide());
         }

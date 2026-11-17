@@ -470,26 +470,29 @@ public class StarryEntity extends TamableAnimal {
         }
 
         // 3. Dueño: Clic Derecho sin nada en la mano -> Acariciar a Starry (cooldown 2 segundos / 40 ticks)
-        if (this.isOwnedBy(player) && !this.level().isClientSide() && itemstack.isEmpty()) {
-            long gameTime = this.level().getGameTime();
-            if (gameTime - this.lastPetGameTime < 40L) {
-                return InteractionResult.sidedSuccess(this.level().isClientSide());
-            }
-            this.lastPetGameTime = gameTime;
+        if (this.isOwnedBy(player) && itemstack.isEmpty()) {
+            player.swing(hand, true);
+            if (!this.level().isClientSide()) {
+                long gameTime = this.level().getGameTime();
+                if (gameTime - this.lastPetGameTime < 40L) {
+                    return InteractionResult.sidedSuccess(this.level().isClientSide());
+                }
+                this.lastPetGameTime = gameTime;
 
-            this.danceTicks = 20;
-            this.setDancing(true);
-            this.playSound(SoundEvents.FOX_AMBIENT, 1.0F, 1.6F);
+                this.danceTicks = 20;
+                this.setDancing(true);
+                this.playSound(SoundEvents.FOX_AMBIENT, 1.0F, 1.6F);
 
-            if (this.level() instanceof ServerLevel serverLevel) {
-                serverLevel.sendParticles(ParticleTypes.HEART,
-                        this.getX(), this.getY() + 0.6D, this.getZ(),
-                        5, 0.25D, 0.25D, 0.25D, 0.08D);
+                if (this.level() instanceof ServerLevel serverLevel) {
+                    serverLevel.sendParticles(ParticleTypes.HEART,
+                            this.getX(), this.getY() + 0.6D, this.getZ(),
+                            5, 0.25D, 0.25D, 0.25D, 0.08D);
+                }
+                player.displayClientMessage(
+                        Component.literal("§d[★] §fAcaricias tiernamente a Starry. ¡Mueve su colita con emoción!"),
+                        true
+                );
             }
-            player.displayClientMessage(
-                    Component.literal("§d[★] §fAcaricias tiernamente a Starry. ¡Mueve su colita con emoción!"),
-                    true
-            );
             return InteractionResult.sidedSuccess(this.level().isClientSide());
         }
 

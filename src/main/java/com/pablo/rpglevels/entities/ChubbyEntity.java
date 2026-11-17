@@ -427,34 +427,37 @@ public class ChubbyEntity extends TamableAnimal {
         }
 
         // 3. Dueño con mano vacía -> Acariciar a Chubby (cooldown 2 segundos / 40 ticks)
-        if (this.isOwnedBy(player) && !this.level().isClientSide() && itemstack.isEmpty()) {
-            long gameTime = this.level().getGameTime();
-            if (gameTime - this.lastPetGameTime < 40L) {
-                return InteractionResult.sidedSuccess(this.level().isClientSide());
-            }
-            this.lastPetGameTime = gameTime;
+        if (this.isOwnedBy(player) && itemstack.isEmpty()) {
+            player.swing(hand, true);
+            if (!this.level().isClientSide()) {
+                long gameTime = this.level().getGameTime();
+                if (gameTime - this.lastPetGameTime < 40L) {
+                    return InteractionResult.sidedSuccess(this.level().isClientSide());
+                }
+                this.lastPetGameTime = gameTime;
 
-            this.spinTicks = 35;
-            this.setExcitedSpin(true);
-            this.setDeltaMovement(this.getDeltaMovement().add(0, 0.22D, 0)); // Salto de alegría en el aire
-            this.playSound(SoundEvents.AMETHYST_BLOCK_CHIME, 1.2F, 1.6F);
-            this.playSound(SoundEvents.BEE_POLLINATE, 1.0F, 1.8F);
+                this.spinTicks = 35;
+                this.setExcitedSpin(true);
+                this.setDeltaMovement(this.getDeltaMovement().add(0, 0.22D, 0)); // Salto de alegría en el aire
+                this.playSound(SoundEvents.AMETHYST_BLOCK_CHIME, 1.2F, 1.6F);
+                this.playSound(SoundEvents.BEE_POLLINATE, 1.0F, 1.8F);
 
-            if (this.level() instanceof ServerLevel serverLevel) {
-                serverLevel.sendParticles(ParticleTypes.HEART,
-                        this.getX(), this.getY() + 0.6D, this.getZ(),
-                        8, 0.3D, 0.3D, 0.3D, 0.08D);
-                serverLevel.sendParticles(ParticleTypes.ELECTRIC_SPARK,
-                        this.getX(), this.getY() + 0.5D, this.getZ(),
-                        10, 0.25D, 0.25D, 0.25D, 0.05D);
-                serverLevel.sendParticles(ParticleTypes.CLOUD,
-                        this.getX(), this.getY() + 0.4D, this.getZ(),
-                        6, 0.3D, 0.2D, 0.3D, 0.02D);
+                if (this.level() instanceof ServerLevel serverLevel) {
+                    serverLevel.sendParticles(ParticleTypes.HEART,
+                            this.getX(), this.getY() + 0.6D, this.getZ(),
+                            8, 0.3D, 0.3D, 0.3D, 0.08D);
+                    serverLevel.sendParticles(ParticleTypes.ELECTRIC_SPARK,
+                            this.getX(), this.getY() + 0.5D, this.getZ(),
+                            10, 0.25D, 0.25D, 0.25D, 0.05D);
+                    serverLevel.sendParticles(ParticleTypes.CLOUD,
+                            this.getX(), this.getY() + 0.4D, this.getZ(),
+                            6, 0.3D, 0.2D, 0.3D, 0.02D);
+                }
+                player.displayClientMessage(
+                        Component.literal("§e[⚡] §fAcaricias la esponjosa nubecita de Chubby. ¡Gira alegremente dando piruetas de emoción!"),
+                        true
+                );
             }
-            player.displayClientMessage(
-                    Component.literal("§e[⚡] §fAcaricias la esponjosa nubecita de Chubby. ¡Gira alegremente dando piruetas de emoción!"),
-                    true
-            );
             return InteractionResult.sidedSuccess(this.level().isClientSide());
         }
 
