@@ -52,6 +52,9 @@ public class ModCreativeTabs {
                         output.accept(ModItems.RAW_VOIDSTEEL.get());
                         output.accept(ModItems.VOIDSTEEL_INGOT.get());
                         output.accept(com.pablo.rpglevels.init.ModBlocks.RIFT_MONOLITH.get());
+                        output.accept(com.pablo.rpglevels.init.ModBlocks.BRAMBI_STATUE.get());
+                        output.accept(com.pablo.rpglevels.init.ModBlocks.STARRY_STATUE.get());
+                        output.accept(com.pablo.rpglevels.init.ModBlocks.CHUBBY_STATUE.get());
                     })
                     .build());
 }

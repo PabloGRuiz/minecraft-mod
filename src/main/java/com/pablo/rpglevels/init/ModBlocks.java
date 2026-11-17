@@ -48,6 +48,37 @@ public class ModBlocks {
                             .requiresCorrectToolForDrops()),
             block -> new BlockItem(block, new Item.Properties().rarity(Rarity.RARE)));
 
+    // Estatuas decorativas de compañeros (caben en 1 bloque)
+    public static final DeferredBlock<com.pablo.rpglevels.blocks.StatueBlock> BRAMBI_STATUE = registerBlock("brambi_statue",
+            () -> new com.pablo.rpglevels.blocks.StatueBlock(
+                    BlockBehaviour.Properties.of()
+                            .sound(SoundType.STONE)
+                            .strength(1.5f, 6.0f)
+                            .noOcclusion(),
+                    () -> net.minecraft.sounds.SoundEvents.CHERRY_LEAVES_BREAK,
+                    () -> net.minecraft.core.particles.ParticleTypes.CHERRY_LEAVES),
+            block -> new BlockItem(block, new Item.Properties().rarity(Rarity.RARE)));
+
+    public static final DeferredBlock<com.pablo.rpglevels.blocks.StatueBlock> STARRY_STATUE = registerBlock("starry_statue",
+            () -> new com.pablo.rpglevels.blocks.StatueBlock(
+                    BlockBehaviour.Properties.of()
+                            .sound(SoundType.STONE)
+                            .strength(1.5f, 6.0f)
+                            .noOcclusion(),
+                    () -> net.minecraft.sounds.SoundEvents.AMETHYST_BLOCK_CHIME,
+                    () -> net.minecraft.core.particles.ParticleTypes.ENCHANT),
+            block -> new BlockItem(block, new Item.Properties().rarity(Rarity.RARE)));
+
+    public static final DeferredBlock<com.pablo.rpglevels.blocks.StatueBlock> CHUBBY_STATUE = registerBlock("chubby_statue",
+            () -> new com.pablo.rpglevels.blocks.StatueBlock(
+                    BlockBehaviour.Properties.of()
+                            .sound(SoundType.STONE)
+                            .strength(1.5f, 6.0f)
+                            .noOcclusion(),
+                    () -> net.minecraft.sounds.SoundEvents.AMETHYST_BLOCK_CHIME,
+                    () -> net.minecraft.core.particles.ParticleTypes.ELECTRIC_SPARK),
+            block -> new BlockItem(block, new Item.Properties().rarity(Rarity.RARE)));
+
     private static <T extends Block> DeferredBlock<T> registerBlock(String name, Supplier<T> blockSupplier, Function<T, BlockItem> itemFactory) {
         DeferredBlock<T> block = BLOCKS.register(name, blockSupplier);
         ModItems.ITEMS.register(name, () -> itemFactory.apply(block.get()));

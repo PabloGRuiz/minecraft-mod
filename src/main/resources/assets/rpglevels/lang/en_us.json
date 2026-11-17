@@ -406,5 +406,8 @@
     "block.rpglevels.abyssal_stone": "Abyssal Stone",
     "block.rpglevels.voidsteel_ore": "Voidsteel Ore",
     "item.rpglevels.raw_voidsteel": "Raw Voidsteel",
-    "item.rpglevels.voidsteel_ingot": "Voidsteel Ingot"
+    "item.rpglevels.voidsteel_ingot": "Voidsteel Ingot",
+    "block.rpglevels.brambi_statue": "Brambi Statue",
+    "block.rpglevels.starry_statue": "Starry Statue",
+    "block.rpglevels.chubby_statue": "Chubby Statue"
 }

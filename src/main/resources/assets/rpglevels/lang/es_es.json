@@ -406,5 +406,8 @@
     "block.rpglevels.abyssal_stone": "Piedra del Abismo",
     "block.rpglevels.voidsteel_ore": "Mineral de Voidsteel",
     "item.rpglevels.raw_voidsteel": "Voidsteel en Bruto",
-    "item.rpglevels.voidsteel_ingot": "Lingote de Voidsteel"
+    "item.rpglevels.voidsteel_ingot": "Lingote de Voidsteel",
+    "block.rpglevels.brambi_statue": "Estatua de Brambi",
+    "block.rpglevels.starry_statue": "Estatua de Starry",
+    "block.rpglevels.chubby_statue": "Estatua de Chubby"
 }
