@@ -4,6 +4,7 @@ import com.pablo.rpglevels.RpgLevelsMod;
 import com.pablo.rpglevels.compat.irons.IronsSpellsCompat;
 import com.pablo.rpglevels.entities.SpiritualBeamEntity;
 import com.pablo.rpglevels.magic.beam.BeamClashManager;
+import com.pablo.rpglevels.network.EndBeamClashPayload;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Mth;
@@ -16,17 +17,69 @@ import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.ViewportEvent;
 
 /**
- * Control cinemático de cámara para el lanzamiento del "Spiritual Beam" y durante los Choques de Poderes (Beam Clash).
- * - Al disparar el Spiritual Beam: Transiciona a tercera persona con vista dinámica sobre el hombro,
- *   expansión de FOV y vibración de energía para apreciar el Kamehameha en todo su esplendor.
- * - En un Beam Clash: Transiciona a vista lateral rotatoria orbital encuadrando épicamente a ambos combatientes.
- * - Al finalizar: Restaura de forma limpia la perspectiva previa que tenía el jugador.
+ * Control cinemático de cámara cinematográfica de alto impacto para:
+ * 1. Lanzamiento del "Spiritual Beam" (Kamehameha / Cero sobre el hombro).
+ * 2. Choques de Poderes (Beam Clash) estilo Anime/Dragon Ball:
+ *    - Vista lateral panorámica orbital dinámica que encuadra a ambos combatientes.
+ *    - Screen Shake / Rumble sísmico continuo por colisión de gigavatios de energía espiritual.
+ *    - Inclinación de cámara (Dutch Angle) que reacciona a la ventaja del forcejeo.
+ *    - Impulso cinético táctil de cámara en cada clic del jugador.
+ *    - Tensión dinámica de FOV según ventaja y pulsación de energía.
+ *    - Secuencia de Desenlace / Aftermath: explosión cataclísmica y retroceso cinemático antes de volver a 1ª persona.
  */
 @EventBusSubscriber(modid = RpgLevelsMod.MOD_ID, value = Dist.CLIENT)
 public class BeamClashCameraClientEvents {
 
     private static boolean wasCinematicActive = false;
     private static CameraType previousCameraType = CameraType.FIRST_PERSON;
+
+    // Estado del Choque y Aftermath
+    private static int clashDurationTicks = 0;
+    private static int aftermathTicks = 0;
+    private static final int AFTERMATH_TOTAL_TICKS = 35;
+    private static boolean isLocalWinner = false;
+    private static boolean aftermathTimeout = false;
+    private static Vec3 aftermathExplosionPos = Vec3.ZERO;
+
+    // Impulso de sacudida por spam de clics
+    private static float clickShakeIntensity = 0.0F;
+
+    public static void registerClickImpulse() {
+        clickShakeIntensity = Math.min(3.8F, clickShakeIntensity + 0.9F);
+    }
+
+    public static void triggerAftermath(EndBeamClashPayload payload) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+
+        boolean involved = (mc.player.getId() == payload.winnerId() || mc.player.getId() == payload.loserId());
+        if (!involved) return;
+
+        aftermathTicks = AFTERMATH_TOTAL_TICKS;
+        isLocalWinner = (mc.player.getId() == payload.winnerId());
+        aftermathTimeout = payload.wasTimeout();
+        aftermathExplosionPos = new Vec3(payload.clashX(), payload.clashY(), payload.clashZ());
+    }
+
+    public static boolean isAftermathActive() {
+        return aftermathTicks > 0;
+    }
+
+    public static int getAftermathTicks() {
+        return aftermathTicks;
+    }
+
+    public static int getAftermathTotalTicks() {
+        return AFTERMATH_TOTAL_TICKS;
+    }
+
+    public static boolean isLocalWinner() {
+        return isLocalWinner;
+    }
+
+    public static int getClashDurationTicks() {
+        return clashDurationTicks;
+    }
 
     public static boolean isLocalPlayerFiringBeam() {
         Minecraft mc = Minecraft.getInstance();
@@ -58,8 +111,25 @@ public class BeamClashCameraClientEvents {
         if (mc.player == null) return;
 
         boolean inClash = BeamClashManager.isPlayerInClash(mc.player.getId());
+        boolean inAftermath = aftermathTicks > 0;
         boolean firingBeam = isLocalPlayerFiringBeam();
-        boolean shouldBeCinematic = inClash || firingBeam;
+        boolean shouldBeCinematic = inClash || inAftermath || firingBeam;
+
+        if (inClash) {
+            clashDurationTicks++;
+        } else {
+            clashDurationTicks = 0;
+        }
+
+        if (inAftermath) {
+            aftermathTicks--;
+        }
+
+        // Decadencia suave de la sacudida por clic
+        if (clickShakeIntensity > 0.0F) {
+            clickShakeIntensity *= 0.86F;
+            if (clickShakeIntensity < 0.05F) clickShakeIntensity = 0.0F;
+        }
 
         if (shouldBeCinematic && !wasCinematicActive) {
             // Guardar perspectiva actual del usuario y forzar tercera persona trasera
@@ -79,11 +149,12 @@ public class BeamClashCameraClientEvents {
         if (mc.player == null || mc.level == null) return;
 
         boolean inClash = BeamClashManager.isPlayerInClash(mc.player.getId());
+        boolean inAftermath = aftermathTicks > 0;
         boolean firingBeam = isLocalPlayerFiringBeam();
         float time = (float) (mc.level.getGameTime() + event.getPartialTick());
 
         if (inClash) {
-            // --- CÁMARA DE CHOQUE DE PODERES: Vista lateral orbital de los 2 combatientes ---
+            // --- CÁMARA DE CHOQUE DE PODERES: Vista lateral orbital con vibración sísmica ---
             Vec3 clashPos = BeamClashManager.CLIENT_STATE.clashPos;
             if (clashPos != null && !clashPos.equals(Vec3.ZERO)) {
                 Vec3 playerPos = mc.player.getEyePosition();
@@ -91,25 +162,39 @@ public class BeamClashCameraClientEvents {
                 double dz = clashPos.z - playerPos.z;
 
                 float baseAngle = (float) Math.toDegrees(Math.atan2(dz, dx));
-                float orbitOffset = 80.0F + Mth.sin(time * 0.045F) * 20.0F;
+                float orbitOffset = 78.0F + Mth.sin(time * 0.045F) * 22.0F;
 
                 float cinematicYaw = baseAngle + orbitOffset;
-                float cinematicPitch = 12.0F + Mth.cos(time * 0.035F) * 5.0F;
+                float cinematicPitch = 9.5F + Mth.cos(time * 0.035F) * 5.0F;
 
-                event.setYaw(cinematicYaw);
-                event.setPitch(cinematicPitch);
+                // Vibración de alta frecuencia por la brutal fricción entre los haces
+                float continuousRumble = (float) ((Math.sin(time * 2.2) * 0.40) + ((Math.random() - 0.5) * 0.50));
+                float totalShake = continuousRumble + (clickShakeIntensity * (float) ((Math.random() - 0.5) * 1.4));
 
-                // Inclinación dramática holandesa
-                event.setRoll(Mth.sin(time * 0.12F) * 2.0F);
+                event.setYaw(cinematicYaw + totalShake * 0.75F);
+                event.setPitch(cinematicPitch + totalShake);
+
+                // Inclinación dramática holandesa reactiva a la ventaja en el choque
+                boolean isA = (mc.player.getId() == BeamClashManager.CLIENT_STATE.entityAId);
+                float playerProgress = isA ? BeamClashManager.CLIENT_STATE.progress : (1.0F - BeamClashManager.CLIENT_STATE.progress);
+                float struggleRoll = (playerProgress - 0.5F) * 7.5F;
+                float rollJitter = Mth.sin(time * 0.16F) * 2.6F + (float) ((Math.random() - 0.5) * 0.9);
+
+                event.setRoll(struggleRoll + rollJitter);
             }
+        } else if (inAftermath) {
+            // --- AFTERMATH: Explosión cataclísmica al resolverse el choque ---
+            float intensity = aftermathTicks / (float) AFTERMATH_TOTAL_TICKS;
+            float expRumble = intensity * 4.2F * (float) (Math.random() - 0.5);
+
+            event.setYaw(event.getYaw() + expRumble * 0.8F);
+            event.setPitch(event.getPitch() + expRumble);
+            event.setRoll(Mth.sin(time * 0.28F) * 5.0F * intensity);
         } else if (firingBeam) {
             // --- CÁMARA CINEMÁTICA DE DISPARO DEL HAZ (KAMEHAMEHA) ---
-            // Encuadre sobre el hombro: ángulo ligeramente desplazado para ver al personaje
-            // con las manos extendidas y el haz masivo disparándose hacia adelante.
             float yawOffset = 18.0F + Mth.sin(time * 0.08F) * 2.5F;
             float pitchOffset = -2.5F + Mth.sin(time * 0.10F) * 1.5F;
 
-            // Vibración espiritual continua por la colosal potencia del haz
             float rumble = (float) ((Math.sin(time * 1.6) * 0.35) + ((Math.random() - 0.5) * 0.25));
 
             event.setYaw(mc.player.getYRot() + yawOffset + rumble * 0.4F);
@@ -124,10 +209,26 @@ public class BeamClashCameraClientEvents {
         if (mc.player == null) return;
 
         boolean inClash = BeamClashManager.isPlayerInClash(mc.player.getId());
+        boolean inAftermath = aftermathTicks > 0;
         boolean firingBeam = isLocalPlayerFiringBeam();
+        float time = (float) (mc.level != null ? mc.level.getGameTime() + event.getPartialTick() : 0.0F);
 
-        if (inClash || firingBeam) {
-            // Expansión de FOV para mayor dinamismo y sensación de energía destructiva
+        if (inClash) {
+            // Expansión dinámica de FOV con pulsación de energía y tensión de forcejeo
+            boolean isA = (mc.player.getId() == BeamClashManager.CLIENT_STATE.entityAId);
+            float playerProgress = isA ? BeamClashManager.CLIENT_STATE.progress : (1.0F - BeamClashManager.CLIENT_STATE.progress);
+
+            double baseFov = 9.0;
+            double wave = Mth.sin(time * 0.35F) * 2.5;
+            double clickPop = Math.min(3.5, clickShakeIntensity * 1.2);
+            double struggleFov = playerProgress > 0.6F ? 3.0 : (playerProgress < 0.4F ? -2.5 : 0.0);
+
+            event.setFOV(event.getFOV() + baseFov + wave + clickPop + struggleFov);
+        } else if (inAftermath) {
+            // Onda de choque expansiva de la detonación final
+            float intensity = aftermathTicks / (float) AFTERMATH_TOTAL_TICKS;
+            event.setFOV(event.getFOV() + (intensity * 22.0));
+        } else if (firingBeam) {
             event.setFOV(event.getFOV() + 7.5);
         }
     }

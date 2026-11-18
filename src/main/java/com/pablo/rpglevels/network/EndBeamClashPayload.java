@@ -6,6 +6,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
+import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.UUID;
@@ -55,6 +56,9 @@ public record EndBeamClashPayload(
 
     public static void handle(EndBeamClashPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
+            if (FMLEnvironment.dist.isClient()) {
+                com.pablo.rpglevels.client.events.BeamClashCameraClientEvents.triggerAftermath(payload);
+            }
             BeamClashManager.handleClientEnd(payload);
         });
     }
