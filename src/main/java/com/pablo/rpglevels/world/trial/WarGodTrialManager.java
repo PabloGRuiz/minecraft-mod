@@ -5,8 +5,13 @@ import com.pablo.rpglevels.data.AdventurerRank;
 import com.pablo.rpglevels.data.GreekGod;
 import com.pablo.rpglevels.data.ModAttachments;
 import com.pablo.rpglevels.data.PlayerRpgData;
+import com.pablo.rpglevels.entities.BrambiEntity;
+import com.pablo.rpglevels.entities.ChubbyEntity;
+import com.pablo.rpglevels.entities.ModEntities;
+import com.pablo.rpglevels.entities.StarryEntity;
 import com.pablo.rpglevels.events.ModAttributesHandler;
 import com.pablo.rpglevels.network.ModNetworking;
+import com.pablo.rpglevels.network.StartAstralCinematicPayload;
 import com.pablo.rpglevels.world.dimension.ModDimensions;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -22,6 +27,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LightningBolt;
@@ -33,12 +39,14 @@ import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BedBlock;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.AABB;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerWakeUpEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -60,15 +68,19 @@ public class WarGodTrialManager {
         final int centerZ;
         final EncounterType type;
         final GreekGod god;
+        final boolean isAscendingToB;
+        boolean guardianChosen = false;
+        int postChoiceTicks = 0;
         int tickCounter = 0;
         int step = 0;
 
-        AstralSession(UUID playerUuid, int centerX, int centerZ, EncounterType type, GreekGod god) {
+        AstralSession(UUID playerUuid, int centerX, int centerZ, EncounterType type, GreekGod god, boolean isAscendingToB) {
             this.playerUuid = playerUuid;
             this.centerX = centerX;
             this.centerZ = centerZ;
             this.type = type;
             this.god = god;
+            this.isAscendingToB = isAscendingToB;
         }
     }
 
@@ -202,6 +214,8 @@ public class WarGodTrialManager {
             return;
         }
 
+        boolean isAscendingToB = (type == EncounterType.ASCENSION && data.getRank() == AdventurerRank.C);
+
         // Save player's current position & dimension to return after the Astral audience
         player.getPersistentData().putString("WarTrialReturnDim", player.level().dimension().location().toString());
         player.getPersistentData().putDouble("WarTrialReturnX", player.getX());
@@ -212,7 +226,7 @@ public class WarGodTrialManager {
         int centerX = index * ARENA_SPACING;
         int centerZ = 0;
 
-        buildBarrierRoom(astralLevel, centerX, centerZ);
+        buildBarrierRoom(astralLevel, centerX, centerZ, isAscendingToB, player);
 
         player.teleportTo(astralLevel, centerX + 0.5, 65.0, centerZ + 0.5, Set.of(), 0.0f, 0.0f);
         player.resetFallDistance();
@@ -220,10 +234,14 @@ public class WarGodTrialManager {
         astralLevel.playSound(null, centerX + 0.5, 65.0, centerZ + 0.5,
                 SoundEvents.PORTAL_TRAVEL, SoundSource.PLAYERS, 0.8f, 1.4f);
 
-        ACTIVE_SESSIONS.put(player.getUUID(), new AstralSession(player.getUUID(), centerX, centerZ, type, god));
+        // Enviar cinemática con varios planos alrededor del jugador en el espacio astral
+        int cinematicDuration = isAscendingToB ? 400 : 320;
+        PacketDistributor.sendToPlayer(player, new StartAstralCinematicPayload(player.getId(), cinematicDuration, isAscendingToB));
+
+        ACTIVE_SESSIONS.put(player.getUUID(), new AstralSession(player.getUUID(), centerX, centerZ, type, god, isAscendingToB));
     }
 
-    private static void buildBarrierRoom(ServerLevel level, int centerX, int centerZ) {
+    private static void buildBarrierRoom(ServerLevel level, int centerX, int centerZ, boolean isAscendingToB, ServerPlayer player) {
         for (int dx = -4; dx <= 4; dx++) {
             for (int dz = -4; dz <= 4; dz++) {
                 int x = centerX + dx;
@@ -240,6 +258,110 @@ public class WarGodTrialManager {
                 }
             }
         }
+
+        if (isAscendingToB && player != null) {
+            // Pedestal Izquierdo: Starry
+            level.setBlockAndUpdate(new BlockPos(centerX - 2, 64, centerZ + 3), Blocks.CHISELED_POLISHED_BLACKSTONE.defaultBlockState());
+            level.setBlockAndUpdate(new BlockPos(centerX - 2, 65, centerZ + 3), Blocks.PURPUR_PILLAR.defaultBlockState());
+
+            StarryEntity starryStatue = new StarryEntity(ModEntities.STARRY.get(), level);
+            configureStatue(starryStatue, centerX - 2 + 0.5, 66.0, centerZ + 3 + 0.5,
+                    "§d✦ Estatua: Starry ✦", "Guardian_starry", player.getUUID());
+            level.addFreshEntity(starryStatue);
+
+            // Pedestal Central: Chubby
+            level.setBlockAndUpdate(new BlockPos(centerX, 64, centerZ + 3), Blocks.CHISELED_POLISHED_BLACKSTONE.defaultBlockState());
+            level.setBlockAndUpdate(new BlockPos(centerX, 65, centerZ + 3), Blocks.QUARTZ_PILLAR.defaultBlockState());
+
+            ChubbyEntity chubbyStatue = new ChubbyEntity(ModEntities.CHUBBY.get(), level);
+            configureStatue(chubbyStatue, centerX + 0.5, 66.0, centerZ + 3 + 0.5,
+                    "§b✦ Estatua: Chubby ✦", "Guardian_chubby", player.getUUID());
+            level.addFreshEntity(chubbyStatue);
+
+            // Pedestal Derecho: Brambi
+            level.setBlockAndUpdate(new BlockPos(centerX + 2, 64, centerZ + 3), Blocks.CHISELED_POLISHED_BLACKSTONE.defaultBlockState());
+            level.setBlockAndUpdate(new BlockPos(centerX + 2, 65, centerZ + 3), Blocks.OCHRE_FROGLIGHT.defaultBlockState());
+
+            BrambiEntity brambiStatue = new BrambiEntity(ModEntities.BRAMBI.get(), level);
+            configureStatue(brambiStatue, centerX + 2 + 0.5, 66.0, centerZ + 3 + 0.5,
+                    "§6✦ Estatua: Brambi ✦", "Guardian_brambi", player.getUUID());
+            level.addFreshEntity(brambiStatue);
+        }
+    }
+
+    private static void configureStatue(TamableAnimal statue, double x, double y, double z, String name, String tag, UUID playerUuid) {
+        statue.moveTo(x, y, z, 180.0f, 0.0f);
+        statue.setYRot(180.0f);
+        statue.setYHeadRot(180.0f);
+        statue.setYBodyRot(180.0f);
+        statue.setNoAi(true);
+        statue.setInvulnerable(true);
+        statue.setSilent(true);
+        statue.setPersistenceRequired();
+        statue.addTag("AstralStatue");
+        statue.addTag(tag);
+        statue.addTag("Session_" + playerUuid);
+        statue.setCustomName(Component.literal(name));
+        statue.setCustomNameVisible(true);
+    }
+
+    private static void cleanupAstralSession(ServerLevel level, UUID playerUuid, int centerX, int centerZ) {
+        AABB box = new AABB(centerX - 6, 62, centerZ - 6, centerX + 6, 72, centerZ + 6);
+        List<Entity> statues = level.getEntitiesOfClass(Entity.class, box,
+                e -> e.getTags().contains("Session_" + playerUuid) || e.getTags().contains("AstralStatue"));
+        for (Entity s : statues) {
+            s.discard();
+        }
+    }
+
+    @SubscribeEvent
+    public static void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
+        if (!(event.getEntity() instanceof ServerPlayer player)) return;
+        Entity target = event.getTarget();
+        if (target == null || !target.getTags().contains("AstralStatue")) return;
+
+        event.setCanceled(true);
+        event.setCancellationResult(InteractionResult.SUCCESS);
+
+        AstralSession session = ACTIVE_SESSIONS.get(player.getUUID());
+        if (session == null || !session.isAscendingToB) return;
+
+        PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
+        if (data == null) return;
+
+        String guardianType = "";
+        String guardianName = "";
+        if (target.getTags().contains("Guardian_starry")) {
+            guardianType = "starry";
+            guardianName = "Starry (Espíritu Celestial)";
+        } else if (target.getTags().contains("Guardian_chubby")) {
+            guardianType = "chubby";
+            guardianName = "Chubby (Nubecita del Trueno)";
+        } else if (target.getTags().contains("Guardian_brambi")) {
+            guardianType = "brambi";
+            guardianName = "Brambi (Venado de Brasa y Bosque)";
+        }
+
+        if (guardianType.isEmpty()) return;
+
+        data.setChosenGuardian(guardianType);
+        ModNetworking.syncToPlayer(player);
+        session.guardianChosen = true;
+
+        ServerLevel level = player.serverLevel();
+        level.playSound(null, target.blockPosition(), SoundEvents.TOTEM_USE, SoundSource.PLAYERS, 1.2f, 1.0f);
+        level.playSound(null, target.blockPosition(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.4f, 1.3f);
+        level.sendParticles(ParticleTypes.TOTEM_OF_UNDYING, target.getX(), target.getY() + 0.8, target.getZ(), 45, 0.4, 0.5, 0.4, 0.12);
+        level.sendParticles(ParticleTypes.FLASH, target.getX(), target.getY() + 0.8, target.getZ(), 1, 0, 0, 0, 0);
+
+        player.sendSystemMessage(Component.empty());
+        player.sendSystemMessage(session.god.getChatPrefix()
+                .append(Component.literal("«¡Elección bendecida! Has forjado un pacto de sangre y espíritu con ").withStyle(ChatFormatting.GOLD))
+                .append(Component.literal(guardianName).withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
+                .append(Component.literal(". Podrás convocarlo a la batalla en cualquier momento pulsando la tecla [C] con un coste de 50 MP.»").withStyle(ChatFormatting.GOLD)));
+        player.sendSystemMessage(Component.empty());
+
+        player.displayClientMessage(Component.literal("§a✦ ¡Has vinculado a " + guardianName + " como tu Guardián! Pulsa [C] en combate."), false);
     }
 
     @SubscribeEvent
@@ -286,11 +408,11 @@ public class WarGodTrialManager {
                         10, 1.5, 1.0, 1.5, 0.1);
             }
 
-            // Step 0 -> Step 1 (Tick 25: God's Presentation / Greeting)
-            if (session.step == 0 && session.tickCounter >= 25) {
+            // Step 0 -> Step 1 (Tick 30: God's Presentation / Greeting)
+            if (session.step == 0 && session.tickCounter >= 30) {
                 session.step = 1;
 
-                player.connection.send(new ClientboundSetTitlesAnimationPacket(10, 60, 15));
+                player.connection.send(new ClientboundSetTitlesAnimationPacket(10, 70, 20));
                 player.connection.send(new ClientboundSetTitleTextPacket(Component.literal("§5✦ §d§lESPACIO ASTRAL §5✦")));
                 player.connection.send(new ClientboundSetSubtitleTextPacket(
                         Component.literal("§7Presencia Divina: ").append(session.god.getBadge())));
@@ -299,6 +421,9 @@ public class WarGodTrialManager {
                 if (session.type == EncounterType.FIRST_BLESSING) {
                     player.sendSystemMessage(session.god.getChatPrefix()
                             .append(Component.literal("«" + session.god.getIntroLine1() + "»").withStyle(ChatFormatting.WHITE)));
+                } else if (session.isAscendingToB) {
+                    player.sendSystemMessage(session.god.getChatPrefix()
+                            .append(Component.literal("«Bienvenido nuevamente a mi templo astral, mi más valiente elegido. Tu alma ha alcanzado la cúspide del Rango C y estás preparado para cruzar el umbral del Rango B.»").withStyle(ChatFormatting.WHITE)));
                 } else {
                     PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
                     int lvl = (data != null) ? data.getRpgLevel() : 20;
@@ -312,13 +437,16 @@ public class WarGodTrialManager {
                         SoundEvents.WARDEN_HEARTBEAT, SoundSource.PLAYERS, 1.0f, 0.8f);
             }
 
-            // Step 1 -> Step 2 (Tick 95: God's Recognition)
-            else if (session.step == 1 && session.tickCounter >= 95) {
+            // Step 1 -> Step 2 (Tick 120: Recognition / Guardian Offering)
+            else if (session.step == 1 && session.tickCounter >= 120) {
                 session.step = 2;
 
                 if (session.type == EncounterType.FIRST_BLESSING) {
                     player.sendSystemMessage(session.god.getChatPrefix()
                             .append(Component.literal("«" + session.god.getIntroLine2() + "»").withStyle(ChatFormatting.YELLOW)));
+                } else if (session.isAscendingToB) {
+                    player.sendSystemMessage(session.god.getChatPrefix()
+                            .append(Component.literal("«Para hacer frente a las calamidades que acechan a los Héroes, he condensado la esencia cósmica de este plano para forjar un don sagrado: un Guardián Espiritual inmortal que combatirá a tu lado.»").withStyle(ChatFormatting.YELLOW)));
                 } else {
                     player.sendSystemMessage(session.god.getChatPrefix()
                             .append(Component.literal("«" + session.god.getAscensionCongratulation() + "»").withStyle(ChatFormatting.YELLOW)));
@@ -328,13 +456,17 @@ public class WarGodTrialManager {
                         SoundEvents.SOUL_ESCAPE.value(), SoundSource.PLAYERS, 1.2f, 1.0f);
             }
 
-            // Step 2 -> Step 3 (Tick 175: God Grants Blessing or Ascension)
-            else if (session.step == 2 && session.tickCounter >= 175) {
+            // Step 2 -> Step 3 (Tick 220: Choosing Guardian or Granting Ascension)
+            else if (session.step == 2 && session.tickCounter >= 220) {
                 session.step = 3;
 
                 if (session.type == EncounterType.FIRST_BLESSING) {
                     player.sendSystemMessage(session.god.getChatPrefix()
                             .append(Component.literal("«" + session.god.getIntroLine3() + "»").withStyle(ChatFormatting.GOLD)));
+                } else if (session.isAscendingToB) {
+                    player.sendSystemMessage(session.god.getChatPrefix()
+                            .append(Component.literal("«He erigido ante ti las estatuas sagradas de las tres criaturas: §dStarry§6, §bChubby §6y §eBrambi§6. Acércate e interactúa (clic derecho) con tu estatua predilecta para elegir a tu Guardián. Podrás invocarlo tocando la tecla §f[C] §6consumiendo §b50 MP§6, y su poder ascenderá junto a tu propio Nivel RPG.»").withStyle(ChatFormatting.GOLD)));
+                    player.displayClientMessage(Component.literal("§e✦ Toca la estatua de Starry, Chubby o Brambi para forjar tu vínculo eterno."), false);
                 } else {
                     PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
                     AdventurerRank nextRank = (data != null) ? data.getRank().getNextRank() : AdventurerRank.E;
@@ -349,8 +481,27 @@ public class WarGodTrialManager {
                         SoundEvents.BEACON_POWER_SELECT, SoundSource.PLAYERS, 1.2f, 1.2f);
             }
 
-            // Step 3 -> Step 4 (Tick 245: Divine Lightning Strike & Return to Home)
-            else if (session.step == 3 && session.tickCounter >= 245) {
+            // Step 3 -> Step 4 (Lightning Strike & Return Home)
+            else if (session.step == 3) {
+                if (session.isAscendingToB) {
+                    // Si es ascensión a B, esperamos a que el jugador elija a su guardián
+                    if (!session.guardianChosen) {
+                        if (session.tickCounter % 160 == 0) {
+                            player.displayClientMessage(Component.literal("§e✦ Elige a tu Guardián haciendo clic derecho sobre una de las 3 estatuas."), true);
+                        }
+                        continue;
+                    }
+
+                    session.postChoiceTicks++;
+                    if (session.postChoiceTicks < 45) {
+                        continue;
+                    }
+                } else {
+                    if (session.tickCounter < 300) {
+                        continue;
+                    }
+                }
+
                 session.step = 4;
 
                 // Spawn visual lightning bolt in the Astral Plane
@@ -360,6 +511,8 @@ public class WarGodTrialManager {
                 if (data != null) {
                     completeEncounterEffects(player, data, session.type, session.god);
                 }
+
+                cleanupAstralSession(player.serverLevel(), session.playerUuid, session.centerX, session.centerZ);
 
                 returnPlayerToOverworld(player);
                 // Also strike visual lightning at their waking location

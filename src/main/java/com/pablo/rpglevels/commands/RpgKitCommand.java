@@ -15,7 +15,6 @@ import com.pablo.rpglevels.items.SpiritualSwordItem;
 import com.pablo.rpglevels.network.ModNetworking;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -48,34 +47,34 @@ public class RpgKitCommand {
     }
 
     public static void giveTestKit(ServerPlayer player) {
-        // 1. Configurar Progreso RPG: Rango A de Aventurero, Nivel 90 y 89 Puntos repartidos equitativamente
+        // 1. Configurar Progreso RPG: Rango C de Aventurero, Nivel 45 (mínimo de Rango C) y puntos libres sin asignar
         PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
         if (data != null) {
-            // Asegurar estadísticas base de nacimiento
+            // Asegurar estadísticas base de nacimiento (1 a 10)
             data.rollBirthStatsIfNeeded(player.getRandom());
 
-            // Desbloqueo divino
+            // Desbloqueo divino con Dios Ares por defecto
             data.setDivineBlessingUnlocked(true);
             if (data.getPatronGodId().isEmpty()) {
                 data.setPatronGodId(GreekGod.ARES.getId());
             }
 
-            // Establecer Rango A de Aventurero (Tope de aventurero / Midgame)
-            data.setRank(AdventurerRank.A);
+            // Establecer Rango C de Aventurero
+            data.setRank(AdventurerRank.C);
             data.setGuildRegistered(true);
             data.setReceivedAdventurerCard(true);
 
-            // Nivel RPG 90
-            data.setRpgLevel(90);
+            // Nivel RPG 45 (mínimo para estar en Rango C)
+            data.setRpgLevel(45);
             data.setRpgXp(0);
-            data.resetAllocatedPoints();
-            data.setBonusPendingPoints(0);
 
-            // Repartir 89 puntos de forma equitativa entre los 4 atributos RPG (22 c/u + 1 a Fortaleza)
-            data.setLifePoints(StatType.FORTITUDE, 23);
-            data.setLifePoints(StatType.DEXTERITY, 22);
-            data.setLifePoints(StatType.SPIRIT, 22);
-            data.setLifePoints(StatType.LUCK, 22);
+            // NO asignar puntos automáticamente: dejar los 44 puntos libres para que el jugador los asigne
+            data.resetAllocatedPoints();
+            data.setLifePoints(StatType.FORTITUDE, 0);
+            data.setLifePoints(StatType.DEXTERITY, 0);
+            data.setLifePoints(StatType.SPIRIT, 0);
+            data.setLifePoints(StatType.LUCK, 0);
+            data.setBonusPendingPoints(0);
 
             // Actualizar y sincronizar atributos y maná
             ModAttributesHandler.updatePlayerAttributes(player);
@@ -85,73 +84,61 @@ public class RpgKitCommand {
             ModNetworking.syncMana(player);
         }
 
-        // Sincronizar nivel de experiencia de Minecraft a 90
-        player.setExperienceLevels(Math.max(player.experienceLevel, 90));
+        // Sincronizar nivel de experiencia de Minecraft al nivel 45
+        player.setExperienceLevels(Math.max(player.experienceLevel, 45));
 
-        // 2. Armadura de Diamante completa y Escudo
-        equipOrGive(player, EquipmentSlot.HEAD, new ItemStack(Items.DIAMOND_HELMET));
-        equipOrGive(player, EquipmentSlot.CHEST, new ItemStack(Items.DIAMOND_CHESTPLATE));
-        equipOrGive(player, EquipmentSlot.LEGS, new ItemStack(Items.DIAMOND_LEGGINGS));
-        equipOrGive(player, EquipmentSlot.FEET, new ItemStack(Items.DIAMOND_BOOTS));
+        // 2. Armadura completa de Hierro y Escudo
+        equipOrGive(player, EquipmentSlot.HEAD, new ItemStack(Items.IRON_HELMET));
+        equipOrGive(player, EquipmentSlot.CHEST, new ItemStack(Items.IRON_CHESTPLATE));
+        equipOrGive(player, EquipmentSlot.LEGS, new ItemStack(Items.IRON_LEGGINGS));
+        equipOrGive(player, EquipmentSlot.FEET, new ItemStack(Items.IRON_BOOTS));
         equipOrGive(player, EquipmentSlot.OFFHAND, new ItemStack(Items.SHIELD));
 
-        // 3. Entregar Zanpakuto Senbonzakura (Afinidad 200/200, Primera Liberación Despertada y Activa con los 3 Hechizos)
+        // 3. Entregar Espada Espiritual vinculada con Afinidad al máximo (200/200), lista para despertar pero SIN NOMBRE
         ItemStack kitSword = new ItemStack(ModItems.SPIRITUAL_SWORD.get());
-        kitSword.set(DataComponents.CUSTOM_NAME, Component.literal("Senbonzakura"));
         SpiritualSwordItem.bindSoulVassal(kitSword, player);
-        SpiritualSwordItem.setBladeStyle(kitSword, SpiritualSwordItem.BladeStyle.PHANTOM);
+        SpiritualSwordItem.setBladeStyle(kitSword, SpiritualSwordItem.BladeStyle.DUELIST);
         SpiritualSwordItem.setBladeElement(kitSword, SpiritualSwordItem.BladeElement.NONE);
-        SpiritualSwordItem.setFirstReleaseUnlocked(kitSword, true);
         SpiritualSwordItem.setTrialReady(kitSword, true);
-        SpiritualSwordItem.setAffinity(kitSword, 200);
-        SpiritualSwordItem.setFirstRelease(kitSword, true);
-        SpiritualSwordItem.syncAwakenedSpell(kitSword);
+        SpiritualSwordItem.setFirstReleaseUnlocked(kitSword, false); // Listo para el rito de nombramiento en el yunque
+        SpiritualSwordItem.setAffinity(kitSword, 200); // Afinidad máxima lista para el despertar
+        SpiritualSwordItem.setFirstRelease(kitSword, false);
         equipOrGive(player, EquipmentSlot.MAINHAND, kitSword);
         net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(
                 player,
                 new io.redspace.ironsspellbooks.network.EquipmentChangedPacket()
         );
 
-        // 4. Yunque
+        // 4. Yunque para bautizar y despertar la Espada Espiritual
         giveItem(player, new ItemStack(Items.ANVIL));
 
-        // 5. Comida y sustento
+        // 5. Comida y manzanas doradas
         giveItem(player, new ItemStack(Items.COOKED_BEEF, 64));
         giveItem(player, new ItemStack(Items.GOLDEN_APPLE, 16));
 
-        // 6. Huevos de Bandidos y Jefes para pruebas de combate
-        giveItem(player, new ItemStack(ModItems.BANDIT_SPAWN_EGG.get(), 16));
+        // 6. Huevos de Spawn: SOLO Alice (2) y 10 Hoglins
         giveItem(player, new ItemStack(ModItems.ALICE_SPAWN_EGG.get(), 2));
-        giveItem(player, new ItemStack(ModItems.GUILD_MASTER_SPAWN_EGG.get(), 2));
-        giveItem(player, new ItemStack(ModItems.WIND_MASTER_SPAWN_EGG.get(), 2));
-        giveItem(player, new ItemStack(ModItems.UNDEAD_ADVENTURER_SPAWN_EGG.get(), 2));
-        giveItem(player, new ItemStack(ModItems.ADVENTURER_SPAWN_EGG.get(), 2));
+        giveItem(player, new ItemStack(Items.HOGLIN_SPAWN_EGG, 10));
 
-        // 7. Botellas de Gran Experiencia (10x XP cada una)
-        giveItem(player, new ItemStack(ModItems.HIGH_EXPERIENCE_BOTTLE.get(), 16));
-
-        // 8. Grimorio del Segador Espiritual y Tarjeta de Aventurero (Rango A, Nivel 90)
+        // 7. Tarjeta de Aventurero (Rango C, Nivel 45) y Grimorio Espiritual
         giveItem(player, new ItemStack(ModItems.SPIRITUAL_SPELLBOOK.get()));
         giveItem(player, AdventurerCardItem.createPlayerCard(player, player.getData(ModAttachments.PLAYER_RPG_DATA)));
 
-        // Efectos de sonido y retroalimentación épicos
+        // Efectos sonoros y retroalimentación en chat
         player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.0F, 1.2F);
         player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
-                SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 0.8F, 1.5F);
-        player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
-                SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 1.0F, 1.0F);
+                SoundEvents.ARMOR_EQUIP_IRON.value(), SoundSource.PLAYERS, 1.0F, 1.0F);
 
+        int pendingPoints = (data != null) ? data.getPendingPointsCount() : 44;
         player.sendSystemMessage(Component.empty());
         player.sendSystemMessage(Component.literal("§a§l✦ [RPG KIT DE PRUEBAS ENTREGADO] ✦"));
-        player.sendSystemMessage(Component.literal("§d• Zanpakuto: Senbonzakura §e(Afinidad 200/200 Máxima, Shikai Despertado y Activo)"));
-        player.sendSystemMessage(Component.literal("§6• Rango de Aventurero: §e[RANGO A] §7(Tope de aventurero y umbral al Midgame)"));
-        player.sendSystemMessage(Component.literal("§e• Nivel RPG 90: §f89 Puntos repartidos equitativamente (Fortaleza: 23, Destreza: 22, Espíritu: 22, Suerte: 22)"));
-        player.sendSystemMessage(Component.literal("§b• Armadura de Diamante completa y Escudo"));
-        player.sendSystemMessage(Component.literal("§6• 64 Ternera cocida y 16 Manzanas doradas"));
-        player.sendSystemMessage(Component.literal("§c• 16 Huevos de Bandido y Huevos de Jefes"));
-        player.sendSystemMessage(Component.literal("§a• 16 Botellas de Gran Experiencia §8(10x XP)"));
-        player.sendSystemMessage(Component.literal("§5• Grimorio del Segador Espiritual + Tarjeta de Aventurero Rango A"));
+        player.sendSystemMessage(Component.literal("§6• Rango de Aventurero: §9[RANGO C] §7(Nivel mínimo requerido: 45)"));
+        player.sendSystemMessage(Component.literal("§e• Puntos sin asignar: §a" + pendingPoints + " puntos libres §7(Usa §f/rpg stats §7o pulsa §f[K] §7para distribuirlos a tu gusto)"));
+        player.sendSystemMessage(Component.literal("§b• Armadura: §fSet completo de Hierro + Escudo"));
+        player.sendSystemMessage(Component.literal("§d• Espada Espiritual: §eAfinidad Máxima (200/200) §flista para nombrar en el yunque y despertar"));
+        player.sendSystemMessage(Component.literal("§c• Huevos: §f2 de Alice y 10 Hoglins salvajes"));
+        player.sendSystemMessage(Component.literal("§6• Provisiones: §f64 Ternera cocida y 16 Manzanas doradas"));
         player.sendSystemMessage(Component.empty());
     }
 
@@ -170,4 +157,3 @@ public class RpgKitCommand {
         }
     }
 }
-

@@ -59,6 +59,10 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
     private long spiritualResonanceUntilTick = 0;
     private long spiritualResonanceCinematicUntilTick = 0;
 
+    // Guardián Espiritual Vinculado (Obtenido al ascender a Rango B: "starry", "chubby", "brambi")
+    private String chosenGuardian = "";
+    private java.util.UUID summonedGuardianUuid = null;
+
     // 360 Dash / Dodge State
     private long lastDashTick = -10000L;
     private long dashIFrameUntilTick = -100;
@@ -678,6 +682,26 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         return spiritualResonanceCinematicUntilTick;
     }
 
+    public String getChosenGuardian() {
+        return chosenGuardian != null ? chosenGuardian : "";
+    }
+
+    public void setChosenGuardian(String guardian) {
+        this.chosenGuardian = (guardian != null) ? guardian.toLowerCase(java.util.Locale.ROOT).trim() : "";
+    }
+
+    public boolean hasChosenGuardian() {
+        return chosenGuardian != null && !chosenGuardian.isEmpty();
+    }
+
+    public java.util.UUID getSummonedGuardianUuid() {
+        return summonedGuardianUuid;
+    }
+
+    public void setSummonedGuardianUuid(java.util.UUID uuid) {
+        this.summonedGuardianUuid = uuid;
+    }
+
     /**
      * Calcula la estadística de Aura (Poder del Alma):
      * Promedio equilibrado de todas las estadísticas activas del jugador.
@@ -1246,6 +1270,8 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         this.lastDashTick = other.lastDashTick;
         this.spiritualResonanceUntilTick = other.spiritualResonanceUntilTick;
         this.spiritualResonanceCinematicUntilTick = other.spiritualResonanceCinematicUntilTick;
+        this.chosenGuardian = other.chosenGuardian;
+        this.summonedGuardianUuid = other.summonedGuardianUuid;
         this.currentLocationName = other.currentLocationName;
         this.skillCooldownUntilTick.clear();
         this.skillCooldownUntilTick.putAll(other.skillCooldownUntilTick);
@@ -1281,6 +1307,10 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         tag.putLong("OppressiveAuraUntilTick", oppressiveAuraUntilTick);
         tag.putLong("SpiritualResonanceUntilTick", spiritualResonanceUntilTick);
         tag.putLong("SpiritualResonanceCinematicUntilTick", spiritualResonanceCinematicUntilTick);
+        tag.putString("ChosenGuardian", getChosenGuardian());
+        if (summonedGuardianUuid != null) {
+            tag.putUUID("SummonedGuardianUuid", summonedGuardianUuid);
+        }
         tag.putFloat("CurrentMana", currentMana);
         tag.putFloat("PowerOutputRatio", powerOutputRatio);
         tag.putFloat("MoveSpeedRatio", moveSpeedRatio);
@@ -1383,6 +1413,12 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         }
         if (tag.contains("SpiritualResonanceCinematicUntilTick", Tag.TAG_LONG)) {
             this.spiritualResonanceCinematicUntilTick = tag.getLong("SpiritualResonanceCinematicUntilTick");
+        }
+        if (tag.contains("ChosenGuardian", Tag.TAG_STRING)) {
+            this.chosenGuardian = tag.getString("ChosenGuardian");
+        }
+        if (tag.contains("SummonedGuardianUuid")) {
+            this.summonedGuardianUuid = tag.getUUID("SummonedGuardianUuid");
         }
         if (tag.contains("CurrentMana", Tag.TAG_FLOAT)) {
             this.currentMana = tag.getFloat("CurrentMana");

@@ -36,10 +36,18 @@ public class ModKeyMappings {
             CATEGORY_RPG
     ));
 
+    public static final Lazy<KeyMapping> SUMMON_GUARDIAN_KEY = Lazy.of(() -> new KeyMapping(
+            "key.rpglevels.summon_guardian",
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_C,
+            CATEGORY_RPG
+    ));
+
     @SubscribeEvent
     public static void registerKeys(RegisterKeyMappingsEvent event) {
         event.register(DASH_KEY.get());
         event.register(PARTY_KEY.get());
         event.register(RELEASE_SWORD_KEY.get());
+        event.register(SUMMON_GUARDIAN_KEY.get());
     }
 }

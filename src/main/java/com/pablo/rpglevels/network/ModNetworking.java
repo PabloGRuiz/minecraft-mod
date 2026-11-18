@@ -207,6 +207,20 @@ public class ModNetworking {
                 StartSpiritualResonanceCinematicPayload.STREAM_CODEC,
                 StartSpiritualResonanceCinematicPayload::handle
         );
+
+        // Astral Plane God Audience Cinematic (Server -> Client)
+        registrar.playToClient(
+                StartAstralCinematicPayload.TYPE,
+                StartAstralCinematicPayload.STREAM_CODEC,
+                StartAstralCinematicPayload::handle
+        );
+
+        // Summon Guardian (Client -> Server, Tecla C)
+        registrar.playToServer(
+                SummonGuardianPayload.TYPE,
+                SummonGuardianPayload.STREAM_CODEC,
+                SummonGuardianPayload::handle
+        );
     }
 
     public static void openPartyScreen(ServerPlayer player) {
