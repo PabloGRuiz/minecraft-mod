@@ -1,6 +1,7 @@
 package com.pablo.rpglevels.world.trial;
 
 import com.pablo.rpglevels.RpgLevelsMod;
+import com.pablo.rpglevels.blocks.StatueBlock;
 import com.pablo.rpglevels.data.AdventurerRank;
 import com.pablo.rpglevels.data.GreekGod;
 import com.pablo.rpglevels.data.ModAttachments;
@@ -10,11 +11,13 @@ import com.pablo.rpglevels.entities.ChubbyEntity;
 import com.pablo.rpglevels.entities.ModEntities;
 import com.pablo.rpglevels.entities.StarryEntity;
 import com.pablo.rpglevels.events.ModAttributesHandler;
+import com.pablo.rpglevels.init.ModBlocks;
 import com.pablo.rpglevels.network.ModNetworking;
 import com.pablo.rpglevels.network.StartAstralCinematicPayload;
 import com.pablo.rpglevels.world.dimension.ModDimensions;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -39,6 +42,7 @@ import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BedBlock;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -263,54 +267,63 @@ public class WarGodTrialManager {
             // Pedestal Izquierdo: Starry
             level.setBlockAndUpdate(new BlockPos(centerX - 2, 64, centerZ + 3), Blocks.CHISELED_POLISHED_BLACKSTONE.defaultBlockState());
             level.setBlockAndUpdate(new BlockPos(centerX - 2, 65, centerZ + 3), Blocks.PURPUR_PILLAR.defaultBlockState());
-
-            StarryEntity starryStatue = new StarryEntity(ModEntities.STARRY.get(), level);
-            configureStatue(starryStatue, centerX - 2 + 0.5, 66.0, centerZ + 3 + 0.5,
-                    "§d✦ Estatua: Starry ✦", "Guardian_starry", player.getUUID());
-            level.addFreshEntity(starryStatue);
+            level.setBlockAndUpdate(new BlockPos(centerX - 2, 66, centerZ + 3),
+                    ModBlocks.STARRY_STATUE.get().defaultBlockState().setValue(StatueBlock.FACING, Direction.SOUTH));
 
             // Pedestal Central: Chubby
             level.setBlockAndUpdate(new BlockPos(centerX, 64, centerZ + 3), Blocks.CHISELED_POLISHED_BLACKSTONE.defaultBlockState());
             level.setBlockAndUpdate(new BlockPos(centerX, 65, centerZ + 3), Blocks.QUARTZ_PILLAR.defaultBlockState());
-
-            ChubbyEntity chubbyStatue = new ChubbyEntity(ModEntities.CHUBBY.get(), level);
-            configureStatue(chubbyStatue, centerX + 0.5, 66.0, centerZ + 3 + 0.5,
-                    "§b✦ Estatua: Chubby ✦", "Guardian_chubby", player.getUUID());
-            level.addFreshEntity(chubbyStatue);
+            level.setBlockAndUpdate(new BlockPos(centerX, 66, centerZ + 3),
+                    ModBlocks.CHUBBY_STATUE.get().defaultBlockState().setValue(StatueBlock.FACING, Direction.SOUTH));
 
             // Pedestal Derecho: Brambi
             level.setBlockAndUpdate(new BlockPos(centerX + 2, 64, centerZ + 3), Blocks.CHISELED_POLISHED_BLACKSTONE.defaultBlockState());
             level.setBlockAndUpdate(new BlockPos(centerX + 2, 65, centerZ + 3), Blocks.OCHRE_FROGLIGHT.defaultBlockState());
-
-            BrambiEntity brambiStatue = new BrambiEntity(ModEntities.BRAMBI.get(), level);
-            configureStatue(brambiStatue, centerX + 2 + 0.5, 66.0, centerZ + 3 + 0.5,
-                    "§6✦ Estatua: Brambi ✦", "Guardian_brambi", player.getUUID());
-            level.addFreshEntity(brambiStatue);
+            level.setBlockAndUpdate(new BlockPos(centerX + 2, 66, centerZ + 3),
+                    ModBlocks.BRAMBI_STATUE.get().defaultBlockState().setValue(StatueBlock.FACING, Direction.SOUTH));
         }
     }
 
-    private static void configureStatue(TamableAnimal statue, double x, double y, double z, String name, String tag, UUID playerUuid) {
-        statue.moveTo(x, y, z, 180.0f, 0.0f);
-        statue.setYRot(180.0f);
-        statue.setYHeadRot(180.0f);
-        statue.setYBodyRot(180.0f);
-        statue.setNoAi(true);
-        statue.setInvulnerable(true);
-        statue.setSilent(true);
-        statue.setPersistenceRequired();
-        statue.addTag("AstralStatue");
-        statue.addTag(tag);
-        statue.addTag("Session_" + playerUuid);
-        statue.setCustomName(Component.literal(name));
-        statue.setCustomNameVisible(true);
-    }
-
     private static void cleanupAstralSession(ServerLevel level, UUID playerUuid, int centerX, int centerZ) {
+        level.setBlockAndUpdate(new BlockPos(centerX - 2, 66, centerZ + 3), Blocks.AIR.defaultBlockState());
+        level.setBlockAndUpdate(new BlockPos(centerX, 66, centerZ + 3), Blocks.AIR.defaultBlockState());
+        level.setBlockAndUpdate(new BlockPos(centerX + 2, 66, centerZ + 3), Blocks.AIR.defaultBlockState());
+
         AABB box = new AABB(centerX - 6, 62, centerZ - 6, centerX + 6, 72, centerZ + 6);
         List<Entity> statues = level.getEntitiesOfClass(Entity.class, box,
                 e -> e.getTags().contains("Session_" + playerUuid) || e.getTags().contains("AstralStatue"));
         for (Entity s : statues) {
             s.discard();
+        }
+    }
+
+    @SubscribeEvent
+    public static void onBlockInteract(PlayerInteractEvent.RightClickBlock event) {
+        if (!(event.getEntity() instanceof ServerPlayer player)) return;
+        BlockPos pos = event.getPos();
+        ServerLevel level = player.serverLevel();
+        BlockState state = level.getBlockState(pos);
+
+        AstralSession session = ACTIVE_SESSIONS.get(player.getUUID());
+        if (session == null || !session.isAscendingToB || session.guardianChosen) return;
+
+        String guardianType = "";
+        String guardianName = "";
+        if (state.is(ModBlocks.STARRY_STATUE.get())) {
+            guardianType = "starry";
+            guardianName = "Starry (Espíritu Celestial)";
+        } else if (state.is(ModBlocks.CHUBBY_STATUE.get())) {
+            guardianType = "chubby";
+            guardianName = "Chubby (Nubecita del Trueno)";
+        } else if (state.is(ModBlocks.BRAMBI_STATUE.get())) {
+            guardianType = "brambi";
+            guardianName = "Brambi (Venado de Brasa y Bosque)";
+        }
+
+        if (!guardianType.isEmpty()) {
+            event.setCanceled(true);
+            event.setCancellationResult(InteractionResult.SUCCESS);
+            selectGuardian(player, session, guardianType, guardianName, pos.getX() + 0.5, pos.getY() + 0.8, pos.getZ() + 0.5);
         }
     }
 
@@ -324,10 +337,7 @@ public class WarGodTrialManager {
         event.setCancellationResult(InteractionResult.SUCCESS);
 
         AstralSession session = ACTIVE_SESSIONS.get(player.getUUID());
-        if (session == null || !session.isAscendingToB) return;
-
-        PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
-        if (data == null) return;
+        if (session == null || !session.isAscendingToB || session.guardianChosen) return;
 
         String guardianType = "";
         String guardianName = "";
@@ -342,17 +352,24 @@ public class WarGodTrialManager {
             guardianName = "Brambi (Venado de Brasa y Bosque)";
         }
 
-        if (guardianType.isEmpty()) return;
+        if (!guardianType.isEmpty()) {
+            selectGuardian(player, session, guardianType, guardianName, target.getX(), target.getY() + 0.8, target.getZ());
+        }
+    }
+
+    private static void selectGuardian(ServerPlayer player, AstralSession session, String guardianType, String guardianName, double x, double y, double z) {
+        PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
+        if (data == null) return;
 
         data.setChosenGuardian(guardianType);
         ModNetworking.syncToPlayer(player);
         session.guardianChosen = true;
 
         ServerLevel level = player.serverLevel();
-        level.playSound(null, target.blockPosition(), SoundEvents.TOTEM_USE, SoundSource.PLAYERS, 1.2f, 1.0f);
-        level.playSound(null, target.blockPosition(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.4f, 1.3f);
-        level.sendParticles(ParticleTypes.TOTEM_OF_UNDYING, target.getX(), target.getY() + 0.8, target.getZ(), 45, 0.4, 0.5, 0.4, 0.12);
-        level.sendParticles(ParticleTypes.FLASH, target.getX(), target.getY() + 0.8, target.getZ(), 1, 0, 0, 0, 0);
+        level.playSound(null, x, y, z, SoundEvents.TOTEM_USE, SoundSource.PLAYERS, 1.2f, 1.0f);
+        level.playSound(null, x, y, z, SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.4f, 1.3f);
+        level.sendParticles(ParticleTypes.TOTEM_OF_UNDYING, x, y, z, 45, 0.4, 0.5, 0.4, 0.12);
+        level.sendParticles(ParticleTypes.FLASH, x, y, z, 1, 0, 0, 0, 0);
 
         player.sendSystemMessage(Component.empty());
         player.sendSystemMessage(session.god.getChatPrefix()
