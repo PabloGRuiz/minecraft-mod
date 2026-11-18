@@ -3,7 +3,6 @@ package com.pablo.rpglevels.network;
 import com.pablo.rpglevels.RpgLevelsMod;
 import com.pablo.rpglevels.magic.beam.BeamClashManager;
 import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
@@ -13,7 +12,7 @@ import java.util.UUID;
 
 /**
  * Servidor -> Cliente: Sincroniza el estado del Choque de Poderes (Beam Clash)
- * para los participantes y observadores cercanos.
+ * para los participantes y observadores cercanos, incluyendo el retardo de preparación (warmup).
  */
 public record SyncBeamClashPayload(
         UUID clashId,
@@ -26,6 +25,7 @@ public record SyncBeamClashPayload(
         double clashY,
         double clashZ,
         int remainingTicks,
+        int warmupRemainingTicks,
         float manaA,
         float manaB,
         int colorA,
@@ -48,6 +48,7 @@ public record SyncBeamClashPayload(
                         buf.writeDouble(val.clashY);
                         buf.writeDouble(val.clashZ);
                         buf.writeInt(val.remainingTicks);
+                        buf.writeInt(val.warmupRemainingTicks);
                         buf.writeFloat(val.manaA);
                         buf.writeFloat(val.manaB);
                         buf.writeInt(val.colorA);
@@ -63,6 +64,7 @@ public record SyncBeamClashPayload(
                             buf.readDouble(),
                             buf.readDouble(),
                             buf.readDouble(),
+                            buf.readInt(),
                             buf.readInt(),
                             buf.readFloat(),
                             buf.readFloat(),

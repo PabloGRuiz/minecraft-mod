@@ -35,7 +35,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @EventBusSubscriber(modid = RpgLevelsMod.MOD_ID)
 public class BeamClashManager {
 
-    public static final int MAX_CLASH_TICKS = 200; // 10 segundos exactos
+    public static final int WARMUP_TICKS = 30; // 1.5 segundos de retardo inicial de preparación
+    public static final int MAX_CLASH_TICKS = 230; // 30 ticks de warmup + 200 ticks de forcejeo activo
 
     public static class ClashSession {
         public final UUID clashId;
@@ -64,6 +65,14 @@ public class BeamClashManager {
             this.beamB = beamB;
             this.clashPos = initialPos;
         }
+
+        public boolean isInWarmup() {
+            return elapsedTicks < WARMUP_TICKS;
+        }
+
+        public int getWarmupRemainingTicks() {
+            return Math.max(0, WARMUP_TICKS - elapsedTicks);
+        }
     }
 
     private static final Map<UUID, ClashSession> SERVER_SESSIONS = new ConcurrentHashMap<>();
@@ -79,6 +88,7 @@ public class BeamClashManager {
         public float progress = 0.5F;
         public Vec3 clashPos = Vec3.ZERO;
         public int remainingTicks = 0;
+        public int warmupRemainingTicks = 0;
         public float manaA = 0.0F;
         public float manaB = 0.0F;
         public int colorA = 0x33A6FF;
@@ -132,6 +142,12 @@ public class BeamClashManager {
         ClashSession session = SERVER_SESSIONS.get(clashId);
         if (session == null) return;
 
+        // Durante el calentamiento inicial (1.5s), no se acumulan ventajas desmedidas
+        if (session.isInWarmup()) {
+            player.playNotifySound(SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.40F, 2.0F);
+            return;
+        }
+
         // Fórmula: 1 clic base * (1.0 + reservas de maná / 100)
         float currentMana = Math.max(0.0F, IronsSpellsCompat.getIronsMana(player));
         float multiplier = 1.0F + (currentMana / 100.0F);
@@ -156,20 +172,14 @@ public class BeamClashManager {
         for (ClashSession session : SERVER_SESSIONS.values()) {
             session.elapsedTicks++;
 
-            // 1. Validar que ambos combatientes y haces sigan vivos
-            if (!session.entityA.isAlive() || session.entityA.isRemoved()) {
+            // 1. Validar que ambos combatientes y haces sigan vivos y activos
+            if (!session.entityA.isAlive() || session.entityA.isRemoved() || !session.beamA.isAlive() || session.beamA.isRemoved()) {
                 resolveClash(session.level, session, session.entityB, session.entityA, false);
                 toRemove.add(session.clashId);
                 continue;
             }
-            if (!session.entityB.isAlive() || session.entityB.isRemoved()) {
+            if (!session.entityB.isAlive() || session.entityB.isRemoved() || !session.beamB.isAlive() || session.beamB.isRemoved()) {
                 resolveClash(session.level, session, session.entityA, session.entityB, false);
-                toRemove.add(session.clashId);
-                continue;
-            }
-            if (!session.beamA.isAlive() || !session.beamB.isAlive()) {
-                resolveClash(session.level, session, session.scoreA >= session.scoreB ? session.entityA : session.entityB,
-                        session.scoreA >= session.scoreB ? session.entityB : session.entityA, true);
                 toRemove.add(session.clashId);
                 continue;
             }
@@ -180,7 +190,7 @@ public class BeamClashManager {
             session.entityA.setDeltaMovement(0, session.entityA.getDeltaMovement().y > 0 ? 0 : session.entityA.getDeltaMovement().y, 0);
             session.entityB.setDeltaMovement(0, session.entityB.getDeltaMovement().y > 0 ? 0 : session.entityB.getDeltaMovement().y, 0);
 
-            // 3. Drenaje continuo de maná (disminuye conforme avanza el choque)
+            // 3. Drenaje continuo de maná
             float manaDrain = 0.25F; // 5 MP/s
             drainMana(session.entityA, session, true, manaDrain);
             drainMana(session.entityB, session, false, manaDrain);
@@ -199,55 +209,68 @@ public class BeamClashManager {
                 continue;
             }
 
-            // 4. IA para Mobs (ej. Voidborn Executor): simula clics de puja automáticamente
-            if (!(session.entityA instanceof Player)) {
-                simulateMobClick(session, true);
-            }
-            if (!(session.entityB instanceof Player)) {
-                simulateMobClick(session, false);
-            }
+            if (session.isInWarmup()) {
+                // Durante el retardo inicial de preparación (1.5 segundos):
+                // La barra permanece fija y centrada (0.5F) para dar tiempo a que ambos jugadores se preparen
+                session.progress = 0.5F;
+                session.clashPos = posA.lerp(posB, 0.5);
+                session.beamA.setClashPos(session.clashPos);
+                session.beamB.setClashPos(session.clashPos);
 
-            // 5. Cálculo del progreso del forcejeo (Tug-of-War)
-            // progress = 0.5 (medio); >0.5 empuja hacia B (gana A); <0.5 empuja hacia A (gana B)
-            float totalScore = session.scoreA + session.scoreB;
-            float diff = session.scoreA - session.scoreB;
-            float targetProgress = Mth.clamp(0.5F + (diff / (Math.max(25.0F, totalScore * 0.45F) + 35.0F)), 0.04F, 0.96F);
-            session.progress = Mth.lerp(0.14F, session.progress, targetProgress);
+                if (session.elapsedTicks % 10 == 0) {
+                    session.level.playSound(null, session.clashPos.x, session.clashPos.y, session.clashPos.z,
+                            SoundEvents.BEACON_POWER_SELECT, SoundSource.PLAYERS, 1.4F, 1.8F);
+                }
+            } else {
+                // 4. IA para Mobs (ej. Voidborn Executor): simula clics de puja automáticamente
+                if (!(session.entityA instanceof Player)) {
+                    simulateMobClick(session, true);
+                }
+                if (!(session.entityB instanceof Player)) {
+                    simulateMobClick(session, false);
+                }
 
-            // Posición física del punto de choque
-            // Si progress es 1.0 (A gana totalmente), clashPos está junto a B
-            session.clashPos = posA.lerp(posB, session.progress);
-            session.beamA.setClashPos(session.clashPos);
-            session.beamB.setClashPos(session.clashPos);
+                // 5. Cálculo del progreso del forcejeo (Tug-of-War)
+                // progress = 0.5 (medio); >0.5 empuja hacia B (gana A); <0.5 empuja hacia A (gana B)
+                float totalScore = session.scoreA + session.scoreB;
+                float diff = session.scoreA - session.scoreB;
+                float targetProgress = Mth.clamp(0.5F + (diff / (Math.max(25.0F, totalScore * 0.45F) + 35.0F)), 0.04F, 0.96F);
+                session.progress = Mth.lerp(0.12F, session.progress, targetProgress);
 
-            // Efectos sonoros y partículas del choque continuo cada 8 ticks
-            if (session.elapsedTicks % 8 == 0) {
-                session.level.playSound(null, session.clashPos.x, session.clashPos.y, session.clashPos.z,
-                        SoundEvents.BEACON_AMBIENT, SoundSource.PLAYERS, 1.8F, 1.6F);
-                session.level.playSound(null, session.clashPos.x, session.clashPos.y, session.clashPos.z,
-                        SoundEvents.SOUL_ESCAPE, SoundSource.PLAYERS, 1.2F, 1.8F);
-                session.level.sendParticles(ParticleTypes.ELECTRIC_SPARK,
-                        session.clashPos.x, session.clashPos.y, session.clashPos.z, 10, 0.4, 0.4, 0.4, 0.1);
-            }
+                // Posición física del punto de choque
+                session.clashPos = posA.lerp(posB, session.progress);
+                session.beamA.setClashPos(session.clashPos);
+                session.beamB.setClashPos(session.clashPos);
 
-            // 6. Condiciones de victoria
-            if (session.progress >= 0.94F) {
-                // Haz de A penetró completamente la defensa de B
-                resolveClash(session.level, session, session.entityA, session.entityB, false);
-                toRemove.add(session.clashId);
-                continue;
-            } else if (session.progress <= 0.06F) {
-                // Haz de B penetró totalmente a A
-                resolveClash(session.level, session, session.entityB, session.entityA, false);
-                toRemove.add(session.clashId);
-                continue;
-            } else if (session.elapsedTicks >= MAX_CLASH_TICKS) {
-                // Se acabó el tiempo de 10 segundos: gana el que tenga mayor puntaje acumulado
-                LivingEntity winner = (session.scoreA >= session.scoreB) ? session.entityA : session.entityB;
-                LivingEntity loser = (winner == session.entityA) ? session.entityB : session.entityA;
-                resolveClash(session.level, session, winner, loser, true);
-                toRemove.add(session.clashId);
-                continue;
+                // Efectos sonoros y partículas del choque continuo cada 8 ticks
+                if (session.elapsedTicks % 8 == 0) {
+                    session.level.playSound(null, session.clashPos.x, session.clashPos.y, session.clashPos.z,
+                            SoundEvents.BEACON_AMBIENT, SoundSource.PLAYERS, 1.8F, 1.6F);
+                    session.level.playSound(null, session.clashPos.x, session.clashPos.y, session.clashPos.z,
+                            SoundEvents.SOUL_ESCAPE, SoundSource.PLAYERS, 1.2F, 1.8F);
+                    session.level.sendParticles(ParticleTypes.ELECTRIC_SPARK,
+                            session.clashPos.x, session.clashPos.y, session.clashPos.z, 10, 0.4, 0.4, 0.4, 0.1);
+                }
+
+                // 6. Condiciones de victoria
+                if (session.progress >= 0.94F) {
+                    // Haz de A penetró completamente la defensa de B
+                    resolveClash(session.level, session, session.entityA, session.entityB, false);
+                    toRemove.add(session.clashId);
+                    continue;
+                } else if (session.progress <= 0.06F) {
+                    // Haz de B penetró totalmente a A
+                    resolveClash(session.level, session, session.entityB, session.entityA, false);
+                    toRemove.add(session.clashId);
+                    continue;
+                } else if (session.elapsedTicks >= MAX_CLASH_TICKS) {
+                    // Se acabó el tiempo total: gana el que tenga mayor puntaje acumulado
+                    LivingEntity winner = (session.scoreA >= session.scoreB) ? session.entityA : session.entityB;
+                    LivingEntity loser = (winner == session.entityA) ? session.entityB : session.entityA;
+                    resolveClash(session.level, session, winner, loser, true);
+                    toRemove.add(session.clashId);
+                    continue;
+                }
             }
 
             // 7. Sincronización periódica a los clientes
@@ -376,6 +399,7 @@ public class BeamClashManager {
                 session.clashPos.y,
                 session.clashPos.z,
                 remTicks,
+                session.getWarmupRemainingTicks(),
                 manaA,
                 manaB,
                 session.beamA.getColorRgb(),
@@ -400,6 +424,7 @@ public class BeamClashManager {
         CLIENT_STATE.progress = payload.progress();
         CLIENT_STATE.clashPos = new Vec3(payload.clashX(), payload.clashY(), payload.clashZ());
         CLIENT_STATE.remainingTicks = payload.remainingTicks();
+        CLIENT_STATE.warmupRemainingTicks = payload.warmupRemainingTicks();
         CLIENT_STATE.manaA = payload.manaA();
         CLIENT_STATE.manaB = payload.manaB();
         CLIENT_STATE.colorA = payload.colorA();

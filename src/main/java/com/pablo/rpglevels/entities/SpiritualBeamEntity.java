@@ -177,12 +177,31 @@ public class SpiritualBeamEntity extends Entity {
     public void tick() {
         super.tick();
 
+        // 1. Validar que el lanzador siga vivo y activo
         LivingEntity caster = getCaster();
         if (caster == null || !caster.isAlive() || caster.isRemoved()) {
-            if (!this.level().isClientSide()) {
-                this.discard();
-            }
+            this.discard();
             return;
+        }
+
+        // 2. Si el lanzador es un jugador, cortar abruptamente si se interrumpe, se cancela o se queda sin maná
+        if (caster instanceof Player player) {
+            if (com.pablo.rpglevels.compat.irons.IronsSpellsCompat.isLoaded()) {
+                float mana = com.pablo.rpglevels.compat.irons.IronsSpellsCompat.getIronsMana(player);
+                if (mana <= 0.0F) {
+                    this.discard();
+                    return;
+                }
+
+                try {
+                    var magicData = io.redspace.ironsspellbooks.api.magic.MagicData.getPlayerMagicData(player);
+                    if (magicData == null || !magicData.isCasting()
+                            || !"rpglevels:spiritual_beam".equals(magicData.getCastingSpellId())) {
+                        this.discard();
+                        return;
+                    }
+                } catch (Throwable ignored) {}
+            }
         }
 
         lifeTicks++;
@@ -194,7 +213,7 @@ public class SpiritualBeamEntity extends Entity {
         this.setPos(origin.x, origin.y, origin.z);
 
         if (isClashing()) {
-            // Durante un choque: la orientación apunta directamente al punto de colisión
+            // Durante un choque: la orientación y longitud terminan estrictamente en el punto de colisión
             Vec3 clashPoint = getClashPos();
             Vec3 toClash = clashPoint.subtract(origin);
             float currentDist = (float) toClash.length();
@@ -223,7 +242,7 @@ public class SpiritualBeamEntity extends Entity {
             this.setYRot(caster.getYRot());
             this.setXRot(caster.getXRot());
 
-            // Raycast hacia adelante
+            // Raycast hacia adelante: corte estricto contra bloques sólidos
             Vec3 rayEnd = origin.add(look.scale(MAX_BEAM_RANGE));
             BlockHitResult blockHit = this.level().clip(new ClipContext(
                     origin, rayEnd, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this
@@ -232,10 +251,17 @@ public class SpiritualBeamEntity extends Entity {
             float hitDist = (blockHit.getType() != HitResult.Type.MISS)
                     ? (float) blockHit.getLocation().distanceTo(origin)
                     : MAX_BEAM_RANGE;
-            this.setBeamLength(hitDist);
 
-            // Servidor: perforación de daño y detección de colisiones de haz
+            // Servidor: comprobar colisión de haces y aplicar daño
             if (!this.level().isClientSide() && this.level() instanceof ServerLevel serverLevel) {
+                // Comprobar colisión con otro rayo ANTES de aplicar daño
+                boolean clashStarted = checkForBeamClash(serverLevel, caster, origin, look, hitDist);
+                if (clashStarted) {
+                    return;
+                }
+
+                this.setBeamLength(hitDist);
+
                 // Sonido continuo de zumbido de haz cada 15 ticks
                 if (lifeTicks % 15 == 1) {
                     serverLevel.playSound(null, origin.x, origin.y, origin.z,
@@ -247,13 +273,12 @@ public class SpiritualBeamEntity extends Entity {
                     applyBeamPiercingDamage(serverLevel, caster, origin, look, hitDist);
                 }
 
-                // Detección de colisión con otro SpiritualBeamEntity
-                checkForBeamClash(serverLevel, caster, origin, look, hitDist);
-
                 // Fin de duración normal si no está en choque
                 if (lifeTicks >= maxLifeTicks) {
                     this.discard();
                 }
+            } else {
+                this.setBeamLength(hitDist);
             }
         }
     }
@@ -270,24 +295,33 @@ public class SpiritualBeamEntity extends Entity {
                 : serverLevel.damageSources().mobAttack(caster);
 
         for (LivingEntity target : targets) {
+            // Si el objetivo está en choque con este lanzador, nunca recibe daño de perforación
+            if (BeamClashManager.isPlayerInClash(target.getId()) && BeamClashManager.isPlayerInClash(caster.getId())) {
+                continue;
+            }
+
             Vec3 targetPos = target.getBoundingBox().getCenter();
-            // Distancia del objetivo a la recta del rayo
             Vec3 v = targetPos.subtract(origin);
             double proj = v.dot(look);
             if (proj >= 0.0 && proj <= length) {
                 Vec3 closestPoint = origin.add(look.scale(proj));
                 double distToRay = closestPoint.distanceTo(targetPos);
                 if (distToRay <= radius + target.getBbWidth() * 0.5F) {
-                    target.hurt(ds, this.damage);
-                    // Empuje leve hacia la dirección del haz
-                    target.setDeltaMovement(target.getDeltaMovement().add(look.scale(0.35)));
-                    target.hurtMarked = true;
+                    // Verificar que no haya un bloque sólido entre el haz y el objetivo
+                    BlockHitResult blockCheck = serverLevel.clip(new ClipContext(
+                            closestPoint, targetPos, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, caster
+                    ));
+                    if (blockCheck.getType() == HitResult.Type.MISS) {
+                        target.hurt(ds, this.damage);
+                        target.setDeltaMovement(target.getDeltaMovement().add(look.scale(0.35)));
+                        target.hurtMarked = true;
+                    }
                 }
             }
         }
     }
 
-    private void checkForBeamClash(ServerLevel serverLevel, LivingEntity caster, Vec3 origin, Vec3 look, float length) {
+    private boolean checkForBeamClash(ServerLevel serverLevel, LivingEntity caster, Vec3 origin, Vec3 look, float length) {
         AABB searchBox = this.getBoundingBox().inflate(MAX_BEAM_RANGE);
         List<SpiritualBeamEntity> candidates = serverLevel.getEntitiesOfClass(SpiritualBeamEntity.class, searchBox,
                 b -> b != this && !b.isClashing() && b.isAlive());
@@ -301,7 +335,7 @@ public class SpiritualBeamEntity extends Entity {
 
             // 1. Los haces deben ir en direcciones opuestas (encarados)
             double facingDot = look.dot(otherLook);
-            if (facingDot > -0.40) continue; // No se encaran de frente
+            if (facingDot > -0.30) continue;
 
             // 2. Vector relativo de lanzador a lanzador
             Vec3 between = otherOrigin.subtract(origin);
@@ -309,12 +343,13 @@ public class SpiritualBeamEntity extends Entity {
             if (dist > MAX_BEAM_RANGE * 1.5) continue;
 
             Vec3 normBetween = between.normalize();
-            if (look.dot(normBetween) < 0.35) continue; // No apunta hacia el oponente
+            if (look.dot(normBetween) < 0.25) continue;
 
-            // Colisión confirmada: Se inicia el Choque de Poderes (Beam Clash)
+            // Colisión confirmada: Se inicia el Choque de Poderes y ambos haces se cortan en el centro
             BeamClashManager.startClash(serverLevel, this, other);
-            break;
+            return true;
         }
+        return false;
     }
 
     private void spawnClashParticlesClient(Vec3 clashPoint) {

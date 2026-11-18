@@ -154,34 +154,25 @@ public class BeamClashCameraClientEvents {
         float time = (float) (mc.level.getGameTime() + event.getPartialTick());
 
         if (inClash) {
-            // --- CÁMARA DE CHOQUE DE PODERES: Vista lateral orbital con vibración sísmica ---
-            Vec3 clashPos = BeamClashManager.CLIENT_STATE.clashPos;
-            if (clashPos != null && !clashPos.equals(Vec3.ZERO)) {
-                Vec3 playerPos = mc.player.getEyePosition();
-                double dx = clashPos.x - playerPos.x;
-                double dz = clashPos.z - playerPos.z;
+            // --- CÁMARA DE CHOQUE DE PODERES: Plano sobre el hombro SIN rotación, con inclinación dramática y rumble ---
+            float shoulderYaw = mc.player.getYRot() + 13.0F;
+            float shoulderPitch = mc.player.getXRot() - 1.5F;
 
-                float baseAngle = (float) Math.toDegrees(Math.atan2(dz, dx));
-                float orbitOffset = 78.0F + Mth.sin(time * 0.045F) * 22.0F;
+            // Vibración sísmica de alta frecuencia por la fricción cataclísmica entre ambos haces
+            float continuousRumble = (float) ((Math.sin(time * 2.2) * 0.38) + ((Math.random() - 0.5) * 0.45));
+            float totalShake = continuousRumble + (clickShakeIntensity * (float) ((Math.random() - 0.5) * 1.3));
 
-                float cinematicYaw = baseAngle + orbitOffset;
-                float cinematicPitch = 9.5F + Mth.cos(time * 0.035F) * 5.0F;
+            event.setYaw(shoulderYaw + totalShake * 0.75F);
+            event.setPitch(shoulderPitch + totalShake);
 
-                // Vibración de alta frecuencia por la brutal fricción entre los haces
-                float continuousRumble = (float) ((Math.sin(time * 2.2) * 0.40) + ((Math.random() - 0.5) * 0.50));
-                float totalShake = continuousRumble + (clickShakeIntensity * (float) ((Math.random() - 0.5) * 1.4));
+            // Inclinación dramática holandesa fija (Dutch angle) acentuada por la ventaja/tensión en el choque
+            boolean isA = (mc.player.getId() == BeamClashManager.CLIENT_STATE.entityAId);
+            float playerProgress = isA ? BeamClashManager.CLIENT_STATE.progress : (1.0F - BeamClashManager.CLIENT_STATE.progress);
+            float baseTilt = 8.5F; // Inclinación estilizada permanente
+            float struggleRoll = (playerProgress - 0.5F) * 7.5F;
+            float rollJitter = Mth.sin(time * 0.20F) * 2.4F + (float) ((Math.random() - 0.5) * 0.8);
 
-                event.setYaw(cinematicYaw + totalShake * 0.75F);
-                event.setPitch(cinematicPitch + totalShake);
-
-                // Inclinación dramática holandesa reactiva a la ventaja en el choque
-                boolean isA = (mc.player.getId() == BeamClashManager.CLIENT_STATE.entityAId);
-                float playerProgress = isA ? BeamClashManager.CLIENT_STATE.progress : (1.0F - BeamClashManager.CLIENT_STATE.progress);
-                float struggleRoll = (playerProgress - 0.5F) * 7.5F;
-                float rollJitter = Mth.sin(time * 0.16F) * 2.6F + (float) ((Math.random() - 0.5) * 0.9);
-
-                event.setRoll(struggleRoll + rollJitter);
-            }
+            event.setRoll(baseTilt + struggleRoll + rollJitter);
         } else if (inAftermath) {
             // --- AFTERMATH: Explosión cataclísmica al resolverse el choque ---
             float intensity = aftermathTicks / (float) AFTERMATH_TOTAL_TICKS;
@@ -214,14 +205,14 @@ public class BeamClashCameraClientEvents {
         float time = (float) (mc.level != null ? mc.level.getGameTime() + event.getPartialTick() : 0.0F);
 
         if (inClash) {
-            // Expansión dinámica de FOV con pulsación de energía y tensión de forcejeo
+            // Expansión dramática de FOV simulando la inmensa intensidad del choque frontal
             boolean isA = (mc.player.getId() == BeamClashManager.CLIENT_STATE.entityAId);
             float playerProgress = isA ? BeamClashManager.CLIENT_STATE.progress : (1.0F - BeamClashManager.CLIENT_STATE.progress);
 
-            double baseFov = 9.0;
-            double wave = Mth.sin(time * 0.35F) * 2.5;
-            double clickPop = Math.min(3.5, clickShakeIntensity * 1.2);
-            double struggleFov = playerProgress > 0.6F ? 3.0 : (playerProgress < 0.4F ? -2.5 : 0.0);
+            double baseFov = 20.0; // Alto FOV base cinematográfico
+            double wave = Mth.sin(time * 0.38F) * 3.2;
+            double clickPop = Math.min(4.5, clickShakeIntensity * 1.4);
+            double struggleFov = playerProgress > 0.6F ? 3.5 : (playerProgress < 0.4F ? -3.0 : 0.0);
 
             event.setFOV(event.getFOV() + baseFov + wave + clickPop + struggleFov);
         } else if (inAftermath) {

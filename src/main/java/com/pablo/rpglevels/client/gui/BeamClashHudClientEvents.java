@@ -42,6 +42,14 @@ public class BeamClashHudClientEvents {
         if (BeamClashManager.isPlayerInClash(mc.player.getId())) {
             // Clic Izquierdo presionado durante el forcejeo
             if (event.getButton() == GLFW.GLFW_MOUSE_BUTTON_LEFT && event.getAction() == GLFW.GLFW_PRESS) {
+                var state = BeamClashManager.CLIENT_STATE;
+                if (state.warmupRemainingTicks > 0) {
+                    // Durante calentamiento/retardo inicial (1.5s), aviso sonoro sin acumular spam desmedido
+                    mc.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK.value(), 1.4F, 0.45F));
+                    event.setCanceled(true);
+                    return;
+                }
+
                 PacketDistributor.sendToServer(new BeamClickSpamPayload());
 
                 // Impulso de sacudida cinemática a la cámara
@@ -183,11 +191,20 @@ public class BeamClashHudClientEvents {
         int manaW = font.width(manaInfo);
         g.drawString(font, manaInfo, (screenW - manaW) / 2, barY + barH + 6, 0xFFFFFFFF, true);
 
-        // Mensaje Parpadeante de Acción
-        float pulse = (Mth.sin(gameTime * 0.5F) + 1.0F) * 0.5F;
-        int promptColor = (pulse > 0.5F) ? 0xFFFF3333 : 0xFFFFCC00;
-        String prompt = "⚡ ¡SPAMEA CLIC IZQUIERDO! ⚡";
-        int promptW = font.width(prompt);
-        g.drawString(font, prompt, (screenW - promptW) / 2, barY + barH + 20, promptColor, true);
+        // Mensaje Parpadeante de Acción / Preparación
+        if (state.warmupRemainingTicks > 0) {
+            float warmupSecs = state.warmupRemainingTicks / 20.0F;
+            float pulse = (Mth.sin(gameTime * 0.6F) + 1.0F) * 0.5F;
+            int prepColor = (pulse > 0.5F) ? 0xFFFFAA00 : 0xFFFF5555;
+            String prepPrompt = String.format(Locale.ROOT, "⚡ ¡COLISIÓN INMINENTE! PREPÁRATE (%.1fs) ⚡", warmupSecs);
+            int prepW = font.width(prepPrompt);
+            g.drawString(font, prepPrompt, (screenW - prepW) / 2, barY + barH + 20, prepColor, true);
+        } else {
+            float pulse = (Mth.sin(gameTime * 0.5F) + 1.0F) * 0.5F;
+            int promptColor = (pulse > 0.5F) ? 0xFFFF3333 : 0xFFFFCC00;
+            String prompt = "⚡ ¡SPAMEA CLIC IZQUIERDO! ⚡";
+            int promptW = font.width(prompt);
+            g.drawString(font, prompt, (screenW - promptW) / 2, barY + barH + 20, promptColor, true);
+        }
     }
 }

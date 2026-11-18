@@ -128,6 +128,20 @@ public class SpiritualBeamSpell extends AbstractSpell {
     }
 
     @Override
+    public void onServerCastComplete(Level level, int spellLevel, LivingEntity entity, MagicData playerMagicData, boolean cancelled) {
+        super.onServerCastComplete(level, spellLevel, entity, playerMagicData, cancelled);
+        if (level instanceof ServerLevel serverLevel) {
+            // Descartar inmediatamente cualquier haz activo perteneciente a este lanzador
+            List<SpiritualBeamEntity> beams = serverLevel.getEntitiesOfClass(SpiritualBeamEntity.class,
+                    entity.getBoundingBox().inflate(SpiritualBeamEntity.MAX_BEAM_RANGE),
+                    b -> b.getCaster() == entity && b.isAlive());
+            for (SpiritualBeamEntity beam : beams) {
+                beam.discard();
+            }
+        }
+    }
+
+    @Override
     public List<MutableComponent> getUniqueInfo(int spellLevel, LivingEntity caster) {
         return List.of(
                 Component.translatable("ui.rpglevels.spiritual_beam.info1", (this.baseSpellPower + (spellLevel * this.spellPowerPerLevel))),
