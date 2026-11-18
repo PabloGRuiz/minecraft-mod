@@ -14,6 +14,7 @@ public class MobRankHandler {
 
     public static boolean isBossOrBlacklisted(LivingEntity entity) {
         if (entity == null) return true;
+        if (BossScalingHandler.isBoss(entity)) return true;
         if (entity instanceof net.minecraft.world.entity.boss.wither.WitherBoss
                 || entity instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon
                 || entity instanceof com.pablo.rpglevels.entities.WindMasterBossEntity

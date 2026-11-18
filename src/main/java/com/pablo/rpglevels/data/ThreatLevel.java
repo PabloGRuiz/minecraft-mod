@@ -1,8 +1,11 @@
 package com.pablo.rpglevels.data;
 
+import com.pablo.rpglevels.mobs.BossScalingHandler;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -103,24 +106,34 @@ public enum ThreatLevel {
             return B;
         }
 
-        // Special Lore / Primeval World Bosses
-        if (entity instanceof EnderDragon) return DISASTER;
-        if (entity instanceof Warden) return DISASTER;
-        if (entity instanceof WitherBoss) return CALAMITY;
+        // Special Lore & Cataclysm Bosses
+        ResourceLocation typeLoc = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
+        if (typeLoc != null && "cataclysm".equals(typeLoc.getNamespace())) {
+            String path = typeLoc.getPath();
+            if (BossScalingHandler.isCataclysmBossOrMiniboss(path)) {
+                return BossScalingHandler.getCataclysmThreat(path);
+            }
+        }
+
+        // Vanilla & World Bosses (escalados con poder colosal)
+        if (entity instanceof EnderDragon) return GRAND_DISASTER;
+        if (entity instanceof Warden) return GRAND_DISASTER;
+        if (entity instanceof WitherBoss) return DISASTER;
+        if (entity instanceof net.minecraft.world.entity.monster.ElderGuardian) return CALAMITY;
         if (entity instanceof com.pablo.rpglevels.entities.WindMasterBossEntity boss) {
-            return boss.isEmpowered() ? CALAMITY : HAZARD;
+            return boss.isEmpowered() ? DISASTER : CALAMITY;
         }
         if (entity instanceof com.pablo.rpglevels.entities.UndeadAdventurerBossEntity) {
-            return HAZARD;
+            return CALAMITY;
         }
         if (entity instanceof com.pablo.rpglevels.entities.CultistBossEntity) {
             return HAZARD;
         }
         if (entity instanceof com.pablo.rpglevels.entities.ColossalVoidbornEntity colossal) {
-            return colossal.isElite() ? CALAMITY : HAZARD;
+            return colossal.isElite() ? DISASTER : CALAMITY;
         }
         if (entity instanceof com.pablo.rpglevels.entities.VoidbornExecutorEntity) {
-            return HAZARD;
+            return CALAMITY;
         }
 
         // Specific Voidborn variants (Rank B, Rank A, or HAZARD Executor)

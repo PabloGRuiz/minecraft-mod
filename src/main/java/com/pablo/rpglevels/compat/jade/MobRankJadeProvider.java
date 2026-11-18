@@ -27,7 +27,9 @@ public enum MobRankJadeProvider implements IEntityComponentProvider {
             return;
         }
 
-        if (living instanceof Monster || living instanceof Enemy || living instanceof com.pablo.rpglevels.entities.BanditEntity) {
+        if (living instanceof Monster || living instanceof Enemy
+                || living instanceof com.pablo.rpglevels.entities.BanditEntity
+                || com.pablo.rpglevels.mobs.BossScalingHandler.isBoss(living)) {
             ThreatLevel threat = ThreatLevel.determineThreatLevel(living);
             if (com.pablo.rpglevels.mobs.IrregularMobHandler.isIrregular(living)) {
                 tooltip.add(Component.literal("§7Nivel de Amenaza: ").append(threat.getBadge()).append(Component.literal(" §c(Irregular)")));

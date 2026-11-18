@@ -698,39 +698,10 @@ public class CombatEvents {
                 default -> 25;
             };
 
-            // Detección y recompensa aumentada para Jefes Mundiales y Jefes del Mod
-            boolean isBoss = victim instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon
-                    || victim instanceof net.minecraft.world.entity.boss.wither.WitherBoss
-                    || victim instanceof net.minecraft.world.entity.monster.warden.Warden
-                    || victim instanceof net.minecraft.world.entity.monster.ElderGuardian
-                    || victim instanceof com.pablo.rpglevels.entities.CultistBossEntity
-                    || victim instanceof com.pablo.rpglevels.entities.UndeadAdventurerBossEntity
-                    || victim instanceof com.pablo.rpglevels.entities.WindMasterBossEntity
-                    || victim instanceof com.pablo.rpglevels.entities.VoidbornExecutorEntity
-                    || victim instanceof com.pablo.rpglevels.entities.ColossalVoidbornEntity;
-
+            // Detección y recompensa aumentada para Jefes de Cataclysm, Jefes Mundiales y Jefes del Mod
+            boolean isBoss = com.pablo.rpglevels.mobs.BossScalingHandler.isBoss(victim);
             if (isBoss) {
-                if (victim instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon) {
-                    baseReward = Math.max(baseReward, 3500);
-                } else if (victim instanceof net.minecraft.world.entity.monster.warden.Warden) {
-                    baseReward = Math.max(baseReward, 3000);
-                } else if (victim instanceof net.minecraft.world.entity.boss.wither.WitherBoss) {
-                    baseReward = Math.max(baseReward, 2500);
-                } else if (victim instanceof com.pablo.rpglevels.entities.WindMasterBossEntity windMaster) {
-                    baseReward = windMaster.isEmpowered() ? 1800 : 1200;
-                } else if (victim instanceof com.pablo.rpglevels.entities.ColossalVoidbornEntity) {
-                    baseReward = Math.max(baseReward, 1400);
-                } else if (victim instanceof com.pablo.rpglevels.entities.VoidbornExecutorEntity) {
-                    baseReward = Math.max(baseReward, 1000);
-                } else if (victim instanceof com.pablo.rpglevels.entities.UndeadAdventurerBossEntity) {
-                    baseReward = Math.max(baseReward, 1000);
-                } else if (victim instanceof com.pablo.rpglevels.entities.CultistBossEntity) {
-                    baseReward = Math.max(baseReward, 900);
-                } else if (victim instanceof net.minecraft.world.entity.monster.ElderGuardian) {
-                    baseReward = Math.max(baseReward, 700);
-                } else {
-                    baseReward = Math.max(baseReward, 800);
-                }
+                baseReward = Math.max(baseReward, com.pablo.rpglevels.mobs.BossScalingHandler.getBossBaseXp(victim));
             }
 
             // Otorgar XP RPG escalada exponencialmente al jugador responsable según la diferencia de rango

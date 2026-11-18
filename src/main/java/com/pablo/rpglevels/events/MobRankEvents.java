@@ -85,7 +85,7 @@ public class MobRankEvents {
     @SubscribeEvent
     public static void onLivingDrops(LivingDropsEvent event) {
         LivingEntity entity = event.getEntity();
-        if (entity.level().isClientSide() || !(entity instanceof Monster || entity instanceof Enemy)) {
+        if (entity.level().isClientSide() || !(entity instanceof Monster || entity instanceof Enemy || com.pablo.rpglevels.mobs.BossScalingHandler.isBoss(entity))) {
             return;
         }
 
@@ -133,7 +133,7 @@ public class MobRankEvents {
     @SubscribeEvent
     public static void onLivingExperienceDrop(LivingExperienceDropEvent event) {
         LivingEntity entity = event.getEntity();
-        if (entity.level().isClientSide() || !(entity instanceof Monster || entity instanceof Enemy)) {
+        if (entity.level().isClientSide() || !(entity instanceof Monster || entity instanceof Enemy || com.pablo.rpglevels.mobs.BossScalingHandler.isBoss(entity))) {
             return;
         }
 
