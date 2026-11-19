@@ -178,4 +178,11 @@ public class ModEntities {
                     .eyeHeight(0.35f)
                     .clientTrackingRange(10)
                     .build("chubby"));
+
+    public static final Supplier<EntityType<RedfoxEntity>> REDFOX =
+            ENTITIES.register("redfox", () -> EntityType.Builder.of(RedfoxEntity::new, MobCategory.CREATURE)
+                    .sized(0.6f, 1.8f)
+                    .eyeHeight(1.62f)
+                    .clientTrackingRange(10)
+                    .build("redfox"));
 }

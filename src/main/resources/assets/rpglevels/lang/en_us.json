@@ -402,6 +402,8 @@
     "item.rpglevels.brambi_spawn_egg": "Spawn Brambi",
     "entity.rpglevels.chubby": "Chubby",
     "item.rpglevels.chubby_spawn_egg": "Spawn Chubby",
+    "entity.rpglevels.redfox": "Redfox",
+    "item.rpglevels.redfox_spawn_egg": "Spawn Redfox",
     "ui.rpglevels.power_control.title": "Power Control & Regulation",
     "item.rpglevels.lesser_soul_fragment": "Lesser Soul Fragment",
     "item.rpglevels.lesser_soul_crystal.desc": "The crystallization of the purest and most fragile soul essence. Fundamental base for human metallurgy, forging alloys, and quenching.",

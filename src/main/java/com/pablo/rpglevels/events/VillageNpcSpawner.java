@@ -126,6 +126,10 @@ public class VillageNpcSpawner {
                         settlementBounds,
                         adv -> !adv.isHired()
                 );
+                List<com.pablo.rpglevels.entities.RedfoxEntity> existingRedfoxes = level.getEntitiesOfClass(
+                        com.pablo.rpglevels.entities.RedfoxEntity.class,
+                        settlementBounds
+                );
                 List<com.pablo.rpglevels.entities.GuildMasterNpcEntity> existingGuildMasters = level.getEntitiesOfClass(
                         com.pablo.rpglevels.entities.GuildMasterNpcEntity.class,
                         settlementBounds
@@ -203,6 +207,32 @@ public class VillageNpcSpawner {
                                     6, 0.3, 0.3, 0.3, 0.05);
                             level.playSound(null, spawnPos, SoundEvents.ARMOR_EQUIP_IRON.value(), SoundSource.NEUTRAL, 0.8f, 1.0f);
                             spawnedAny = true;
+                        }
+                    }
+                }
+
+                // 3. Spawn Redfox in villages / guild houses (chance to visit the village if none present)
+                if (!spawnedAny && existingRedfoxes.isEmpty() && (inGuildHouse || villagerCount >= 4)) {
+                    // 35% chance per village check to spawn Redfox as a visiting traveler
+                    if (level.getRandom().nextFloat() < 0.35f) {
+                        BlockPos anchor = !allVillagers.isEmpty() ? allVillagers.get(level.getRandom().nextInt(allVillagers.size())).blockPosition() : anchorPos;
+                        BlockPos spawnPos = findSafeSpawnPos(level, anchor);
+
+                        if (spawnPos != null && level.hasChunkAt(spawnPos)) {
+                            com.pablo.rpglevels.entities.RedfoxEntity redfox = ModEntities.REDFOX.get().create(level);
+                            if (redfox != null) {
+                                redfox.moveTo(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5,
+                                        level.getRandom().nextFloat() * 360f, 0.0f);
+                                redfox.finalizeSpawn(level, level.getCurrentDifficultyAt(spawnPos), MobSpawnType.EVENT, null);
+                                redfox.setPersistenceRequired();
+                                level.addFreshEntity(redfox);
+
+                                level.sendParticles(ParticleTypes.HAPPY_VILLAGER,
+                                        spawnPos.getX() + 0.5, spawnPos.getY() + 1.0, spawnPos.getZ() + 0.5,
+                                        8, 0.4, 0.4, 0.4, 0.05);
+                                level.playSound(null, spawnPos, SoundEvents.ARMOR_EQUIP_GENERIC.value(), SoundSource.NEUTRAL, 0.9f, 1.1f);
+                                spawnedAny = true;
+                            }
                         }
                     }
                 }

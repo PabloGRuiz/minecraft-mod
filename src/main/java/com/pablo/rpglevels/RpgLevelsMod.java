@@ -79,6 +79,7 @@ public class RpgLevelsMod {
         event.put(ModEntities.STARRY.get(), com.pablo.rpglevels.entities.StarryEntity.createAttributes().build());
         event.put(ModEntities.BRAMBI.get(), com.pablo.rpglevels.entities.BrambiEntity.createAttributes().build());
         event.put(ModEntities.CHUBBY.get(), com.pablo.rpglevels.entities.ChubbyEntity.createAttributes().build());
+        event.put(ModEntities.REDFOX.get(), com.pablo.rpglevels.entities.RedfoxEntity.createAttributes().build());
     }
 
     private void registerSpawnPlacements(RegisterSpawnPlacementsEvent event) {
@@ -88,6 +89,11 @@ public class RpgLevelsMod {
                 TownswomanNpcEntity::checkTownswomanSpawnRules,
                 RegisterSpawnPlacementsEvent.Operation.REPLACE);
         event.register(ModEntities.ADVENTURER_NPC.get(),
+                SpawnPlacementTypes.ON_GROUND,
+                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                TownswomanNpcEntity::checkTownswomanSpawnRules,
+                RegisterSpawnPlacementsEvent.Operation.REPLACE);
+        event.register(ModEntities.REDFOX.get(),
                 SpawnPlacementTypes.ON_GROUND,
                 Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
                 TownswomanNpcEntity::checkTownswomanSpawnRules,

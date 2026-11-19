@@ -98,6 +98,8 @@ public record NpcDialogueActionPayload(int entityId, int actionType) implements 
                 handleGuildMasterAction(player, guildMaster, payload.actionType());
             } else if (entity instanceof com.pablo.rpglevels.entities.AliceNpcEntity alice) {
                 handleAliceAction(player, alice, payload.actionType());
+            } else if (entity instanceof com.pablo.rpglevels.entities.RedfoxEntity redfox) {
+                handleRedfoxAction(player, redfox, payload.actionType());
             }
         });
     }
@@ -1053,5 +1055,62 @@ public record NpcDialogueActionPayload(int entityId, int actionType) implements 
         player.sendSystemMessage(Component.literal(" §a✦ Nº 10: Fast Healing §e[3 -> 2 -> 1 -> 2] §7(«Anima Vitae Restitutio») — §b80 MP §7— Auto-apunta y cura masivamente al aliado más herido."));
         player.sendSystemMessage(Component.literal("§7Aprende o desbloquea nuevas técnicas con §dAlice §7en su tienda por §a5 Esmeraldas §7cada una."));
         player.sendSystemMessage(Component.empty());
+    }
+
+    private static void handleRedfoxAction(ServerPlayer player, com.pablo.rpglevels.entities.RedfoxEntity redfox, int action) {
+        PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
+        int rankIdx = data != null ? data.getRank().getIndex() : AdventurerRank.F.getIndex();
+        int currentAffinity = redfox.getAffinity(player);
+
+        String dialogue;
+        switch (action) {
+            case ACTION_CHAT -> {
+                redfox.addAffinity(player, 1);
+                dialogue = redfox.getRandomGreeting();
+                player.serverLevel().playSound(null, redfox.getX(), redfox.getY(), redfox.getZ(),
+                        SoundEvents.FOX_AMBIENT, SoundSource.NEUTRAL, 1.0F, 1.1F);
+                player.serverLevel().sendParticles(ParticleTypes.HAPPY_VILLAGER,
+                        redfox.getX(), redfox.getY() + 1.2, redfox.getZ(),
+                        4, 0.2, 0.2, 0.2, 0.02);
+            }
+            case ACTION_GIFT -> {
+                ItemStack held = player.getMainHandItem();
+                if (held.isEmpty()) {
+                    dialogue = "¡Oh! Parece que tienes las manos vacías... Aunque agradezco mucho tu buena intención.";
+                } else if (held.is(Items.SWEET_BERRIES) || held.is(Items.GLOW_BERRIES) || held.is(Items.SALMON) || held.is(Items.COOKED_SALMON) || held.is(Items.EMERALD)) {
+                    held.shrink(1);
+                    redfox.addAffinity(player, 5);
+                    dialogue = "¡Waaa, muchas gracias! ¡Esto me encanta! Me aseguraré de recordarlo.";
+                    player.serverLevel().playSound(null, redfox.getX(), redfox.getY(), redfox.getZ(),
+                            SoundEvents.PLAYER_LEVELUP, SoundSource.NEUTRAL, 0.8F, 1.3F);
+                    player.serverLevel().sendParticles(ParticleTypes.HEART,
+                            redfox.getX(), redfox.getY() + 1.2, redfox.getZ(),
+                            6, 0.3, 0.3, 0.3, 0.05);
+                } else {
+                    dialogue = "Gracias por el gesto, pero prefiero guardarlo para tus propias aventuras.";
+                }
+            }
+            default -> dialogue = redfox.getRandomGreeting();
+        }
+
+        PacketDistributor.sendToPlayer(player, new OpenNpcDialoguePayload(
+                redfox.getId(),
+                "Redfox",
+                "redfox",
+                0,
+                rankIdx,
+                redfox.getAffinity(player),
+                false,
+                false,
+                0L,
+                false,
+                0,
+                false,
+                0,
+                false,
+                0,
+                false,
+                dialogue
+        ));
     }
 }

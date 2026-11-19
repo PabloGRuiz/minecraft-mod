@@ -182,6 +182,14 @@ public class ModItems {
                     0xFAD02C, // Amarillo relámpago
                     new Item.Properties()));
 
+    // Huevo generador de Redfox (Aventurera Kitsune errante)
+    public static final DeferredItem<Item> REDFOX_SPAWN_EGG = ITEMS.register("redfox_spawn_egg",
+            () -> new DeferredSpawnEggItem(
+                    ModEntities.REDFOX,
+                    0xD94F04, // Naranja zorro fuego
+                    0xFFF2E6, // Blanco nieve
+                    new Item.Properties()));
+
     // Grimorio del Segador Espiritual (Libro de Hechizos Oficial de Iron's Spells - 3 ranuras rápidas)
     public static final DeferredItem<Item> SPIRITUAL_SPELLBOOK = ITEMS.register("spiritual_spellbook",
             () -> new io.redspace.ironsspellbooks.item.SpellBook(3, new Item.Properties().rarity(Rarity.RARE).stacksTo(1))
