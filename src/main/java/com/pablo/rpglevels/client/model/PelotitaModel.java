@@ -56,6 +56,10 @@ public class PelotitaModel extends HierarchicalModel<PelotitaEntity> {
 
     @Override
     public void setupAnim(PelotitaEntity entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch) {
+        // Mirada / orientación de la cabecita esférica hacia donde mire el mob
+        this.bb_main.yRot = netHeadYaw * ((float) Math.PI / 180F);
+        this.bb_main.xRot = headPitch * ((float) Math.PI / 180F);
+
         // Animación de caminata tierna
         this.izquierda.xRot = Mth.cos(limbSwing * 0.6662F) * 1.4F * limbSwingAmount;
         this.derecha.xRot = Mth.cos(limbSwing * 0.6662F + (float) Math.PI) * 1.4F * limbSwingAmount;
@@ -63,5 +67,14 @@ public class PelotitaModel extends HierarchicalModel<PelotitaEntity> {
         // Bamboleo suave del cuerpito al caminar
         this.bb_main.y = 24.0F + Mth.abs(Mth.cos(limbSwing * 0.6662F)) * 0.5F * limbSwingAmount;
         this.bb_main.zRot = Mth.sin(limbSwing * 0.6662F) * 0.12F * limbSwingAmount;
+
+        // Reacción al ser acariciado: sacude alegremente la cabeza de lado a lado y da un saltito mimoso
+        if (entity.isPetting()) {
+            // Bamboleo rápido y feliz de la cabeza/cuerpo (head shake)
+            this.bb_main.zRot += Mth.sin(ageInTicks * 0.6F) * 0.35F;
+            this.bb_main.xRot += Mth.cos(ageInTicks * 0.4F) * 0.15F;
+            // Pequeño rebotecito mimoso
+            this.bb_main.y = 22.5F + Mth.abs(Mth.sin(ageInTicks * 0.5F)) * 1.5F;
+        }
     }
 }

@@ -39,10 +39,29 @@ import java.util.Locale;
  */
 public class PelotitaEntity extends TamableAnimal {
 
+    private static final net.minecraft.network.syncher.EntityDataAccessor<Boolean> PETTING =
+            net.minecraft.network.syncher.SynchedEntityData.defineId(PelotitaEntity.class, net.minecraft.network.syncher.EntityDataSerializers.BOOLEAN);
+
     private int healCooldownTicks = 0;
+    private int petAnimationTicks = 0;
+    private long lastPetGameTime = 0L;
 
     public PelotitaEntity(EntityType<? extends TamableAnimal> type, Level level) {
         super(type, level);
+    }
+
+    @Override
+    protected void defineSynchedData(net.minecraft.network.syncher.SynchedEntityData.Builder builder) {
+        super.defineSynchedData(builder);
+        builder.define(PETTING, false);
+    }
+
+    public boolean isPetting() {
+        return this.entityData.get(PETTING);
+    }
+
+    public void setPetting(boolean petting) {
+        this.entityData.set(PETTING, petting);
     }
 
     public static AttributeSupplier.Builder createAttributes() {
@@ -85,13 +104,22 @@ public class PelotitaEntity extends TamableAnimal {
     public void aiStep() {
         super.aiStep();
 
-        if (!this.level().isClientSide() && this.isAlive() && this.isTame()) {
-            if (healCooldownTicks > 0) {
-                healCooldownTicks--;
-            } else if (this.tickCount % 10 == 0) {
-                LivingEntity owner = this.getOwner();
-                if (owner instanceof net.minecraft.server.level.ServerPlayer playerOwner && playerOwner.isAlive()) {
-                    attemptLowHealingSupport(playerOwner);
+        if (!this.level().isClientSide() && this.isAlive()) {
+            if (petAnimationTicks > 0) {
+                petAnimationTicks--;
+                if (petAnimationTicks <= 0) {
+                    setPetting(false);
+                }
+            }
+
+            if (this.isTame()) {
+                if (healCooldownTicks > 0) {
+                    healCooldownTicks--;
+                } else if (this.tickCount % 10 == 0) {
+                    LivingEntity owner = this.getOwner();
+                    if (owner instanceof net.minecraft.server.level.ServerPlayer playerOwner && playerOwner.isAlive()) {
+                        attemptLowHealingSupport(playerOwner);
+                    }
                 }
             }
         }
@@ -204,7 +232,7 @@ public class PelotitaEntity extends TamableAnimal {
             return InteractionResult.sidedSuccess(this.level().isClientSide());
         }
 
-        // 2. Ordenar sentarse / quedarse si es el dueño
+        // 2. Ordenar sentarse / quedarse si es el dueño (con Shift presionado)
         if (this.isOwnedBy(player) && !this.level().isClientSide() && player.isShiftKeyDown()) {
             this.setOrderedToSit(!this.isOrderedToSit());
             this.jumping = false;
@@ -213,6 +241,30 @@ public class PelotitaEntity extends TamableAnimal {
                     Component.literal("§e[Pelotita] " + (this.isOrderedToSit() ? "§7Se queda esperando aquí." : "§aVuelve a seguirte.")),
                     true
             );
+            return InteractionResult.sidedSuccess(this.level().isClientSide());
+        }
+
+        // 3. Acariciar a Pelotita (con la mano vacía): mueve el brazo el jugador, Pelotita sacude la cabecita alegre y suelta corazones
+        if (itemstack.isEmpty()) {
+            player.swing(hand, true);
+            if (!this.level().isClientSide()) {
+                long gameTime = this.level().getGameTime();
+                if (gameTime - this.lastPetGameTime >= 20L) { // Cooldown de 1 segundo
+                    this.lastPetGameTime = gameTime;
+                    this.petAnimationTicks = 25; // 1.25 segundos de animación
+                    this.setPetting(true);
+
+                    // Sonido tierno de slime alegre / burbuja mística
+                    this.playSound(SoundEvents.SLIME_SQUISH_SMALL, 1.0F, 1.8F);
+                    this.playSound(SoundEvents.AMETHYST_BLOCK_CHIME, 0.7F, 1.6F);
+
+                    if (this.level() instanceof ServerLevel serverLevel) {
+                        serverLevel.sendParticles(ParticleTypes.HEART,
+                                this.getX(), this.getY() + 0.65D, this.getZ(),
+                                6, 0.25D, 0.25D, 0.25D, 0.08D);
+                    }
+                }
+            }
             return InteractionResult.sidedSuccess(this.level().isClientSide());
         }
 
