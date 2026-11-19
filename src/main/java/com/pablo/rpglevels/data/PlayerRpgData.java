@@ -60,8 +60,10 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
     private long spiritualResonanceCinematicUntilTick = 0;
 
     // Guardián Espiritual Vinculado (Obtenido al ascender a Rango B: "starry", "chubby", "brambi")
+    public static final int MAX_GUARDIAN_VITAL_ENERGY = 100;
     private String chosenGuardian = "";
     private java.util.UUID summonedGuardianUuid = null;
+    private int guardianVitalEnergy = 0;
 
     // 360 Dash / Dodge State
     private long lastDashTick = -10000L;
@@ -702,6 +704,20 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         this.summonedGuardianUuid = uuid;
     }
 
+    public int getGuardianVitalEnergy() {
+        return guardianVitalEnergy;
+    }
+
+    public void setGuardianVitalEnergy(int vitalEnergy) {
+        this.guardianVitalEnergy = Math.max(0, vitalEnergy);
+    }
+
+    public void addGuardianVitalEnergy(int amount) {
+        if (amount > 0) {
+            this.guardianVitalEnergy += amount;
+        }
+    }
+
     /**
      * Calcula la estadística de Aura (Poder del Alma):
      * Promedio equilibrado de todas las estadísticas activas del jugador.
@@ -1272,6 +1288,7 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         this.spiritualResonanceCinematicUntilTick = other.spiritualResonanceCinematicUntilTick;
         this.chosenGuardian = other.chosenGuardian;
         this.summonedGuardianUuid = other.summonedGuardianUuid;
+        this.guardianVitalEnergy = other.guardianVitalEnergy;
         this.currentLocationName = other.currentLocationName;
         this.skillCooldownUntilTick.clear();
         this.skillCooldownUntilTick.putAll(other.skillCooldownUntilTick);
@@ -1311,6 +1328,7 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         if (summonedGuardianUuid != null) {
             tag.putUUID("SummonedGuardianUuid", summonedGuardianUuid);
         }
+        tag.putInt("GuardianVitalEnergy", this.guardianVitalEnergy);
         tag.putFloat("CurrentMana", currentMana);
         tag.putFloat("PowerOutputRatio", powerOutputRatio);
         tag.putFloat("MoveSpeedRatio", moveSpeedRatio);
@@ -1419,6 +1437,9 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         }
         if (tag.contains("SummonedGuardianUuid")) {
             this.summonedGuardianUuid = tag.getUUID("SummonedGuardianUuid");
+        }
+        if (tag.contains("GuardianVitalEnergy")) {
+            this.guardianVitalEnergy = Math.max(0, tag.getInt("GuardianVitalEnergy"));
         }
         if (tag.contains("CurrentMana", Tag.TAG_FLOAT)) {
             this.currentMana = tag.getFloat("CurrentMana");

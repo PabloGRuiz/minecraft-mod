@@ -6,10 +6,6 @@ import com.pablo.rpglevels.data.AdventurerRank;
 import com.pablo.rpglevels.data.GreekGod;
 import com.pablo.rpglevels.data.ModAttachments;
 import com.pablo.rpglevels.data.PlayerRpgData;
-import com.pablo.rpglevels.entities.BrambiEntity;
-import com.pablo.rpglevels.entities.ChubbyEntity;
-import com.pablo.rpglevels.entities.ModEntities;
-import com.pablo.rpglevels.entities.StarryEntity;
 import com.pablo.rpglevels.events.ModAttributesHandler;
 import com.pablo.rpglevels.init.ModBlocks;
 import com.pablo.rpglevels.network.ModNetworking;
@@ -20,6 +16,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
 import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
@@ -30,6 +27,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -37,6 +35,7 @@ import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.level.Level;
@@ -49,6 +48,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerWakeUpEvent;
+import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
@@ -290,63 +290,115 @@ public class WarGodTrialManager {
         }
 
         if (isAscendingToB && player != null) {
-            // Pedestal Izquierdo: Starry
+            // Pedestal Izquierdo: Starry (bloque 3D real orientado hacia el jugador)
             level.setBlockAndUpdate(new BlockPos(centerX - 2, 64, centerZ + 3),
                     Blocks.CHISELED_POLISHED_BLACKSTONE.defaultBlockState());
             level.setBlockAndUpdate(new BlockPos(centerX - 2, 65, centerZ + 3),
                     Blocks.PURPUR_PILLAR.defaultBlockState());
             level.setBlockAndUpdate(new BlockPos(centerX - 2, 66, centerZ + 3),
-                    ModBlocks.STARRY_STATUE.get().defaultBlockState().setValue(StatueBlock.FACING, Direction.SOUTH));
+                    ModBlocks.STARRY_STATUE.get().defaultBlockState().setValue(StatueBlock.FACING, Direction.NORTH));
+            spawnStatueLabel(level, centerX - 2 + 0.5, 67.15, centerZ + 3 + 0.5,
+                    "§d✦ Starry ✦", player.getUUID());
 
-            // Pedestal Central: Chubby
+            // Pedestal Central: Chubby (bloque 3D real orientado hacia el jugador)
             level.setBlockAndUpdate(new BlockPos(centerX, 64, centerZ + 3),
                     Blocks.CHISELED_POLISHED_BLACKSTONE.defaultBlockState());
             level.setBlockAndUpdate(new BlockPos(centerX, 65, centerZ + 3), Blocks.QUARTZ_PILLAR.defaultBlockState());
             level.setBlockAndUpdate(new BlockPos(centerX, 66, centerZ + 3),
-                    ModBlocks.CHUBBY_STATUE.get().defaultBlockState().setValue(StatueBlock.FACING, Direction.SOUTH));
+                    ModBlocks.CHUBBY_STATUE.get().defaultBlockState().setValue(StatueBlock.FACING, Direction.NORTH));
+            spawnStatueLabel(level, centerX + 0.5, 67.15, centerZ + 3 + 0.5,
+                    "§b✦ Chubby ✦", player.getUUID());
 
-            // Pedestal Derecho: Brambi
+            // Pedestal Derecho: Brambi (bloque 3D real orientado hacia el jugador)
             level.setBlockAndUpdate(new BlockPos(centerX + 2, 64, centerZ + 3),
                     Blocks.CHISELED_POLISHED_BLACKSTONE.defaultBlockState());
             level.setBlockAndUpdate(new BlockPos(centerX + 2, 65, centerZ + 3),
                     Blocks.OCHRE_FROGLIGHT.defaultBlockState());
             level.setBlockAndUpdate(new BlockPos(centerX + 2, 66, centerZ + 3),
-                    ModBlocks.BRAMBI_STATUE.get().defaultBlockState().setValue(StatueBlock.FACING, Direction.SOUTH));
+                    ModBlocks.BRAMBI_STATUE.get().defaultBlockState().setValue(StatueBlock.FACING, Direction.NORTH));
+            spawnStatueLabel(level, centerX + 2 + 0.5, 67.15, centerZ + 3 + 0.5,
+                    "§6✦ Brambi ✦", player.getUUID());
         }
+    }
+
+    private static void spawnStatueLabel(ServerLevel level, double x, double y, double z, String label, UUID playerUuid) {
+        ArmorStand stand = new ArmorStand(level, x, y, z);
+        stand.setInvisible(true);
+        stand.setNoGravity(true);
+        stand.setInvulnerable(true);
+        stand.setSilent(true);
+        stand.setCustomName(Component.literal(label));
+        stand.setCustomNameVisible(true);
+        stand.addTag("AstralStatueLabel");
+        stand.addTag("Session_" + playerUuid);
+        // Marker=1b asegura hitbox nula para nunca interferir al hacer clic derecho sobre la estatua
+        CompoundTag nbt = new CompoundTag();
+        stand.addAdditionalSaveData(nbt);
+        nbt.putBoolean("Marker", true);
+        stand.readAdditionalSaveData(nbt);
+        level.addFreshEntity(stand);
     }
 
     private static void cleanupAstralSession(ServerLevel level, UUID playerUuid, int centerX, int centerZ) {
         level.setBlockAndUpdate(new BlockPos(centerX - 2, 66, centerZ + 3), Blocks.AIR.defaultBlockState());
         level.setBlockAndUpdate(new BlockPos(centerX, 66, centerZ + 3), Blocks.AIR.defaultBlockState());
         level.setBlockAndUpdate(new BlockPos(centerX + 2, 66, centerZ + 3), Blocks.AIR.defaultBlockState());
+        level.setBlockAndUpdate(new BlockPos(centerX - 2, 65, centerZ + 3), Blocks.AIR.defaultBlockState());
+        level.setBlockAndUpdate(new BlockPos(centerX, 65, centerZ + 3), Blocks.AIR.defaultBlockState());
+        level.setBlockAndUpdate(new BlockPos(centerX + 2, 65, centerZ + 3), Blocks.AIR.defaultBlockState());
 
         AABB box = new AABB(centerX - 6, 62, centerZ - 6, centerX + 6, 72, centerZ + 6);
-        List<Entity> statues = level.getEntitiesOfClass(Entity.class, box,
-                e -> e.getTags().contains("Session_" + playerUuid) || e.getTags().contains("AstralStatue"));
-        for (Entity s : statues) {
+        List<Entity> labels = level.getEntitiesOfClass(Entity.class, box,
+                e -> e.getTags().contains("Session_" + playerUuid)
+                        || e.getTags().contains("AstralStatue")
+                        || e.getTags().contains("AstralStatueLabel"));
+        for (Entity s : labels) {
             s.discard();
         }
     }
 
     @SubscribeEvent
+    public static void onBlockBreak(BlockEvent.BreakEvent event) {
+        if (event.getPlayer() != null && ModDimensions.isAstral(event.getPlayer().level())) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
     public static void onBlockInteract(PlayerInteractEvent.RightClickBlock event) {
-        if (!(event.getEntity() instanceof ServerPlayer player)) return;
+        if (event.getHand() != InteractionHand.MAIN_HAND)
+            return;
+        if (!(event.getEntity() instanceof ServerPlayer player))
+            return;
         BlockPos pos = event.getPos();
         ServerLevel level = player.serverLevel();
         BlockState state = level.getBlockState(pos);
 
         AstralSession session = ACTIVE_SESSIONS.get(player.getUUID());
-        if (session == null || !session.isAscendingToB || session.guardianChosen) return;
+        if (session == null || !session.isAscendingToB || session.guardianChosen)
+            return;
+
+        // Permitir clic directo sobre el bloque de la estatua o sobre su pedestal inmediato inferior
+        BlockPos targetPos = pos;
+        BlockState checkState = state;
+        if (!isGuardianStatueBlock(checkState)) {
+            BlockPos abovePos = pos.above();
+            BlockState aboveState = level.getBlockState(abovePos);
+            if (isGuardianStatueBlock(aboveState)) {
+                targetPos = abovePos;
+                checkState = aboveState;
+            }
+        }
 
         String guardianType = "";
         String guardianName = "";
-        if (state.is(ModBlocks.STARRY_STATUE.get())) {
+        if (checkState.is(ModBlocks.STARRY_STATUE.get())) {
             guardianType = "starry";
             guardianName = "Starry (Espíritu Celestial)";
-        } else if (state.is(ModBlocks.CHUBBY_STATUE.get())) {
+        } else if (checkState.is(ModBlocks.CHUBBY_STATUE.get())) {
             guardianType = "chubby";
             guardianName = "Chubby (Nubecita del Trueno)";
-        } else if (state.is(ModBlocks.BRAMBI_STATUE.get())) {
+        } else if (checkState.is(ModBlocks.BRAMBI_STATUE.get())) {
             guardianType = "brambi";
             guardianName = "Brambi (Venado de Brasa y Bosque)";
         }
@@ -354,45 +406,22 @@ public class WarGodTrialManager {
         if (!guardianType.isEmpty()) {
             event.setCanceled(true);
             event.setCancellationResult(InteractionResult.SUCCESS);
-            selectGuardian(player, session, guardianType, guardianName, pos.getX() + 0.5, pos.getY() + 0.8, pos.getZ() + 0.5);
+            selectGuardian(player, session, guardianType, guardianName, targetPos.getX() + 0.5, targetPos.getY() + 0.8,
+                    targetPos.getZ() + 0.5);
         }
     }
 
-    @SubscribeEvent
-    public static void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
-        if (!(event.getEntity() instanceof ServerPlayer player))
-            return;
-        Entity target = event.getTarget();
-        if (target == null || !target.getTags().contains("AstralStatue"))
-            return;
-
-        event.setCanceled(true);
-        event.setCancellationResult(InteractionResult.SUCCESS);
-
-        AstralSession session = ACTIVE_SESSIONS.get(player.getUUID());
-        if (session == null || !session.isAscendingToB || session.guardianChosen) return;
-
-        String guardianType = "";
-        String guardianName = "";
-        if (target.getTags().contains("Guardian_starry")) {
-            guardianType = "starry";
-            guardianName = "Starry (Espíritu Celestial)";
-        } else if (target.getTags().contains("Guardian_chubby")) {
-            guardianType = "chubby";
-            guardianName = "Chubby (Nubecita del Trueno)";
-        } else if (target.getTags().contains("Guardian_brambi")) {
-            guardianType = "brambi";
-            guardianName = "Brambi (Venado de Brasa y Bosque)";
-        }
-
-        if (!guardianType.isEmpty()) {
-            selectGuardian(player, session, guardianType, guardianName, target.getX(), target.getY() + 0.8, target.getZ());
-        }
+    private static boolean isGuardianStatueBlock(BlockState state) {
+        return state.is(ModBlocks.STARRY_STATUE.get())
+                || state.is(ModBlocks.CHUBBY_STATUE.get())
+                || state.is(ModBlocks.BRAMBI_STATUE.get());
     }
 
-    private static void selectGuardian(ServerPlayer player, AstralSession session, String guardianType, String guardianName, double x, double y, double z) {
+    private static void selectGuardian(ServerPlayer player, AstralSession session, String guardianType,
+            String guardianName, double x, double y, double z) {
         PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
-        if (data == null) return;
+        if (data == null)
+            return;
 
         data.setChosenGuardian(guardianType);
         ModNetworking.syncToPlayer(player);

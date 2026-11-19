@@ -79,6 +79,13 @@ public class ModBlocks {
                     () -> net.minecraft.core.particles.ParticleTypes.ELECTRIC_SPARK),
             block -> new BlockItem(block, new Item.Properties().rarity(Rarity.RARE)));
 
+    // Cultivo de la Flor de la Vida (Semillas de Vida -> Flor Arcoíris -> Pétalos Arcoíris)
+    public static final DeferredBlock<com.pablo.rpglevels.blocks.LifeFlowerCropBlock> LIFE_FLOWER_CROP =
+            BLOCKS.register("life_flower_crop",
+                    () -> new com.pablo.rpglevels.blocks.LifeFlowerCropBlock(
+                            BlockBehaviour.Properties.ofFullCopy(net.minecraft.world.level.block.Blocks.WHEAT)
+                                    .lightLevel(state -> state.getValue(com.pablo.rpglevels.blocks.LifeFlowerCropBlock.AGE) == 7 ? 7 : 0)));
+
     private static <T extends Block> DeferredBlock<T> registerBlock(String name, Supplier<T> blockSupplier, Function<T, BlockItem> itemFactory) {
         DeferredBlock<T> block = BLOCKS.register(name, blockSupplier);
         ModItems.ITEMS.register(name, () -> itemFactory.apply(block.get()));

@@ -212,4 +212,34 @@ public class ModItems {
 
     public static final DeferredItem<Item> VOIDSTEEL_INGOT = ITEMS.register("voidsteel_ingot",
             () -> new Item(new Item.Properties().rarity(Rarity.EPIC)));
+
+    // Semillas de Vida (Dropeadas por Espíritus Protectores al reunir Energía Vital)
+    public static final DeferredItem<Item> LIFE_SEEDS = ITEMS.register("life_seeds",
+            () -> new LifeSeedsItem(com.pablo.rpglevels.init.ModBlocks.LIFE_FLOWER_CROP.get(),
+                    new Item.Properties().rarity(Rarity.RARE)));
+
+    // Pétalos Arcoíris (Cosechados al cultivar la Flor de la Vida madura)
+    public static final DeferredItem<Item> RAINBOW_PETALS = ITEMS.register("rainbow_petals",
+            () -> new RainbowPetalsItem(new Item.Properties().rarity(Rarity.EPIC)));
+
+    // Frasco de Experiencia RPG Universal (equivale a derrotar una amenaza de rango superior al tuyo)
+    public static final DeferredItem<Item> RPG_EXPERIENCE_BOTTLE = ITEMS.register("rpg_experience_bottle",
+            () -> new RpgExperienceBottleItem(new Item.Properties().stacksTo(16).rarity(Rarity.EPIC)));
+
+    // Sistema de Pociones Prismáticas (envase cristalino distinto, vuelve a frasco común tras consumirse)
+    public static final DeferredItem<Item> PRISMATIC_POTION = ITEMS.register("prismatic_potion",
+            () -> new PrismaticPotionItem(PrismaticPotionItem.PrismaticType.BASE,
+                    new Item.Properties().stacksTo(1).rarity(Rarity.UNCOMMON)));
+
+    public static final DeferredItem<Item> PRISMATIC_STRENGTH_POTION = ITEMS.register("prismatic_strength_potion",
+            () -> new PrismaticPotionItem(PrismaticPotionItem.PrismaticType.STRENGTH,
+                    new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
+
+    public static final DeferredItem<Item> PRISMATIC_SWIFTNESS_POTION = ITEMS.register("prismatic_swiftness_potion",
+            () -> new PrismaticPotionItem(PrismaticPotionItem.PrismaticType.SWIFTNESS,
+                    new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
+
+    public static final DeferredItem<Item> PRISMATIC_HEALING_POTION = ITEMS.register("prismatic_healing_potion",
+            () -> new PrismaticPotionItem(PrismaticPotionItem.PrismaticType.HEALING,
+                    new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
 }

@@ -37,6 +37,11 @@ public class ClientEntityEvents {
             net.minecraft.client.renderer.ItemBlockRenderTypes.setRenderLayer(
                     com.pablo.rpglevels.init.ModBlocks.ABYSS_PORTAL.get(),
                     net.minecraft.client.renderer.RenderType.translucent());
+
+            // Capa de renderizado cutout para el cultivo de la Flor de la Vida
+            net.minecraft.client.renderer.ItemBlockRenderTypes.setRenderLayer(
+                    com.pablo.rpglevels.init.ModBlocks.LIFE_FLOWER_CROP.get(),
+                    net.minecraft.client.renderer.RenderType.cutout());
         });
     }
 

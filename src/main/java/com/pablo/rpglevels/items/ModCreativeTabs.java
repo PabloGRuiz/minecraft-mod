@@ -55,6 +55,13 @@ public class ModCreativeTabs {
                         output.accept(com.pablo.rpglevels.init.ModBlocks.BRAMBI_STATUE.get());
                         output.accept(com.pablo.rpglevels.init.ModBlocks.STARRY_STATUE.get());
                         output.accept(com.pablo.rpglevels.init.ModBlocks.CHUBBY_STATUE.get());
+                        output.accept(ModItems.LIFE_SEEDS.get());
+                        output.accept(ModItems.RAINBOW_PETALS.get());
+                        output.accept(ModItems.RPG_EXPERIENCE_BOTTLE.get());
+                        output.accept(ModItems.PRISMATIC_POTION.get());
+                        output.accept(ModItems.PRISMATIC_STRENGTH_POTION.get());
+                        output.accept(ModItems.PRISMATIC_SWIFTNESS_POTION.get());
+                        output.accept(ModItems.PRISMATIC_HEALING_POTION.get());
                     })
                     .build());
 }

@@ -683,20 +683,7 @@ public class CombatEvents {
                 }
             }
 
-            int baseReward = switch (threat) {
-                case GENESIS -> 9000;
-                case CATASTROPHE -> 5500;
-                case GRAND_DISASTER -> 3500;
-                case DISASTER -> 2200;
-                case CALAMITY -> 1400;
-                case HAZARD -> 800;
-                case A -> 450;
-                case B -> 250;
-                case C -> 140;
-                case D -> 80;
-                case E -> 45;
-                default -> 25;
-            };
+            int baseReward = getBaseXpForThreat(threat);
 
             // Detección y recompensa aumentada para Jefes de Cataclysm, Jefes Mundiales y Jefes del Mod
             boolean isBoss = com.pablo.rpglevels.mobs.BossScalingHandler.isBoss(victim);
@@ -751,6 +738,27 @@ public class CombatEvents {
                 }
             }
         }
+    }
+
+    /**
+     * Recompensa base de XP RPG por nivel de amenaza de criatura abatida.
+     */
+    public static int getBaseXpForThreat(ThreatLevel threat) {
+        if (threat == null) return 25;
+        return switch (threat) {
+            case GENESIS -> 9000;
+            case CATASTROPHE -> 5500;
+            case GRAND_DISASTER -> 3500;
+            case DISASTER -> 2200;
+            case CALAMITY -> 1400;
+            case HAZARD -> 800;
+            case A -> 450;
+            case B -> 250;
+            case C -> 140;
+            case D -> 80;
+            case E -> 45;
+            default -> 25;
+        };
     }
 
     /**

@@ -140,7 +140,10 @@ public record SummonGuardianPayload() implements CustomPacketPayload {
             level.playSound(null, player.blockPosition(), SoundEvents.EVOKER_PREPARE_SUMMON, SoundSource.PLAYERS, 1.2f, 1.2f);
             level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 1.4f, 1.0f);
 
-            player.displayClientMessage(Component.literal("§a✦ ¡Has convocado a " + defaultName + " [Nv. " + playerLevel + "]! §b[-50 MP] §7(Pulsa [C] de nuevo para desinvocar)"), true);
+            player.displayClientMessage(Component.literal(
+                    "§a✦ ¡Has convocado a " + defaultName + " [Nv. " + playerLevel + "]! §b[-50 MP] §8| §aEnergía Vital: §e"
+                            + data.getGuardianVitalEnergy() + "§7/" + PlayerRpgData.MAX_GUARDIAN_VITAL_ENERGY
+                            + " §7([C] para guardar)"), true);
         });
     }
 }
