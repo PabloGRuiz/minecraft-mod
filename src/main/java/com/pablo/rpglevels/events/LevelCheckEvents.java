@@ -111,6 +111,10 @@ public class LevelCheckEvents {
             PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
             if (data != null && data.hasDivineBlessingUnlocked()) {
                 int xpGain = 55;
+                if (data.getPatronGod() == GreekGod.HERMES) {
+                    xpGain = Math.round(xpGain * 1.5f);
+                    player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 200, 0, false, false, true));
+                }
                 data.addRpgXp(player, xpGain);
                 player.displayClientMessage(Component.literal("§b✦ +" + xpGain + " XP RPG §7(Tesoro Saqueado)"), true);
             }

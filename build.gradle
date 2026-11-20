@@ -47,9 +47,9 @@ dependencies {
     implementation "maven.modrinth:irons-lib:sQyzhxuH"
     implementation "maven.modrinth:geckolib:Grwn5rUB"
 
-    // L'Ender's Cataclysm + Lionfish API (optional runtime mod via run/mods)
-    // runtimeOnly "maven.modrinth:lionfish-api:fTRMVgyZ"
-    // runtimeOnly "maven.modrinth:l_enders-cataclysm:mYBUDZWl"
+    // L'Ender's Cataclysm + Lionfish API
+    runtimeOnly "maven.modrinth:lionfish-api:fTRMVgyZ"
+    runtimeOnly "maven.modrinth:l_enders-cataclysm:mYBUDZWl"
 
     // Apothic Attributes + Placebo (Apotheosis RPG Attributes)
     runtimeOnly "maven.modrinth:placebo:1Ypo4tf4"

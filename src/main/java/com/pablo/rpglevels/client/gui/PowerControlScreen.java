@@ -1,5 +1,6 @@
 package com.pablo.rpglevels.client.gui;
 
+import com.pablo.rpglevels.client.ModKeyMappings;
 import com.pablo.rpglevels.data.ModAttachments;
 import com.pablo.rpglevels.data.PlayerRpgData;
 import com.pablo.rpglevels.network.UpdatePowerControlPayload;
@@ -14,23 +15,20 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 /**
  * Pantalla de Regulación y Control de Poder (Power Control & Supresión).
- * Permite al jugador regular con deslizadores (sliders) su poder total / aura,
- * velocidad de movimiento, velocidad de ataque y altura de salto.
  */
 public class PowerControlScreen extends Screen {
 
     private final Screen parentScreen;
 
-    private static final int GUI_WIDTH = 320;
-    private static final int GUI_HEIGHT = 235;
+    private static final int GUI_WIDTH = 350;
+    private static final int GUI_HEIGHT = 246;
     private int leftPos;
     private int topPos;
 
-    // Valores normalizados de los 4 sliders
-    private float currentPower = 1.0F;   // 0.01f a 1.0f
-    private float currentSpeed = 1.0F;   // 0.10f a 1.0f
-    private float currentAttack = 1.0F;  // 0.10f a 1.0f
-    private float currentJump = 1.0F;    // 0.00f a 1.0f
+    private float currentPower = 1.0F;
+    private float currentSpeed = 1.0F;
+    private float currentAttack = 1.0F;
+    private float currentJump = 1.0F;
 
     private PowerSlider powerSlider;
     private PowerSlider speedSlider;
@@ -59,58 +57,60 @@ public class PowerControlScreen extends Screen {
         this.leftPos = (this.width - GUI_WIDTH) / 2;
         this.topPos = (this.height - GUI_HEIGHT) / 2;
 
-        int sliderW = 280;
+        // Barra superior unificada
+        RpgUiHelper.addNavigationBar(this, this::addRenderableWidget, leftPos, topPos, GUI_WIDTH, RpgUiHelper.NavTab.POWER);
+
+        int sliderW = 310;
         int sliderH = 18;
         int startX = leftPos + 20;
-        int curY = topPos + 48;
+        int curY = topPos + 54;
 
-        // 1. Slider Poder Total / Supresión de Aura (1% a 100%)
         powerSlider = new PowerSlider(startX, curY, sliderW, sliderH,
                 "Poder Total / Aura", currentPower, 0.01F, 1.0F, "%", val -> this.currentPower = val);
         this.addRenderableWidget(powerSlider);
 
-        // 2. Slider Velocidad de Movimiento (10% a 100%)
-        curY += 34;
+        curY += 30;
         speedSlider = new PowerSlider(startX, curY, sliderW, sliderH,
                 "Velocidad de Movimiento", currentSpeed, 0.10F, 1.0F, "%", val -> this.currentSpeed = val);
         this.addRenderableWidget(speedSlider);
 
-        // 3. Slider Velocidad de Ataque (10% a 100%)
-        curY += 34;
+        curY += 30;
         attackSlider = new PowerSlider(startX, curY, sliderW, sliderH,
                 "Velocidad de Ataque", currentAttack, 0.10F, 1.0F, "%", val -> this.currentAttack = val);
         this.addRenderableWidget(attackSlider);
 
-        // 4. Slider Altura de Salto (0% a 100%)
-        curY += 34;
+        curY += 30;
         jumpSlider = new PowerSlider(startX, curY, sliderW, sliderH,
                 "Altura de Salto", currentJump, 0.00F, 1.0F, "%", val -> this.currentJump = val);
         this.addRenderableWidget(jumpSlider);
 
-        // Botones de presets rápidos
-        int presetY = topPos + 180;
+        int presetY = topPos + 178;
         this.addRenderableWidget(Button.builder(Component.literal("§a⚡ 100% Máximo"), b -> {
             applyPreset(1.0F, 1.0F, 1.0F, 1.0F);
-        }).bounds(leftPos + 20, presetY, 135, 18).build());
+        }).bounds(leftPos + 20, presetY, 150, 18).build());
 
         this.addRenderableWidget(Button.builder(Component.literal("§b🏙 Modo Ciudad / Sigilo"), b -> {
             applyPreset(0.15F, 0.55F, 0.50F, 0.20F);
-        }).bounds(leftPos + 165, presetY, 135, 18).build());
+        }).bounds(leftPos + 180, presetY, 150, 18).build());
 
-        // Botones de Guardar y Volver
-        int bottomY = topPos + GUI_HEIGHT - 24;
+        int bottomY = topPos + GUI_HEIGHT - 28;
+        int saveW = (this.parentScreen != null) ? 200 : 310;
         this.addRenderableWidget(Button.builder(Component.literal("§a✔ Guardar y Aplicar"), b -> {
             saveAndApply();
-            if (this.minecraft != null) {
+            if (this.parentScreen != null && this.minecraft != null) {
                 this.minecraft.setScreen(this.parentScreen);
+            } else {
+                this.onClose();
             }
-        }).bounds(leftPos + 20, bottomY, 155, 18).build());
+        }).bounds(leftPos + 20, bottomY, saveW, 18).build());
 
-        this.addRenderableWidget(Button.builder(Component.literal("§cVolver"), b -> {
-            if (this.minecraft != null) {
-                this.minecraft.setScreen(this.parentScreen);
-            }
-        }).bounds(leftPos + 185, bottomY, 115, 18).build());
+        if (this.parentScreen != null) {
+            this.addRenderableWidget(Button.builder(Component.literal("§cVolver"), b -> {
+                if (this.minecraft != null) {
+                    this.minecraft.setScreen(this.parentScreen);
+                }
+            }).bounds(leftPos + 228, bottomY, 102, 18).build());
+        }
     }
 
     private void applyPreset(float power, float speed, float attack, float jump) {
@@ -130,7 +130,6 @@ public class PowerControlScreen extends Screen {
                 currentPower, currentSpeed, currentAttack, currentJump
         ));
 
-        // Aplicar localmente de inmediato para respuesta fluida
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
             PlayerRpgData data = mc.player.getData(ModAttachments.PLAYER_RPG_DATA);
@@ -141,33 +140,29 @@ public class PowerControlScreen extends Screen {
     }
 
     @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (ModKeyMappings.OPEN_POWER_CONTROL_KEY.get().matches(keyCode, scanCode)) {
+            this.onClose();
+            return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
     public void renderBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        // Sin blur
     }
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        // Fondo oscurecido
-        guiGraphics.fill(0, 0, this.width, this.height, 0xB0080A12);
+        guiGraphics.fill(0, 0, this.width, this.height, 0xB8080A12);
+        RpgUiHelper.drawPanelFrame(guiGraphics, leftPos, topPos, GUI_WIDTH, GUI_HEIGHT);
 
-        // Marco estilizado
-        guiGraphics.fill(leftPos, topPos, leftPos + GUI_WIDTH, topPos + GUI_HEIGHT, 0xF00D111A);
-        guiGraphics.renderOutline(leftPos, topPos, GUI_WIDTH, GUI_HEIGHT, 0xFFD4AF37);
-        guiGraphics.renderOutline(leftPos + 2, topPos + 2, GUI_WIDTH - 4, GUI_HEIGHT - 4, 0x60D4AF37);
-
-        // Cabecera
-        guiGraphics.drawString(font, "§6⚡ CONTROL Y REGULACIÓN DE PODER ⚡", leftPos + 18, topPos + 10, 0xFFFFFFFF, false);
-        guiGraphics.drawString(font, "§7Suprime o libera tu energía física y espiritual a voluntad.", leftPos + 18, topPos + 22, 0xFFAAAAAA, false);
-
-        // Línea dorada separadora
-        guiGraphics.fill(leftPos + 12, topPos + 34, leftPos + GUI_WIDTH - 12, topPos + 35, 0x80D4AF37);
+        guiGraphics.drawString(font, "§6⚡ Control y Regulación de Poder", leftPos + 14, topPos + 31, 0xFFFFFFFF, true);
+        guiGraphics.drawString(font, "§7Suprime o libera tu energía física y aura.", leftPos + 14, topPos + 42, 0xFFAAAAAA, false);
 
         super.render(guiGraphics, mouseX, mouseY, partialTick);
     }
 
-    /**
-     * Componente deslizador interactivo con porcentaje dinámico.
-     */
     private static class PowerSlider extends AbstractSliderButton {
         private final String prefix;
         private final float min;

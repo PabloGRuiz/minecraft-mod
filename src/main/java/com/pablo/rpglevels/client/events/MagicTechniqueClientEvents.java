@@ -2,10 +2,12 @@ package com.pablo.rpglevels.client.events;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import com.pablo.rpglevels.RpgLevelsMod;
+import com.pablo.rpglevels.client.ModKeyMappings;
 import com.pablo.rpglevels.data.ModAttachments;
 import com.pablo.rpglevels.data.PlayerRpgData;
 import com.pablo.rpglevels.magic.SpiritualTechnique;
 import com.pablo.rpglevels.network.ModNetworking;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
@@ -34,6 +36,15 @@ public class MagicTechniqueClientEvents {
     // Buffer for prefix between 2-1-3 (Low Paralize) and 2-1-3-2 (Connect Realities)
     private static long pendingParalizeUntil = 0;
 
+    private static boolean isMagicModifierDown(Minecraft mc) {
+        KeyMapping key = ModKeyMappings.MAGIC_MODIFIER_KEY.get();
+        if (key.isUnbound()) return false;
+        if (key.getKey().getType() == InputConstants.Type.KEYSYM && mc != null && mc.getWindow() != null) {
+            return InputConstants.isKeyDown(mc.getWindow().getWindow(), key.getKey().getValue());
+        }
+        return key.isDown();
+    }
+
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
         Minecraft mc = Minecraft.getInstance();
@@ -46,8 +57,7 @@ public class MagicTechniqueClientEvents {
             return;
         }
 
-        long window = mc.getWindow().getWindow();
-        boolean isAltDown = InputConstants.isKeyDown(window, GLFW.GLFW_KEY_LEFT_ALT);
+        boolean isAltDown = isMagicModifierDown(mc);
 
         // Alt key press transition
         if (isAltDown && !wasAltDown) {
@@ -106,8 +116,7 @@ public class MagicTechniqueClientEvents {
             return;
         }
 
-        long window = mc.getWindow().getWindow();
-        boolean isAltDown = InputConstants.isKeyDown(window, GLFW.GLFW_KEY_LEFT_ALT);
+        boolean isAltDown = isMagicModifierDown(mc);
         if (!isAltDown) {
             return;
         }

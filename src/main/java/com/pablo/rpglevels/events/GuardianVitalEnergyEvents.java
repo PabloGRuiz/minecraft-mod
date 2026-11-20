@@ -99,6 +99,7 @@ public class GuardianVitalEnergyEvents {
                 seedsDropped++;
                 dropLifeSeed(level, guardian, owner);
             }
+            com.pablo.rpglevels.network.ModNetworking.syncToPlayer(owner);
 
             if (seedsDropped > 0) {
                 level.sendParticles(ParticleTypes.TOTEM_OF_UNDYING,

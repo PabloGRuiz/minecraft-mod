@@ -1,7 +1,6 @@
 package com.pablo.rpglevels.client.gui;
 
 import com.pablo.rpglevels.RpgLevelsMod;
-import com.pablo.rpglevels.client.ModKeyMappings;
 import com.pablo.rpglevels.party.ClientPartyData;
 import com.pablo.rpglevels.party.PartyMemberInfo;
 import net.minecraft.client.Minecraft;
@@ -11,7 +10,6 @@ import net.minecraft.network.chat.Component;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
 import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 
@@ -28,18 +26,6 @@ public class PartyHudClientEvents {
             return 0;
         }
         return lastHudBottom;
-    }
-
-    @SubscribeEvent
-    public static void onClientTick(ClientTickEvent.Post event) {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.level == null || mc.screen != null) {
-            return;
-        }
-
-        while (ModKeyMappings.PARTY_KEY.get().consumeClick()) {
-            mc.setScreen(new PartyScreen());
-        }
     }
 
     @SubscribeEvent

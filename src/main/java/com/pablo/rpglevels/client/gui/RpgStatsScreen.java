@@ -1,13 +1,11 @@
 package com.pablo.rpglevels.client.gui;
 
-import com.pablo.rpglevels.RpgLevelsMod;
-import com.pablo.rpglevels.data.AdventurerRank;
+import com.pablo.rpglevels.client.ModKeyMappings;
+import com.pablo.rpglevels.data.GreekGod;
 import com.pablo.rpglevels.data.ModAttachments;
 import com.pablo.rpglevels.data.PlayerRpgData;
 import com.pablo.rpglevels.data.StatType;
 import com.pablo.rpglevels.data.ThreatLevel;
-import com.pablo.rpglevels.items.ExperienceAmuletItem;
-import com.pablo.rpglevels.items.WarriorRingItem;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -16,22 +14,24 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import top.theillusivec4.curios.api.CuriosApi;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class RpgStatsScreen extends Screen {
 
     private final Screen parentScreen;
-    private final int GUI_WIDTH = 348;
-    private final int GUI_HEIGHT = 238;
+    private static final int GUI_WIDTH = 390;
+    private static final int GUI_HEIGHT = 248;
     private int leftPos;
     private int topPos;
+    private int activeSubTab = 0; // 0 = Atributos, 1 = Bendición, 2 = Equipo y Técnicas
 
     public RpgStatsScreen(Screen parentScreen) {
         super(Component.translatable("rpglevels.gui.stats_title"));
@@ -44,121 +44,101 @@ public class RpgStatsScreen extends Screen {
         this.leftPos = (this.width - GUI_WIDTH) / 2;
         this.topPos = (this.height - GUI_HEIGHT) / 2;
 
+        // 1. Barra superior unificada
+        RpgUiHelper.addNavigationBar(this, this::addRenderableWidget, leftPos, topPos, GUI_WIDTH, RpgUiHelper.NavTab.PROFILE);
+
         Player player = Minecraft.getInstance().player;
         PlayerRpgData data = (player != null) ? player.getData(ModAttachments.PLAYER_RPG_DATA) : null;
         int level = (data != null) ? data.getRpgLevel() : 1;
 
-        // 1. Button to switch back to normal Inventory
-        this.addRenderableWidget(Button.builder(Component.translatable("rpglevels.gui.back_inventory"), button -> {
-            if (this.minecraft != null) {
-                if (this.parentScreen instanceof InventoryScreen) {
-                    this.minecraft.setScreen(this.parentScreen);
-                } else if (this.minecraft.player != null) {
-                    this.minecraft.setScreen(new InventoryScreen(this.minecraft.player));
-                } else {
-                    this.onClose();
-                }
-            }
-        }).bounds(leftPos + GUI_WIDTH - 82, topPos + GUI_HEIGHT - 23, 72, 17).build());
-
-        // 1.5 Button to open Quests Journal
-        this.addRenderableWidget(Button.builder(Component.translatable("rpglevels.gui.quests_button"), button -> {
-            if (this.minecraft != null) {
-                this.minecraft.setScreen(new RpgQuestsScreen(this));
-            }
-        }).bounds(leftPos + GUI_WIDTH - 158, topPos + GUI_HEIGHT - 23, 72, 17).build());
-
-        // 2. Ascension / Divine Blessing status button
-        if (data != null) {
-            if (!data.hasDivineBlessingUnlocked()) {
-                this.addRenderableWidget(Button.builder(Component.literal("§5✦ Sin Bendición"), button -> {
-                    if (this.minecraft != null && this.minecraft.player != null) {
-                        this.minecraft.player.displayClientMessage(
-                                Component.literal("§d[Plano Astral] §eDerrota a tu primer enemigo y ve a dormir a una cama para que un Dios Olímpico te otorgue su Bendición y desbloquee tu subida de nivel."),
-                                false
-                        );
-                    }
-                }).bounds(leftPos + 12, topPos + GUI_HEIGHT - 23, 95, 17)
-                .tooltip(Tooltip.create(Component.literal("§5[Progresión Bloqueada]\n§7Hasta tener tu primer encuentro con un Dios en el Plano Astral, solo cuentas con tus estadísticas de nacimiento.\n§eAbate a un enemigo y duerme en una cama.")))
-                .build());
-            } else if (data.isAtMilestoneCap()) {
-                this.addRenderableWidget(Button.builder(Component.literal("§d⚡ Ascender (Dormir)"), button -> {
-                    if (this.minecraft != null && this.minecraft.player != null) {
-                        this.minecraft.player.displayClientMessage(
-                                Component.literal("§d[Espacio Astral] §eHas alcanzado el Hito de Nivel " + data.getCurrentMilestoneCap() + ". Duerme en una cama para que tu Dios te otorgue la Ascensión."),
-                                false
-                        );
-                    }
-                }).bounds(leftPos + 12, topPos + GUI_HEIGHT - 23, 110, 17)
-                .tooltip(Tooltip.create(Component.literal("§d[Hito de Rango Alcanzado]\n§eHas llegado al Nivel " + data.getCurrentMilestoneCap() + ".\n§6Duerme en una cama para acudir al Espacio Astral y recibir tu Ascensión de Rango.")))
-                .build());
-            }
+        // 2. Sub-pestañas del panel derecho (Atributos | Bendición | Equipo/Téc.)
+        int rightX = leftPos + 122;
+        int subY = topPos + 44;
+        int subW = 84;
+        String[] subLabels = {"Atributos", "Bendición", "Equipo/Téc."};
+        for (int i = 0; i < subLabels.length; i++) {
+            final int tabIdx = i;
+            boolean active = (this.activeSubTab == tabIdx);
+            Button subBtn = Button.builder(Component.literal((active ? "§e§l" : "§7") + subLabels[i]), b -> {
+                this.activeSubTab = tabIdx;
+                this.rebuildWidgets();
+            }).bounds(rightX + i * (subW + 3), subY, subW, 16).build();
+            subBtn.active = !active;
+            this.addRenderableWidget(subBtn);
         }
 
-        // 3. Interactive Upgrade Buttons for Pending Attribute Points (1 by 1)
-        if (data != null) {
+        // 3. Botón inferior izquierdo (Bendición / Ascender / Volver al Inventario)
+        int leftBtnX = leftPos + 10;
+        int leftBtnY = topPos + GUI_HEIGHT - 26;
+        int leftBtnW = 104;
+        if (data != null && !data.hasDivineBlessingUnlocked()) {
+            this.addRenderableWidget(Button.builder(Component.literal("§5✦ Sin Bendición"), b -> {
+                if (this.minecraft != null && this.minecraft.player != null) {
+                    this.minecraft.player.displayClientMessage(
+                            Component.literal("§d[Plano Astral] §eDerrota a tu primer enemigo y duerme en una cama para recibir tu Bendición Olímpica."),
+                            false
+                    );
+                }
+            }).bounds(leftBtnX, leftBtnY, leftBtnW, 18)
+            .tooltip(Tooltip.create(Component.literal("§5[Progresión Bloqueada]\n§7Abate un enemigo y duerme en una cama para acudir al Plano Astral.")))
+            .build());
+        } else if (data != null && data.isAtMilestoneCap()) {
+            this.addRenderableWidget(Button.builder(Component.literal("§d⚡ Ascender"), b -> {
+                if (this.minecraft != null && this.minecraft.player != null) {
+                    this.minecraft.player.displayClientMessage(
+                            Component.literal("§d[Espacio Astral] §eAlcanzaste el Nivel " + data.getCurrentMilestoneCap() + ". Duerme en una cama para recibir tu Ascensión."),
+                            false
+                    );
+                }
+            }).bounds(leftBtnX, leftBtnY, leftBtnW, 18)
+            .tooltip(Tooltip.create(Component.literal("§d[Hito Alcanzado]\n§eDuerme en una cama para ascender de rango.")))
+            .build());
+        } else {
+            this.addRenderableWidget(Button.builder(Component.translatable("rpglevels.gui.back_inventory"), b -> {
+                if (this.minecraft != null) {
+                    if (this.parentScreen instanceof InventoryScreen) {
+                        this.minecraft.setScreen(this.parentScreen);
+                    } else if (this.minecraft.player != null) {
+                        this.minecraft.setScreen(new InventoryScreen(this.minecraft.player));
+                    }
+                }
+            }).bounds(leftBtnX, leftBtnY, leftBtnW, 18).build());
+        }
+
+        // 4. Botones de asignación (+1) solo en la sub-pestaña de Atributos
+        if (this.activeSubTab == 0 && data != null) {
             int pending = data.getPendingPointsCount(level);
             if (pending > 0) {
-                int btnX = leftPos + GUI_WIDTH - 24;
+                int btnX = leftPos + GUI_WIDTH - 28;
+                int cardStartY = topPos + 78;
+                int cardStep = 39;
 
-                // Upgrade Fortitude button (+1 point)
-                Button btnFort = Button.builder(Component.literal("§c+"), b -> {
-                    if (this.minecraft != null && this.minecraft.player != null) {
-                        this.minecraft.player.connection.sendCommand("rpgstats choose fortitude");
-                        this.rebuildWidgets();
-                    }
-                }).bounds(btnX, topPos + 41, 16, 14)
-                .tooltip(Tooltip.create(Component.literal("§c+1 ").append(Component.translatable("rpglevels.stat.fortitude.name"))
-                        .append("\n").append(Component.translatable("rpglevels.stat.fortitude.hover"))
-                        .append("\n§a").append(Component.translatable("rpglevels.gui.stat_points_pending", pending))))
-                .build();
-                this.addRenderableWidget(btnFort);
-
-                // Upgrade Dexterity button (+1 point)
-                Button btnDex = Button.builder(Component.literal("§b+"), b -> {
-                    if (this.minecraft != null && this.minecraft.player != null) {
-                        this.minecraft.player.connection.sendCommand("rpgstats choose dexterity");
-                        this.rebuildWidgets();
-                    }
-                }).bounds(btnX, topPos + 69, 16, 14)
-                .tooltip(Tooltip.create(Component.literal("§b+1 ").append(Component.translatable("rpglevels.stat.dexterity.name"))
-                        .append("\n").append(Component.translatable("rpglevels.stat.dexterity.hover"))
-                        .append("\n§a").append(Component.translatable("rpglevels.gui.stat_points_pending", pending))))
-                .build();
-                this.addRenderableWidget(btnDex);
-
-                // Upgrade Spirit button (+1 point)
-                Button btnSpi = Button.builder(Component.literal("§d+"), b -> {
-                    if (this.minecraft != null && this.minecraft.player != null) {
-                        this.minecraft.player.connection.sendCommand("rpgstats choose spirit");
-                        this.rebuildWidgets();
-                    }
-                }).bounds(btnX, topPos + 97, 16, 14)
-                .tooltip(Tooltip.create(Component.literal("§d+1 ").append(Component.translatable("rpglevels.stat.spirit.name"))
-                        .append("\n").append(Component.translatable("rpglevels.stat.spirit.hover"))
-                        .append("\n§a").append(Component.translatable("rpglevels.gui.stat_points_pending", pending))))
-                .build();
-                this.addRenderableWidget(btnSpi);
-
-                // Upgrade Luck button (+1 point)
-                Button btnLuck = Button.builder(Component.literal("§a+"), b -> {
-                    if (this.minecraft != null && this.minecraft.player != null) {
-                        this.minecraft.player.connection.sendCommand("rpgstats choose luck");
-                        this.rebuildWidgets();
-                    }
-                }).bounds(btnX, topPos + 125, 16, 14)
-                .tooltip(Tooltip.create(Component.literal("§a+1 ").append(Component.translatable("rpglevels.stat.luck.name"))
-                        .append("\n").append(Component.translatable("rpglevels.stat.luck.hover"))
-                        .append("\n§a").append(Component.translatable("rpglevels.gui.stat_points_pending", pending))))
-                .build();
-                this.addRenderableWidget(btnLuck);
+                addStatUpgradeButton(btnX, cardStartY + 8, "fortitude", "§c+", pending);
+                addStatUpgradeButton(btnX, cardStartY + cardStep + 8, "dexterity", "§b+", pending);
+                addStatUpgradeButton(btnX, cardStartY + cardStep * 2 + 8, "spirit", "§d+", pending);
+                addStatUpgradeButton(btnX, cardStartY + cardStep * 3 + 8, "luck", "§a+", pending);
             }
         }
     }
 
+    private void addStatUpgradeButton(int x, int y, String statId, String label, int pending) {
+        Button btn = Button.builder(Component.literal(label), b -> {
+            if (this.minecraft != null && this.minecraft.player != null) {
+                this.minecraft.player.connection.sendCommand("rpgstats choose " + statId);
+                this.rebuildWidgets();
+            }
+        }).bounds(x, y, 18, 18)
+        .tooltip(Tooltip.create(Component.literal(label + "1 ").append(Component.translatable("rpglevels.stat." + statId + ".name"))
+                .append("\n").append(Component.translatable("rpglevels.stat." + statId + ".hover"))
+                .append("\n§a").append(Component.translatable("rpglevels.gui.stat_points_pending", pending))))
+        .build();
+        this.addRenderableWidget(btn);
+    }
+
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (this.minecraft != null && this.minecraft.options.keyInventory.matches(keyCode, scanCode)) {
+        if (ModKeyMappings.OPEN_STATS_KEY.get().matches(keyCode, scanCode)
+                || (this.minecraft != null && this.minecraft.options.keyInventory.matches(keyCode, scanCode))) {
             this.onClose();
             return true;
         }
@@ -167,7 +147,7 @@ public class RpgStatsScreen extends Screen {
 
     @Override
     public void renderBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        // Intencionalmente vacío: anula processBlurEffect de Minecraft 1.21 para que la interfaz no se vea difuminada
+        // Sin blur shader de 1.21
     }
 
     @Override
@@ -175,95 +155,87 @@ public class RpgStatsScreen extends Screen {
         Player player = Minecraft.getInstance().player;
         if (player == null) return;
 
-        // Fondo oscuro y nítido para atenuar el mundo 3D sin shader de desenfoque
-        guiGraphics.fill(0, 0, this.width, this.height, 0xB0080A12);
+        guiGraphics.fill(0, 0, this.width, this.height, 0xB8080A12);
+        RpgUiHelper.drawPanelFrame(guiGraphics, leftPos, topPos, GUI_WIDTH, GUI_HEIGHT);
 
         PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
+        int currentLevel = (data != null) ? data.getRpgLevel() : 1;
+
+        // 1. Sub-cabecera de Identidad (sin colisiones)
         Component rankOrThreatBadge;
         if (data != null && data.getReputationScore() < 0) {
-            ThreatLevel threat = ThreatLevel.getThreatForPlayer(player, data);
-            rankOrThreatBadge = threat.getBadge();
+            rankOrThreatBadge = ThreatLevel.getThreatForPlayer(player, data).getBadge();
         } else if (data != null && data.isGuildRegistered()) {
             rankOrThreatBadge = data.getRank().getBadge();
         } else {
-            rankOrThreatBadge = Component.literal("[Civil No Registrado]").withStyle(ChatFormatting.DARK_GRAY);
+            rankOrThreatBadge = Component.literal("[Civil]").withStyle(ChatFormatting.DARK_GRAY);
         }
 
-        // 1. Dark Fantasy Background Frame
-        renderBackgroundFrame(guiGraphics);
+        String leftIdentity = rankOrThreatBadge.getString() + " §e" + player.getName().getString() + " §7(Nv. §f" + currentLevel + "§7)";
+        guiGraphics.drawString(this.font, RpgUiHelper.clip(this.font, leftIdentity, 225), leftPos + 10, topPos + 31, 0xFFFFFFFF, false);
 
-        // 2. Title & Header with Rank/Threat Badge & Patron God
-        int currentLevel = (data != null) ? data.getRpgLevel() : 1;
-        guiGraphics.drawString(this.font, Component.translatable("rpglevels.gui.header_title"), leftPos + 12, topPos + 8, 0xFFFFAA00, true);
+        GreekGod patronGod = (data != null && data.hasDivineBlessingUnlocked()) ? data.getPatronGod() : null;
+        String godRight = (patronGod != null)
+                ? patronGod.getBadge().getString()
+                : "§8✦ Sin Bendición";
+        godRight = RpgUiHelper.clip(this.font, godRight, 138);
+        guiGraphics.drawString(this.font, godRight, leftPos + GUI_WIDTH - 10 - this.font.width(godRight), topPos + 31, 0xFFFFFFFF, false);
 
-        com.pablo.rpglevels.data.GreekGod patronGod = (data != null && data.hasDivineBlessingUnlocked()) ? data.getPatronGod() : null;
-        Component godSuffix = (patronGod != null)
-                ? Component.literal(" §8| ").append(patronGod.getBadge())
-                : Component.literal(" §8| §7Sin Bendición");
+        guiGraphics.hLine(leftPos + 8, leftPos + GUI_WIDTH - 8, topPos + 41, 0xFF34394C);
 
-        Component playerInfo = rankOrThreatBadge.copy()
-                .append(Component.literal(" §e" + player.getName().getString() + " §7(Nv.RPG §f" + currentLevel + "§7)"))
-                .append(godSuffix);
-        int playerInfoW = this.font.width(playerInfo);
-        guiGraphics.drawString(this.font, playerInfo, leftPos + GUI_WIDTH - 12 - playerInfoW, topPos + 8, 0xFFFFFFFF, false);
+        // 2. Barra Lateral Izquierda (Modelo 3D + Hito XP + Moral)
+        int sideX = leftPos + 10;
+        int sideW = 104;
+        int pY1 = topPos + 44;
+        int pY2 = pY1 + 94;
+        guiGraphics.fillGradient(sideX, pY1, sideX + sideW, pY2, 0x55000000, 0x88000000);
+        guiGraphics.renderOutline(sideX, pY1, sideW, pY2 - pY1, 0xFF4A4D60);
+        InventoryScreen.renderEntityInInventoryFollowsMouse(guiGraphics, sideX, pY1, sideX + sideW, pY2, 40, 0.0625f, mouseX, mouseY, player);
 
-        // 3. Render 3D Player Entity
-        int pX1 = leftPos + 12;
-        int pY1 = topPos + 25;
-        int pX2 = leftPos + 80;
-        int pY2 = topPos + 138;
-        guiGraphics.fillGradient(pX1, pY1, pX2, pY2, 0x55000000, 0x88000000);
-        guiGraphics.renderOutline(pX1, pY1, pX2 - pX1, pY2 - pY1, 0xFF4A4D60);
-        InventoryScreen.renderEntityInInventoryFollowsMouse(guiGraphics, pX1, pY1, pX2, pY2, 42, 0.0625f, mouseX, mouseY, player);
+        renderMilestoneBar(guiGraphics, data, sideX, pY2 + 5, sideW);
+        List<Component> repTooltip = renderReputationBar(guiGraphics, data, sideX, pY2 + 34, sideW, mouseX, mouseY);
 
-        // 4. Milestone & RPG XP Progress Bar below player
-        renderMilestoneBar(guiGraphics, data, pX1, pY2 + 3, pX2 - pX1);
+        // Separador vertical entre columnas
+        guiGraphics.vLine(leftPos + 118, topPos + 43, topPos + GUI_HEIGHT - 8, 0xFF34394C);
 
-        // 4b. Moral Reputation & Infamy Bar below Milestone Bar
-        List<Component> repTooltip = renderReputationBar(guiGraphics, data, pX1, pY2 + 18, pX2 - pX1, mouseX, mouseY);
+        // 3. Contenido Principal Derecho según sub-pestaña activa
+        int rightX = leftPos + 122;
+        int rightW = 258;
+        List<Component> hoveredTooltip = null;
 
-        // 5. Stats Breakdown with Interactive Toolinfo Cards
-        List<Component> statTooltip = renderStatsBreakdown(guiGraphics, player, data, currentLevel, leftPos + 88, topPos + 25, mouseX, mouseY);
+        if (activeSubTab == 0) {
+            hoveredTooltip = renderStatsTab(guiGraphics, player, data, currentLevel, rightX, topPos + 64, rightW, mouseX, mouseY);
+        } else if (activeSubTab == 1) {
+            renderBlessingTab(guiGraphics, data, rightX, topPos + 64, rightW);
+        } else {
+            renderGearAndTechTab(guiGraphics, player, data, rightX, topPos + 64, rightW);
+        }
 
-        // 6. Active Curios / Accessories Summary
-        renderCuriosSummary(guiGraphics, player, leftPos + 12, topPos + 172);
-
-        // 7. Render interactive button widgets
+        // 4. Widgets interactivos
         super.render(guiGraphics, mouseX, mouseY, partialTick);
 
-        // 8. Render hovered tooltips on the very top layer
-        if (statTooltip != null && !statTooltip.isEmpty()) {
-            guiGraphics.renderComponentTooltip(this.font, statTooltip, mouseX, mouseY);
+        // 5. Tooltips en la capa más alta
+        if (hoveredTooltip != null && !hoveredTooltip.isEmpty()) {
+            guiGraphics.renderComponentTooltip(this.font, hoveredTooltip, mouseX, mouseY);
         } else if (repTooltip != null && !repTooltip.isEmpty()) {
             guiGraphics.renderComponentTooltip(this.font, repTooltip, mouseX, mouseY);
         }
     }
 
-    private void renderBackgroundFrame(GuiGraphics guiGraphics) {
-        guiGraphics.fillGradient(leftPos, topPos, leftPos + GUI_WIDTH, topPos + GUI_HEIGHT, 0xF012141F, 0xF01C2030);
-        guiGraphics.renderOutline(leftPos, topPos, GUI_WIDTH, GUI_HEIGHT, 0xFFD4AF37);
-        guiGraphics.renderOutline(leftPos + 2, topPos + 2, GUI_WIDTH - 4, GUI_HEIGHT - 4, 0xFF35394A);
-
-        // Separator lines
-        guiGraphics.hLine(leftPos + 8, leftPos + GUI_WIDTH - 8, topPos + 21, 0xFF5A5F7A);
-        guiGraphics.hLine(leftPos + 8, leftPos + GUI_WIDTH - 8, topPos + 168, 0xFF5A5F7A);
-        guiGraphics.hLine(leftPos + 8, leftPos + GUI_WIDTH - 8, topPos + 208, 0xFF5A5F7A);
-    }
-
-    private void renderMilestoneBar(GuiGraphics guiGraphics, PlayerRpgData data, int x, int y, int width) {
+    private void renderMilestoneBar(GuiGraphics g, PlayerRpgData data, int x, int y, int width) {
         if (data == null || !data.hasDivineBlessingUnlocked()) {
-            guiGraphics.drawString(this.font, Component.literal("§5🔒 Sueña tras cazar"), x, y, 0xFFAA88FF, false);
-            int barY = y + 8;
-            guiGraphics.fill(x, barY, x + width, barY + 3, 0xFF222530);
-            guiGraphics.renderOutline(x, barY, width, 3, 0xFF555555);
+            g.drawString(this.font, RpgUiHelper.clip(this.font, "§5🔒 Sueña tras cazar", width), x, y, 0xFFAA88FF, false);
+            g.fill(x, y + 10, x + width, y + 14, 0xFF222530);
+            g.renderOutline(x, y + 10, width, 4, 0xFF555555);
+            g.drawString(this.font, "§8Bloqueado", x, y + 16, 0xFF777777, false);
             return;
         }
 
         if (data.isAtMilestoneCap()) {
-            guiGraphics.drawString(this.font, Component.literal("§d⚡ ¡Duerme! (Hito)"), x, y, 0xFFFFAAFF, false);
-            int barY = y + 8;
-            guiGraphics.fillGradient(x, barY, x + width, barY + 4, 0xFFFF55FF, 0xFF55FFFF);
-            guiGraphics.renderOutline(x, barY, width, 4, 0xFFFFDD33);
+            g.drawString(this.font, "§d⚡ ¡Hito Nv." + data.getCurrentMilestoneCap() + "!", x, y, 0xFFFFAAFF, false);
+            g.fillGradient(x, y + 10, x + width, y + 14, 0xFFFF55FF, 0xFF55FFFF);
+            g.renderOutline(x, y + 10, width, 4, 0xFFFFDD33);
+            g.drawString(this.font, "§eDuerme para ascender", x, y + 16, 0xFFFFDD66, false);
             return;
         }
 
@@ -272,83 +244,69 @@ public class RpgStatsScreen extends Screen {
         float progress = Math.min(1.0f, (float) curXp / reqXp);
         int cap = data.getCurrentMilestoneCap();
 
-        guiGraphics.drawString(this.font, Component.literal("§7Hito Nv." + cap + " §8(" + curXp + "/" + reqXp + ")"), x, y, 0xFFCCCCCC, false);
-
-        int barY = y + 8;
-        int barHeight = 3;
-        guiGraphics.fill(x, barY, x + width, barY + barHeight, 0xFF222530);
+        g.drawString(this.font, "§7Hito: §fNv." + cap + " §8(" + (int) (progress * 100) + "%)", x, y, 0xFFCCCCCC, false);
+        int barY = y + 10;
+        g.fill(x, barY, x + width, barY + 4, 0xFF222530);
         int fillWidth = (int) (width * progress);
         if (fillWidth > 0) {
-            guiGraphics.fillGradient(x, barY, x + fillWidth, barY + barHeight, 0xFF55FF55, 0xFF00AA00);
+            g.fillGradient(x, barY, x + fillWidth, barY + 4, 0xFF55FF55, 0xFF00AA00);
         }
-        guiGraphics.renderOutline(x, barY, width, barHeight, 0xFF555555);
+        g.renderOutline(x, barY, width, 4, 0xFF555555);
+        g.drawString(this.font, RpgUiHelper.clip(this.font, "§7XP: §f" + curXp + "§8/" + reqXp, width), x, y + 16, 0xFFAAAAAA, false);
     }
 
-    private List<Component> renderReputationBar(GuiGraphics guiGraphics, PlayerRpgData data, int x, int y, int width, int mouseX, int mouseY) {
+    private List<Component> renderReputationBar(GuiGraphics g, PlayerRpgData data, int x, int y, int width, int mouseX, int mouseY) {
         int score = (data != null) ? data.getReputationScore() : 0;
         com.pablo.rpglevels.data.ReputationTier tier = (data != null) ? data.getReputationTier() : com.pablo.rpglevels.data.ReputationTier.NEUTRAL;
-
-        // Label: "Moralidad: 🌟 Héroe (+75)" or "Moralidad: ☠️ Forajido (-60)"
         String scoreStr = (score > 0 ? "+" : "") + score;
-        Component repLabel = Component.translatable("rpglevels.gui.reputation_label")
-                .append(Component.literal(": " + tier.getIcon() + " "))
-                .append(Component.translatable(tier.getTranslationKey()).withStyle(tier.getColor()))
-                .append(Component.literal(" (" + scoreStr + ")").withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
-        guiGraphics.drawString(this.font, repLabel, x, y, 0xFFD4D4D4, false);
 
-        int barY = y + 9;
-        int barHeight = 4;
+        Component repName = Component.translatable(tier.getTranslationKey()).withStyle(tier.getColor());
+        String labelText = "§7Moral: " + tier.getIcon() + " " + repName.getString();
+        g.drawString(this.font, RpgUiHelper.clip(this.font, labelText, width), x, y, 0xFFD4D4D4, false);
+
+        int barY = y + 10;
+        int barH = 5;
         int midX = x + (width / 2);
+        g.fill(x, barY, x + width, barY + barH, 0xFF181A22);
+        g.renderOutline(x, barY, width, barH, 0xFF4A4E62);
+        g.vLine(midX, barY - 1, barY + barH, 0xFFFFAA00);
 
-        // Dark background with center tick
-        guiGraphics.fill(x, barY, x + width, barY + barHeight, 0xFF181A22);
-        guiGraphics.renderOutline(x, barY, width, barHeight, 0xFF4A4E62);
-        guiGraphics.vLine(midX, barY - 1, barY + barHeight, 0xFFFFAA00); // Yellow 0-line tick
-
-        // If score is positive: fill from center to right with green/gold
-        // If score is negative: fill from center to left with red
         float normalized = Math.min(1.0f, Math.abs(score) / 100.0f);
-        int halfWidth = width / 2;
-        int fillLength = (int) (halfWidth * normalized);
-
-        if (score > 0 && fillLength > 0) {
-            int rightEdge = Math.min(x + width - 1, midX + fillLength);
-            guiGraphics.fillGradient(midX, barY + 1, rightEdge, barY + barHeight - 1, 0xFF55FF55, 0xFF00AA00);
-        } else if (score < 0 && fillLength > 0) {
-            int leftEdge = Math.max(x + 1, midX - fillLength);
-            guiGraphics.fillGradient(leftEdge, barY + 1, midX, barY + barHeight - 1, 0xFFFF3333, 0xFFAA0000);
+        int fillLen = (int) ((width / 2.0f) * normalized);
+        if (score > 0 && fillLen > 0) {
+            g.fillGradient(midX, barY + 1, Math.min(x + width - 1, midX + fillLen), barY + barH - 1, 0xFF55FF55, 0xFF00AA00);
+        } else if (score < 0 && fillLen > 0) {
+            g.fillGradient(Math.max(x + 1, midX - fillLen), barY + 1, midX, barY + barH - 1, 0xFFFF3333, 0xFFAA0000);
         }
+        g.drawString(this.font, "§8Puntuación: §f" + scoreStr + "§8/100", x, barY + 7, 0xFF888888, false);
 
-        // Hover tooltip over reputation bar
-        if (mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= barY + barHeight + 2) {
+        if (mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= barY + barH + 8) {
             List<Component> tooltip = new ArrayList<>();
-            tooltip.add(Component.translatable("rpglevels.gui.reputation_tooltip_title").withStyle(net.minecraft.ChatFormatting.GOLD, net.minecraft.ChatFormatting.BOLD));
+            tooltip.add(Component.translatable("rpglevels.gui.reputation_tooltip_title").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
             tooltip.add(Component.translatable("rpglevels.gui.reputation_tooltip_score", scoreStr).withStyle(tier.getColor()));
-            tooltip.add(Component.translatable("rpglevels.gui.reputation_tooltip_desc." + tier.getId()).withStyle(net.minecraft.ChatFormatting.GRAY));
+            tooltip.add(Component.translatable("rpglevels.gui.reputation_tooltip_desc." + tier.getId()).withStyle(ChatFormatting.GRAY));
             if (tier.getPriceModifier() < 0) {
                 int discount = Math.round(Math.abs(tier.getPriceModifier()) * 100);
                 tooltip.add(Component.literal("§a• Descuento comercial en aldeas: -" + discount + "%"));
             } else if (tier.getPriceModifier() > 0) {
                 int penalty = Math.round(tier.getPriceModifier() * 100);
-                tooltip.add(Component.literal("§c• Inflación y sobrecostos por infamia: +" + penalty + "%"));
+                tooltip.add(Component.literal("§c• Inflación por infamia: +" + penalty + "%"));
             }
             return tooltip;
         }
         return null;
     }
 
-    private List<Component> renderStatsBreakdown(GuiGraphics guiGraphics, Player player, PlayerRpgData data, int currentLevel, int startX, int startY, int mouseX, int mouseY) {
+    private List<Component> renderStatsTab(GuiGraphics g, Player player, PlayerRpgData data, int currentLevel,
+                                           int startX, int startY, int totalW, int mouseX, int mouseY) {
         int pendingPoints = (data != null) ? data.getPendingPointsCount(currentLevel) : 0;
-        
-        // 0. Pending Points Banner if any
-        int lineY = startY;
+
         if (pendingPoints > 0) {
-            guiGraphics.drawString(this.font, Component.translatable("rpglevels.gui.unassigned_points", pendingPoints), startX, lineY, 0xFFFFFF55, true);
+            g.drawString(this.font, Component.translatable("rpglevels.gui.unassigned_points", pendingPoints), startX, startY + 2, 0xFFFFFF55, true);
         } else {
-            guiGraphics.drawString(this.font, Component.literal("§7Atributos Principales §8(Pasa el cursor para ver detalles)"), startX, lineY, 0xFFAAAAAA, false);
+            g.drawString(this.font, "§7Atributos Principales §8(Pasa el cursor sobre cada ficha)", startX, startY + 2, 0xFFAAAAAA, false);
         }
 
-        // Points
         int fortPerm = (data != null) ? data.getPermanentPoints(StatType.FORTITUDE) : 0;
         int fortActive = (data != null) ? data.getActiveMilestonePoints(StatType.FORTITUDE, currentLevel) : 0;
         int fortCurios = (data != null) ? data.getCuriosBonus(player, StatType.FORTITUDE) : 0;
@@ -372,199 +330,272 @@ public class RpgStatsScreen extends Screen {
         double critChance = (data != null) ? data.getCritChance(player) : 5.0;
         double critMult = (data != null) ? data.getCritDamageMultiplier(critChance) : 1.5;
 
-        // Live Minecraft Attributes
         AttributeInstance hpAttr = player.getAttribute(Attributes.MAX_HEALTH);
         double liveHealth = (hpAttr != null) ? hpAttr.getValue() : 20.0;
-        int totalHearts = (int) (liveHealth / 2.0);
-
         AttributeInstance armorAttr = player.getAttribute(Attributes.ARMOR);
         double liveArmor = (armorAttr != null) ? armorAttr.getValue() : 0.0;
-
         double deflectChance = Math.min(70.0, fortTotal * 0.7);
-
         float maxMana = (data != null) ? data.getMaxMana(player) : 100.0f;
         float curMana = (data != null) ? data.getCurrentMana(player) : maxMana;
-
-        int cardW = (leftPos + GUI_WIDTH - (pendingPoints > 0 ? 30 : 14)) - startX;
-        int cardH = 24;
-        List<Component> hoveredTooltip = null;
-
         double relDmgBonus = (data != null) ? data.getPhysicalRelationDamageBonus(player) : 0.0;
         double spiritSwordBonus = (data != null) ? data.getSpiritualSwordSpiritBonus(player) : 0.0;
         double hpDelta = (fortTotal >= 5) ? ((fortTotal - 5) * 2.0) : ((fortTotal - 5) * 1.5);
 
-        // 1. FORTITUDE CARD
-        int fortY = startY + 11;
-        boolean fortHover = mouseX >= startX && mouseX <= startX + cardW && mouseY >= fortY && mouseY <= fortY + cardH;
-        guiGraphics.fill(startX, fortY, startX + cardW, fortY + cardH, fortHover ? 0xDD1B2236 : 0x88101322);
-        guiGraphics.renderOutline(startX, fortY, cardW, cardH, fortHover ? 0xFFE5A93C : 0xFF2D3248);
+        int cardW = (pendingPoints > 0) ? (totalW - 22) : totalW;
+        int cardH = 35;
+        int cardStartY = startY + 14;
+        int cardStep = 39;
+        List<Component> hovered = null;
 
-        String fortName = Component.translatable("rpglevels.stat.fortitude.name").getString();
-        guiGraphics.drawString(this.font, Component.literal("🛡️ §c§l" + fortName + ": §f" + fortTotal + " pts"), startX + 5, fortY + 3, 0xFFFFFFFF, true);
-        String fortBadge = "§8★" + fortPerm + " +Nv" + fortActive + (fortCurios > 0 ? " +" + fortCurios : "");
-        guiGraphics.drawString(this.font, Component.literal(fortBadge), startX + cardW - 5 - this.font.width(fortBadge), fortY + 3, 0xFF888888, false);
-        String fortSub = "§7Vida: §c" + (int)liveHealth + " HP §8| §7Armad: §b+" + String.format("%.1f", Math.max(0.0, (fortTotal - 5) * 0.35)) + " §8| §7Desvío: §e" + String.format("%.1f", deflectChance) + "%";
-        guiGraphics.drawString(this.font, Component.literal(fortSub), startX + 5, fortY + 13, 0xFFAAAAAA, false);
-
-        if (fortHover) {
-            hoveredTooltip = new ArrayList<>();
-            hoveredTooltip.add(Component.literal("🛡️ §c§lFortaleza §7(" + fortTotal + " pts | Estándar = 5)").withStyle(net.minecraft.ChatFormatting.BOLD));
-            hoveredTooltip.add(Component.literal("§8Puntos: ★" + fortPerm + " nacimiento | +Nv" + fortActive + " por nivel" + (fortCurios > 0 ? " | +" + fortCurios + " accesorios" : "")));
-            hoveredTooltip.add(Component.literal("§8──────────────────────────────────"));
-            hoveredTooltip.add(Component.literal("§f• Vida Máxima: §c" + (hpDelta >= 0 ? "+" : "") + String.format("%.1f", hpDelta) + " HP §8(§c" + (int)liveHealth + " HP §7/ §e" + totalHearts + "♥§8)"));
-            hoveredTooltip.add(Component.literal("§f• Armadura Base: §b+" + String.format("%.1f", Math.max(0.0, (fortTotal - 5) * 0.35)) + " §8(Total: §b" + String.format("%.1f", liveArmor) + "§8)"));
-            hoveredTooltip.add(Component.literal("§f• Dureza de Armadura: §9+" + String.format("%.1f", Math.max(0.0, (fortTotal - 5) * 0.15))));
-            hoveredTooltip.add(Component.literal("§f• Daño Físico (Relación Fort+Des): §c" + (relDmgBonus >= 0 ? "+" : "") + String.format("%.2f", relDmgBonus) + " §8(Base: " + String.format("%.2f", 1.0 + relDmgBonus) + ")"));
-            hoveredTooltip.add(Component.literal("§f• Probabilidad de Desvío: §e" + String.format("%.1f", deflectChance) + "% §7(Anula proyectiles)"));
-            hoveredTooltip.add(Component.literal("§f• Reducción de Daño Plano: §a" + String.format("%.1f", Math.min(35.0, fortTotal * 0.45)) + "% §7(Mitigación constante)"));
+        // Card 1: Fortaleza
+        int y0 = cardStartY;
+        boolean h0 = isHover(mouseX, mouseY, startX, y0, cardW, cardH);
+        drawStatCard(g, startX, y0, cardW, cardH, h0,
+                "🛡️ §c§l" + Component.translatable("rpglevels.stat.fortitude.name").getString() + ": §f" + fortTotal + " pts",
+                "§8★" + fortPerm + " +Nv" + fortActive + (fortCurios > 0 ? " +" + fortCurios : ""),
+                "§7Vida: §c" + (int) liveHealth + " HP §8| §7Armadura: §b" + String.format(Locale.ROOT, "%.1f", liveArmor),
+                "§7Desvío Proy.: §e" + String.format(Locale.ROOT, "%.1f", deflectChance) + "% §8| §7Mitigación: §a" + String.format(Locale.ROOT, "%.1f", Math.min(35.0, fortTotal * 0.45)) + "%");
+        if (h0) {
+            hovered = List.of(
+                    Component.literal("🛡️ §c§lFortaleza §7(" + fortTotal + " pts | Base = 5)"),
+                    Component.literal("§8Nacimiento: " + fortPerm + " | Nivel: +" + fortActive + (fortCurios > 0 ? " | Accesorios: +" + fortCurios : "")),
+                    Component.literal("§f• Vida Máxima: §c" + (hpDelta >= 0 ? "+" : "") + String.format(Locale.ROOT, "%.1f", hpDelta) + " HP (§e" + (int) (liveHealth / 2.0) + "♥§f)"),
+                    Component.literal("§f• Armadura Total: §b" + String.format(Locale.ROOT, "%.1f", liveArmor) + " §8| §fDaño (F+D): §c" + (relDmgBonus >= 0 ? "+" : "") + String.format(Locale.ROOT, "%.2f", relDmgBonus)),
+                    Component.literal("§f• Desvío Proyectiles: §e" + String.format(Locale.ROOT, "%.1f", deflectChance) + "% §8| §fReducción Plana: §a" + String.format(Locale.ROOT, "%.1f", Math.min(35.0, fortTotal * 0.45)) + "%")
+            );
         }
 
-        // 2. DEXTERITY CARD
-        int dexY = startY + 39;
-        boolean dexHover = mouseX >= startX && mouseX <= startX + cardW && mouseY >= dexY && mouseY <= dexY + cardH;
-        guiGraphics.fill(startX, dexY, startX + cardW, dexY + cardH, dexHover ? 0xDD1B2236 : 0x88101322);
-        guiGraphics.renderOutline(startX, dexY, cardW, cardH, dexHover ? 0xFFE5A93C : 0xFF2D3248);
-
-        String dexName = Component.translatable("rpglevels.stat.dexterity.name").getString();
-        guiGraphics.drawString(this.font, Component.literal("🎯 §b§l" + dexName + ": §f" + dexTotal + " pts"), startX + 5, dexY + 3, 0xFFFFFFFF, true);
-        String dexBadge = "§8★" + dexPerm + " +Nv" + dexActive + (dexCurios > 0 ? " +" + dexCurios : "");
-        guiGraphics.drawString(this.font, Component.literal(dexBadge), startX + cardW - 5 - this.font.width(dexBadge), dexY + 3, 0xFF888888, false);
-        float dexCdrPct = Math.min(60.0f, dexTotal * 1.2f);
+        // Card 2: Destreza
+        int y1 = cardStartY + cardStep;
+        boolean h1 = isHover(mouseX, mouseY, startX, y1, cardW, cardH);
         double dexPctAtk = (dexTotal - 5) * 2.5;
-        String dexSub = "§7Vel.Atq: §e" + (dexPctAtk >= 0 ? "+" : "") + String.format("%.1f", dexPctAtk) + "% §8| §7Daño(F+D): §c" + (relDmgBonus >= 0 ? "+" : "") + String.format("%.1f", relDmgBonus) + " §8| §7Parry: §e" + String.format("%.0f", Math.min(80.0, 15.0 + dexTotal * 1.2)) + "%";
-        guiGraphics.drawString(this.font, Component.literal(dexSub), startX + 5, dexY + 13, 0xFFAAAAAA, false);
-
-        if (dexHover && hoveredTooltip == null) {
-            hoveredTooltip = new ArrayList<>();
-            hoveredTooltip.add(Component.literal("🎯 §b§lDestreza §7(" + dexTotal + " pts | Estándar = 5)").withStyle(net.minecraft.ChatFormatting.BOLD));
-            hoveredTooltip.add(Component.literal("§8Puntos: ★" + dexPerm + " nacimiento | +Nv" + dexActive + " por nivel" + (dexCurios > 0 ? " | +" + dexCurios + " accesorios" : "")));
-            hoveredTooltip.add(Component.literal("§8──────────────────────────────────"));
-            hoveredTooltip.add(Component.literal("§f• Sinergia de Daño (Fortitud + Destreza): §c" + (relDmgBonus >= 0 ? "+" : "") + String.format("%.2f", relDmgBonus)));
-            hoveredTooltip.add(Component.literal("§f• Velocidad de Ataque: §e" + (dexPctAtk >= 0 ? "+" : "") + String.format("%.1f", dexPctAtk) + "%"));
-            hoveredTooltip.add(Component.literal("§f• Velocidad de Movimiento: §a" + ((dexTotal - 5) >= 0 ? "+" : "") + String.format("%.1f", (dexTotal - 5) * 1.2) + "%"));
-            hoveredTooltip.add(Component.literal("§f• Altura de Salto: §d" + ((dexTotal - 5) >= 0 ? "+" : "") + (dexTotal - 5) + "%"));
-            hoveredTooltip.add(Component.literal("§f• Caída Segura: §b+" + String.format("%.1f", Math.max(0.0, (dexTotal - 5) * 0.4)) + " bloques"));
-            hoveredTooltip.add(Component.literal("§f• Probabilidad de Parry (Escudo/Espada): §e" + String.format("%.1f", Math.min(80.0, 15.0 + dexTotal * 1.2)) + "%"));
-            hoveredTooltip.add(Component.literal("§f• Reducción de Cooldowns (Técnicas): §b-" + String.format("%.1f", dexCdrPct) + "% §8(Máx 60%)"));
+        float dexCdrPct = Math.min(60.0f, dexTotal * 1.2f);
+        drawStatCard(g, startX, y1, cardW, cardH, h1,
+                "🎯 §b§l" + Component.translatable("rpglevels.stat.dexterity.name").getString() + ": §f" + dexTotal + " pts",
+                "§8★" + dexPerm + " +Nv" + dexActive + (dexCurios > 0 ? " +" + dexCurios : ""),
+                "§7Vel. Atq.: §e" + (dexPctAtk >= 0 ? "+" : "") + String.format(Locale.ROOT, "%.1f", dexPctAtk) + "% §8| §7Daño (F+D): §c" + (relDmgBonus >= 0 ? "+" : "") + String.format(Locale.ROOT, "%.1f", relDmgBonus),
+                "§7Parry: §e" + String.format(Locale.ROOT, "%.0f", Math.min(80.0, 15.0 + dexTotal * 1.2)) + "% §8| §7Red. Enfr.: §b-" + String.format(Locale.ROOT, "%.0f", dexCdrPct) + "%");
+        if (h1 && hovered == null) {
+            hovered = List.of(
+                    Component.literal("🎯 §b§lDestreza §7(" + dexTotal + " pts | Base = 5)"),
+                    Component.literal("§8Nacimiento: " + dexPerm + " | Nivel: +" + dexActive + (dexCurios > 0 ? " | Accesorios: +" + dexCurios : "")),
+                    Component.literal("§f• Vel. Ataque: §e" + (dexPctAtk >= 0 ? "+" : "") + String.format(Locale.ROOT, "%.1f", dexPctAtk) + "% §8| §fVelocidad: §a" + String.format(Locale.ROOT, "%.1f", (dexTotal - 5) * 1.2) + "%"),
+                    Component.literal("§f• Sinergia Daño (F+D): §c" + (relDmgBonus >= 0 ? "+" : "") + String.format(Locale.ROOT, "%.2f", relDmgBonus) + " §8| §fSalto: §d" + (dexTotal - 5) + "%"),
+                    Component.literal("§f• Parry Base: §e" + String.format(Locale.ROOT, "%.1f", Math.min(80.0, 15.0 + dexTotal * 1.2)) + "% §8| §fCDR Técnicas: §b-" + String.format(Locale.ROOT, "%.1f", dexCdrPct) + "%")
+            );
         }
 
-        // 3. SPIRIT CARD
-        int spiY = startY + 67;
-        boolean spiHover = mouseX >= startX && mouseX <= startX + cardW && mouseY >= spiY && mouseY <= spiY + cardH;
-        guiGraphics.fill(startX, spiY, startX + cardW, spiY + cardH, spiHover ? 0xDD1B2236 : 0x88101322);
-        guiGraphics.renderOutline(startX, spiY, cardW, cardH, spiHover ? 0xFFE5A93C : 0xFF2D3248);
-
-        String spiName = Component.translatable("rpglevels.stat.spirit.name").getString();
-        guiGraphics.drawString(this.font, Component.literal("✨ §d§l" + spiName + ": §f" + spiTotal + " pts"), startX + 5, spiY + 3, 0xFFFFFFFF, true);
-        String spiBadge = "§8★" + spiPerm + " +Nv" + spiActive + (spiCurios > 0 ? " +" + spiCurios : "");
-        guiGraphics.drawString(this.font, Component.literal(spiBadge), startX + cardW - 5 - this.font.width(spiBadge), spiY + 3, 0xFF888888, false);
-        String spiSub = "§7Maná: §b" + (int)curMana + "/" + (int)maxMana + " PM §8| §7Bono Espada Esp.: §d+" + String.format("%.2f", spiritSwordBonus);
-        guiGraphics.drawString(this.font, Component.literal(spiSub), startX + 5, spiY + 13, 0xFFAAAAAA, false);
-
-        if (spiHover && hoveredTooltip == null) {
-            hoveredTooltip = new ArrayList<>();
-            hoveredTooltip.add(Component.literal("✨ §d§lEspíritu §7(" + spiTotal + " pts | Estándar = 5 -> 100 PM)").withStyle(net.minecraft.ChatFormatting.BOLD));
-            hoveredTooltip.add(Component.literal("§8Puntos: ★" + spiPerm + " nacimiento | +Nv" + spiActive + " por nivel" + (spiCurios > 0 ? " | +" + spiCurios + " accesorios" : "")));
-            hoveredTooltip.add(Component.literal("§8──────────────────────────────────"));
-            hoveredTooltip.add(Component.literal("§f• Reserva de Maná Máximo: §b" + (int)maxMana + " PM §8(Base 100 PM en Espíritu 5)"));
-            hoveredTooltip.add(Component.literal("§f• Bono de Daño en Espadas Espirituales: §d+" + String.format("%.2f", spiritSwordBonus) + " daño extra"));
-            hoveredTooltip.add(Component.literal("§f• Regeneración de Maná: §3+" + String.format("%.2f", Math.max(0.0f, (spiTotal - 5) * 0.05f)) + " PM/s §8(Base +1.0/s)"));
-            hoveredTooltip.add(Component.literal("§f• Multiplicador de XP RPG: §a+" + String.format("%.0f", Math.max(0.0, (spiTotal - 5) * 2.0)) + "% extra"));
+        // Card 3: Espíritu
+        int y2 = cardStartY + cardStep * 2;
+        boolean h2 = isHover(mouseX, mouseY, startX, y2, cardW, cardH);
+        drawStatCard(g, startX, y2, cardW, cardH, h2,
+                "✨ §d§l" + Component.translatable("rpglevels.stat.spirit.name").getString() + ": §f" + spiTotal + " pts",
+                "§8★" + spiPerm + " +Nv" + spiActive + (spiCurios > 0 ? " +" + spiCurios : ""),
+                "§7Maná: §b" + (int) curMana + "/" + (int) maxMana + " PM §8| §7Bono Esp. Espiritual: §d+" + String.format(Locale.ROOT, "%.1f", spiritSwordBonus),
+                "§7Regen. Maná: §3+" + String.format(Locale.ROOT, "%.2f", Math.max(0.0f, (spiTotal - 5) * 0.05f)) + "/s §8| §7Bono XP RPG: §a+" + String.format(Locale.ROOT, "%.0f", Math.max(0.0, (spiTotal - 5) * 2.0)) + "%");
+        if (h2 && hovered == null) {
+            hovered = List.of(
+                    Component.literal("✨ §d§lEspíritu §7(" + spiTotal + " pts | Base = 5)"),
+                    Component.literal("§8Nacimiento: " + spiPerm + " | Nivel: +" + spiActive + (spiCurios > 0 ? " | Accesorios: +" + spiCurios : "")),
+                    Component.literal("§f• Maná Máximo: §b" + (int) maxMana + " PM §8| §fRegen.: §3+" + String.format(Locale.ROOT, "%.2f", Math.max(0.0f, (spiTotal - 5) * 0.05f)) + " PM/s"),
+                    Component.literal("§f• Bono Espada Espiritual: §d+" + String.format(Locale.ROOT, "%.2f", spiritSwordBonus) + " daño"),
+                    Component.literal("§f• Multiplicador XP RPG: §a+" + String.format(Locale.ROOT, "%.0f", Math.max(0.0, (spiTotal - 5) * 2.0)) + "%")
+            );
         }
 
-        // 4. LUCK CARD
-        int luckY = startY + 95;
-        boolean luckHover = mouseX >= startX && mouseX <= startX + cardW && mouseY >= luckY && mouseY <= luckY + cardH;
-        guiGraphics.fill(startX, luckY, startX + cardW, luckY + cardH, luckHover ? 0xDD1B2236 : 0x88101322);
-        guiGraphics.renderOutline(startX, luckY, cardW, cardH, luckHover ? 0xFFE5A93C : 0xFF2D3248);
-
-        String luckName = Component.translatable("rpglevels.stat.luck.name").getString();
-        guiGraphics.drawString(this.font, Component.literal("🍀 §a§l" + luckName + ": §f" + luckTotal + " pts"), startX + 5, luckY + 3, 0xFFFFFFFF, true);
-        String luckBadge = "§8★" + luckPerm + " +Nv" + luckActive + (luckCurios > 0 ? " +" + luckCurios : "");
-        guiGraphics.drawString(this.font, Component.literal(luckBadge), startX + cardW - 5 - this.font.width(luckBadge), luckY + 3, 0xFF888888, false);
-        String luckSub = "§7Crítico: §e" + String.format("%.1f", critChance) + "% §8(§c" + String.format("%.2f", critMult) + "x§8) §8| §7Drops: §a+" + (luckTotal * 3) + "%";
-        guiGraphics.drawString(this.font, Component.literal(luckSub), startX + 5, luckY + 13, 0xFFAAAAAA, false);
-
-        if (luckHover && hoveredTooltip == null) {
-            hoveredTooltip = new ArrayList<>();
-            hoveredTooltip.add(Component.literal("🍀 §a§lSuerte §7(" + luckTotal + " pts | Estándar = 5)").withStyle(net.minecraft.ChatFormatting.BOLD));
-            hoveredTooltip.add(Component.literal("§8Puntos: ★" + luckPerm + " nacimiento | +Nv" + luckActive + " por nivel" + (luckCurios > 0 ? " | +" + luckCurios + " accesorios" : "")));
-            hoveredTooltip.add(Component.literal("§8──────────────────────────────────"));
-            hoveredTooltip.add(Component.literal("§f• Probabilidad de Crítico: §e" + String.format("%.1f", critChance) + "% " + (critChance > 100.0 ? "§6[SUPER-CRIT!]" : "")));
-            hoveredTooltip.add(Component.literal("§f• Multiplicador de Crítico: §c" + String.format("%.2f", critMult) + "x daño"));
-            hoveredTooltip.add(Component.literal("§f• Suerte Nativa (Vanilla Luck): §b" + ((luckTotal - 5) >= 0 ? "+" : "") + String.format("%.1f", (luckTotal - 5) * 0.2) + " §7(Mejor botín y pesca)"));
-            hoveredTooltip.add(Component.literal("§f• Bonus de Drops y Recompensas: §a+" + (luckTotal * 3) + "% más probabilidad de botín raro"));
+        // Card 4: Suerte
+        int y3 = cardStartY + cardStep * 3;
+        boolean h3 = isHover(mouseX, mouseY, startX, y3, cardW, cardH);
+        drawStatCard(g, startX, y3, cardW, cardH, h3,
+                "🍀 §a§l" + Component.translatable("rpglevels.stat.luck.name").getString() + ": §f" + luckTotal + " pts",
+                "§8★" + luckPerm + " +Nv" + luckActive + (luckCurios > 0 ? " +" + luckCurios : ""),
+                "§7Prob. Crítico: §e" + String.format(Locale.ROOT, "%.1f", critChance) + "% §8(§c" + String.format(Locale.ROOT, "%.2f", critMult) + "x§8)",
+                "§7Drops Raros: §a+" + (luckTotal * 3) + "% §8| §7Suerte Vanilla: §b" + String.format(Locale.ROOT, "%.1f", (luckTotal - 5) * 0.2));
+        if (h3 && hovered == null) {
+            hovered = List.of(
+                    Component.literal("🍀 §a§lSuerte §7(" + luckTotal + " pts | Base = 5)"),
+                    Component.literal("§8Nacimiento: " + luckPerm + " | Nivel: +" + luckActive + (luckCurios > 0 ? " | Accesorios: +" + luckCurios : "")),
+                    Component.literal("§f• Crítico: §e" + String.format(Locale.ROOT, "%.1f", critChance) + "% §8| §fDaño Crítico: §c" + String.format(Locale.ROOT, "%.2f", critMult) + "x"),
+                    Component.literal("§f• Botín y Recompensas: §a+" + (luckTotal * 3) + "% §8| §fLuck Vanilla: §b" + String.format(Locale.ROOT, "%.1f", (luckTotal - 5) * 0.2))
+            );
         }
 
-        return hoveredTooltip;
+        return hovered;
     }
 
-    private void renderCuriosSummary(GuiGraphics guiGraphics, Player player, int startX, int startY) {
-        guiGraphics.drawString(this.font, Component.translatable("rpglevels.gui.accessories_title"), startX, startY, 0xFFFFAA00, false);
+    private void drawStatCard(GuiGraphics g, int x, int y, int w, int h, boolean hover,
+                              String titleLeft, String badgeRight, String line1, String line2) {
+        g.fill(x, y, x + w, y + h, hover ? 0xDD1C2338 : 0x90101423);
+        g.renderOutline(x, y, w, h, hover ? 0xFFE5A93C : 0xFF2D334A);
 
-        List<Component> itemsRender = new ArrayList<>();
+        int badgeW = this.font.width(badgeRight);
+        int maxTitleW = Math.max(40, w - badgeW - 14);
+        g.drawString(this.font, RpgUiHelper.clip(this.font, titleLeft, maxTitleW), x + 5, y + 4, 0xFFFFFFFF, true);
+        g.drawString(this.font, badgeRight, x + w - 5 - badgeW, y + 4, 0xFF888888, false);
+        g.drawString(this.font, RpgUiHelper.clip(this.font, line1, w - 10), x + 5, y + 15, 0xFFCCCCCC, false);
+        g.drawString(this.font, RpgUiHelper.clip(this.font, line2, w - 10), x + 5, y + 24, 0xFF99A0B8, false);
+    }
+
+    private void renderBlessingTab(GuiGraphics g, PlayerRpgData data, int x, int y, int w) {
+        // Card Superior: Bendición Única del Dios Olímpico
+        int godCardH = 104;
+        g.fill(x, y, x + w, y + godCardH, 0x99121626);
+        g.renderOutline(x, y, w, godCardH, 0xFFD4AF37);
+
+        if (data == null || !data.hasDivineBlessingUnlocked() || data.getPatronGod() == null) {
+            g.drawString(this.font, "§5✦ Bendición Divina Bloqueada", x + 7, y + 7, 0xFFFFFFFF, true);
+            List<FormattedCharSequence> lines = this.font.split(
+                    Component.literal("§7Abate a tu primer enemigo y duerme en una cama para acudir al Espacio Astral. Un Dios Olímpico te otorgará su Bendición Única."),
+                    w - 14);
+            int ly = y + 23;
+            for (FormattedCharSequence line : lines) {
+                g.drawString(this.font, line, x + 7, ly, 0xFFBBBBBB, false);
+                ly += 10;
+            }
+        } else {
+            GreekGod god = data.getPatronGod();
+            int tier = GreekGod.getBlessingTier(data.getRank());
+            String roman = tier == 1 ? "I" : (tier == 2 ? "II" : "III");
+
+            g.drawString(this.font, god.getBadge(), x + 7, y + 6, 0xFFFFFFFF, true);
+            String tierBadge = "§eNivel " + roman;
+            g.drawString(this.font, tierBadge, x + w - 7 - this.font.width(tierBadge), y + 6, 0xFFFFFFFF, false);
+
+            g.drawString(this.font, "§6✦ " + god.getBlessingName(), x + 7, y + 18, 0xFFFFDD66, true);
+            g.hLine(x + 6, x + w - 6, y + 29, 0xFF394058);
+
+            int textY = y + 33;
+            for (String detail : god.getBlessingDetails(tier)) {
+                for (FormattedCharSequence line : this.font.split(Component.literal("§f" + detail), w - 14)) {
+                    if (textY > y + godCardH - 18) break;
+                    g.drawString(this.font, line, x + 7, textY, 0xFFD8DEEE, false);
+                    textY += 9;
+                }
+            }
+
+            String scaleHint = (tier < 3)
+                    ? "§8Escala automáticamente al ascender a Rango D/C (II) y B/A (III)."
+                    : "§a✦ Poder divino en su máximo esplendor (Nivel III).";
+            g.drawString(this.font, RpgUiHelper.clip(this.font, scaleHint, w - 14), x + 7, y + godCardH - 12, 0xFF999999, false);
+        }
+
+        // Card Inferior: Guardián Espiritual & Energía Vital
+        int guardY = y + godCardH + 6;
+        int guardH = 66;
+        g.fill(x, guardY, x + w, guardY + guardH, 0x99121626);
+        g.renderOutline(x, guardY, w, guardH, 0xFF55A065);
+
+        String summonKey = ModKeyMappings.SUMMON_GUARDIAN_KEY.get().getTranslatedKeyMessage().getString();
+        if (data == null || !data.hasChosenGuardian()) {
+            g.drawString(this.font, "§d✦ Guardián Espiritual", x + 7, guardY + 7, 0xFFFFFFFF, true);
+            g.drawString(this.font, "§7Se desbloquea al ascender a Rango B en el Plano Astral.", x + 7, guardY + 21, 0xFFAAAAAA, false);
+            g.drawString(this.font, "§8Al invocarlo [" + summonKey + "] reunirá Energía Vital para ti.", x + 7, guardY + 34, 0xFF888888, false);
+        } else {
+            String gId = data.getChosenGuardian();
+            String gName = switch (gId) {
+                case "starry" -> "Starry (Espíritu Celestial)";
+                case "chubby" -> "Chubby (Nubecita del Trueno)";
+                default -> "Brambi (Venado de Brasa)";
+            };
+            g.drawString(this.font, RpgUiHelper.clip(this.font, "§d✦ Guardián: §f" + gName, w - 14), x + 7, guardY + 6, 0xFFFFFFFF, true);
+            g.drawString(this.font, "§7Invocar: §e[" + summonKey + "] §8(50 PM) | Escala con Nivel RPG", x + 7, guardY + 18, 0xFFCCCCCC, false);
+
+            int vital = data.getGuardianVitalEnergy();
+            int maxVital = PlayerRpgData.MAX_GUARDIAN_VITAL_ENERGY;
+            float pct = Math.min(1.0f, Math.max(0.0f, (float) vital / Math.max(1, maxVital)));
+
+            g.drawString(this.font, "§aEnergía Vital: §e" + vital + "§7/" + maxVital, x + 7, guardY + 31, 0xFFFFFFFF, false);
+            String dropHint = "§7→ Semillas de Vida";
+            g.drawString(this.font, dropHint, x + w - 7 - this.font.width(dropHint), guardY + 31, 0xFF88FF88, false);
+
+            int barX = x + 7;
+            int barY = guardY + 42;
+            int barW = w - 14;
+            g.fill(barX, barY, barX + barW, barY + 5, 0xFF18221A);
+            int fillW = (int) (barW * pct);
+            if (fillW > 0) {
+                g.fillGradient(barX, barY, barX + fillW, barY + 5, 0xFF55FF88, 0xFFFFD740);
+            }
+            g.renderOutline(barX, barY, barW, 5, 0xFF3E6648);
+            g.drawString(this.font, "§8Absorbida al derrotar entidades cerca de tu guardián invocado.", barX, guardY + 51, 0xFF888888, false);
+        }
+    }
+
+    private void renderGearAndTechTab(GuiGraphics g, Player player, PlayerRpgData data, int x, int y, int w) {
+        // Card Superior: Accesorios Curios
+        int accH = 60;
+        g.fill(x, y, x + w, y + accH, 0x99121626);
+        g.renderOutline(x, y, w, accH, 0xFF394058);
+        g.drawString(this.font, Component.translatable("rpglevels.gui.accessories_title"), x + 7, y + 6, 0xFFFFAA00, true);
+
+        List<Component> equipped = new ArrayList<>();
         var curiosOpt = CuriosApi.getCuriosInventory(player);
         if (curiosOpt.isPresent()) {
-            curiosOpt.get().findCurios(s -> !s.isEmpty()).forEach(res -> {
-                ItemStack stack = res.stack();
-                itemsRender.add(stack.getHoverName());
-            });
+            curiosOpt.get().findCurios(s -> !s.isEmpty()).forEach(res -> equipped.add(res.stack().getHoverName()));
         }
 
-        // Add Skills badges
-        PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
-        if (data != null) {
-            if (data.hasSkill("agility_double_jump")) {
-                itemsRender.add(Component.literal("§a⚡ Doble Salto"));
-            } else {
-                itemsRender.add(Component.literal("§7⚡ Doble Salto (" + data.getJumpCount() + "/2000)"));
-            }
-
-            if (data.hasSkill("agility_dash")) {
-                int cdSec = data.getDashCooldownTicks(player) / 20;
-                itemsRender.add(Component.literal("§b💨 Dash Nivel 1 (" + cdSec + "s)"));
-            } else {
-                itemsRender.add(Component.literal("§7💨 Dash (Kaelen)"));
-            }
-
-            if (data.hasSkill("magic_affinity")) {
-                itemsRender.add(Component.literal("§d✦ Afinidad Espiritual"));
-            }
-            if (data.hasSkill("physical_boost")) {
-                itemsRender.add(Component.literal("§c⚔ Refuerzo"));
-            }
-            if (data.hasSkill("agility_boost")) {
-                itemsRender.add(Component.literal("§b💨 Celeridad"));
-            }
-            if (data.hasSkill("fireball")) {
-                itemsRender.add(Component.literal("§6🔥 Fuego"));
-            }
-            if (data.hasSkill("heal_wounds")) {
-                itemsRender.add(Component.literal("§a💚 Curación"));
-            }
-            if (data.hasReceivedSpiritualSword()) {
-                itemsRender.add(Component.literal("§5🗡 Espada Espiritual"));
-            }
-        }
-
-        if (itemsRender.isEmpty()) {
-            guiGraphics.drawString(this.font, Component.translatable("rpglevels.gui.no_accessories"), startX, startY + 10, 0xFF888888, false);
+        if (equipped.isEmpty()) {
+            g.drawString(this.font, Component.translatable("rpglevels.gui.no_accessories"), x + 7, y + 20, 0xFF888888, false);
         } else {
-            int curX = startX;
-            int curY = startY + 10;
-            int maxX = leftPos + GUI_WIDTH - 14;
-
-            for (Component item : itemsRender) {
-                Component renderedItem = Component.literal("• ").append(item);
-                int itemW = this.font.width(renderedItem);
-                if (curX + itemW > maxX && curX > startX) {
-                    curX = startX;
-                    curY += 10;
-                    if (curY > topPos + 204) break;
-                }
-                guiGraphics.drawString(this.font, renderedItem, curX, curY, 0xFFFFFFFF, false);
-                curX += itemW + 8;
+            int rowY = y + 19;
+            for (int i = 0; i < Math.min(3, equipped.size()); i++) {
+                String itemLine = "• " + equipped.get(i).getString();
+                g.drawString(this.font, RpgUiHelper.clip(this.font, itemLine, w - 14), x + 7, rowY, 0xFFFFFFFF, false);
+                rowY += 12;
+            }
+            if (equipped.size() > 3) {
+                g.drawString(this.font, "§7... y " + (equipped.size() - 3) + " más.", x + 7, rowY, 0xFFAAAAAA, false);
             }
         }
+
+        // Card Inferior: Movilidad, Espada Espiritual y Técnicas
+        int skY = y + accH + 6;
+        int skH = 110;
+        g.fill(x, skY, x + w, skY + skH, 0x99121626);
+        g.renderOutline(x, skY, w, skH, 0xFF394058);
+        g.drawString(this.font, "§b✦ Técnicas y Habilidades Aprendidas", x + 7, skY + 6, 0xFFFFFFFF, true);
+
+        if (data == null) return;
+
+        String dashKey = ModKeyMappings.DASH_KEY.get().getTranslatedKeyMessage().getString();
+        String swordKey = ModKeyMappings.RELEASE_SWORD_KEY.get().getTranslatedKeyMessage().getString();
+        String magicKey = ModKeyMappings.MAGIC_MODIFIER_KEY.get().getTranslatedKeyMessage().getString();
+
+        List<String> badges = new ArrayList<>();
+        badges.add(data.hasSkill("agility_double_jump")
+                ? "§a⚡ Doble Salto"
+                : "§7🔒 Doble Salto (" + data.getJumpCount() + "/2000)");
+        badges.add(data.hasSkill("agility_dash")
+                ? "§b💨 Dash [" + dashKey + "] (" + (data.getDashCooldownTicks(player) / 20) + "s)"
+                : "§7🔒 Dash (Aprende c/ Kaelen)");
+        badges.add(data.hasReceivedSpiritualSword()
+                ? "§5🗡 Espada Espiritual [" + swordKey + "]"
+                : "§7🔒 Espada Espiritual (Alice)");
+        if (data.hasSkill("magic_affinity")) badges.add("§d✦ Afinidad Espiritual");
+        if (data.hasSkill("physical_boost")) badges.add("§c⚔ Refuerzo Físico");
+        if (data.hasSkill("agility_boost")) badges.add("§b💨 Celeridad");
+        if (data.hasSkill("fireball")) badges.add("§6🔥 Proyectil Ígneo");
+        if (data.hasSkill("heal_wounds")) badges.add("§a💚 Sanar Heridas");
+        if (data.hasSkill("oppressive_aura")) badges.add("§5🌀 Aura Opresiva");
+        if (data.hasSkill("connect_realities")) badges.add("§5✦ Conectar Realidades");
+
+        int colW = (w - 18) / 2;
+        int cy = skY + 20;
+        for (int i = 0; i < badges.size(); i++) {
+            int col = i % 2;
+            int row = i / 2;
+            int itemY = cy + row * 12;
+            if (itemY > skY + skH - 22) break;
+            int bx = x + 7 + col * (colW + 4);
+            g.drawString(this.font, RpgUiHelper.clip(this.font, badges.get(i), colW), bx, itemY, 0xFFFFFFFF, false);
+        }
+
+        g.drawString(this.font, RpgUiHelper.clip(this.font,
+                "§7Cánticos: Mantén §e[" + magicKey + "] §7+ teclas §f1/2/3", w - 14),
+                x + 7, skY + skH - 13, 0xFFAAAAAA, false);
+    }
+
+    private boolean isHover(int mouseX, int mouseY, int x, int y, int w, int h) {
+        return mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h;
     }
 }

@@ -1,5 +1,6 @@
 package com.pablo.rpglevels.client.gui;
 
+import com.pablo.rpglevels.client.ModKeyMappings;
 import com.pablo.rpglevels.data.ModAttachments;
 import com.pablo.rpglevels.data.PlayerRpgData;
 import com.pablo.rpglevels.network.UnlockSkillPayload;
@@ -16,8 +17,8 @@ import net.neoforged.neoforge.network.PacketDistributor;
 public class RpgPhysicalSkillsScreen extends Screen {
 
     private final Screen parentScreen;
-    private final int GUI_WIDTH = 325;
-    private final int GUI_HEIGHT = 225;
+    private static final int GUI_WIDTH = 360;
+    private static final int GUI_HEIGHT = 238;
     private int leftPos;
     private int topPos;
 
@@ -32,46 +33,51 @@ public class RpgPhysicalSkillsScreen extends Screen {
         this.leftPos = (this.width - GUI_WIDTH) / 2;
         this.topPos = (this.height - GUI_HEIGHT) / 2;
 
+        // 1. Barra superior unificada
+        RpgUiHelper.addNavigationBar(this, this::addRenderableWidget, leftPos, topPos, GUI_WIDTH, RpgUiHelper.NavTab.SKILLS);
+
         Player player = Minecraft.getInstance().player;
         PlayerRpgData data = (player != null) ? player.getData(ModAttachments.PLAYER_RPG_DATA) : null;
         int points = (data != null) ? data.getPhysicalSkillPoints() : 0;
 
-        // Column 1: Agilidad
-        addSkillNode("agility_dash", null, leftPos + 18, topPos + 55, data, points);
-        addSkillNode("agility_double_jump", "agility_dash", leftPos + 18, topPos + 105, data, points);
-        addSkillNode("agility_air_dash", "agility_double_jump", leftPos + 18, topPos + 155, data, points);
+        int col1X = leftPos + 20;
+        int col2X = leftPos + 132;
+        int col3X = leftPos + 244;
+        int row1Y = topPos + 72;
+        int row2Y = topPos + 122;
+        int row3Y = topPos + 172;
 
-        // Column 2: Fuerza
-        addSkillNode("strength_1", null, leftPos + 120, topPos + 55, data, points);
-        addSkillNode("strength_2", "strength_1", leftPos + 120, topPos + 105, data, points);
-        addSkillNode("strength_3", "strength_2", leftPos + 120, topPos + 155, data, points);
+        // Columna 1: Agilidad
+        addSkillNode("agility_dash", null, col1X, row1Y, data, points);
+        addSkillNode("agility_double_jump", "agility_dash", col1X, row2Y, data, points);
+        addSkillNode("agility_air_dash", "agility_double_jump", col1X, row3Y, data, points);
 
-        // Column 3: Fortaleza
-        addSkillNode("fortitude_1", null, leftPos + 222, topPos + 55, data, points);
-        addSkillNode("fortitude_2", "fortitude_1", leftPos + 222, topPos + 105, data, points);
-        addSkillNode("fortitude_3", "fortitude_2", leftPos + 222, topPos + 155, data, points);
+        // Columna 2: Fuerza
+        addSkillNode("strength_1", null, col2X, row1Y, data, points);
+        addSkillNode("strength_2", "strength_1", col2X, row2Y, data, points);
+        addSkillNode("strength_3", "strength_2", col2X, row3Y, data, points);
 
-        // Back to Stats Button
-        this.addRenderableWidget(Button.builder(Component.translatable("rpglevels.gui.back_stats"), button -> {
-            if (this.minecraft != null) {
-                this.minecraft.setScreen(this.parentScreen);
-            }
-        }).bounds(leftPos + 18, topPos + GUI_HEIGHT - 24, 110, 18).build());
+        // Columna 3: Fortaleza
+        addSkillNode("fortitude_1", null, col3X, row1Y, data, points);
+        addSkillNode("fortitude_2", "fortitude_1", col3X, row2Y, data, points);
+        addSkillNode("fortitude_3", "fortitude_2", col3X, row3Y, data, points);
 
-        // Close Button
-        this.addRenderableWidget(Button.builder(Component.translatable("rpglevels.gui.close"), button -> {
-            this.onClose();
-        }).bounds(leftPos + GUI_WIDTH - 85, topPos + GUI_HEIGHT - 24, 68, 18).build());
+        if (this.parentScreen != null) {
+            this.addRenderableWidget(Button.builder(Component.literal("§cVolver"), b -> {
+                if (this.minecraft != null) {
+                    this.minecraft.setScreen(this.parentScreen);
+                }
+            }).bounds(leftPos + 14, topPos + GUI_HEIGHT - 24, 72, 17).build());
+        }
     }
 
-    private void addSkillNode(String skillId, String prereqId,
-                              int x, int y, PlayerRpgData data, int points) {
+    private void addSkillNode(String skillId, String prereqId, int x, int y, PlayerRpgData data, int points) {
         boolean unlocked = (data != null && data.hasSkill(skillId));
         boolean prereqMet = (prereqId == null || (data != null && data.hasSkill(prereqId)));
         boolean canUnlock = (!unlocked && prereqMet && points >= 1);
 
-        int btnWidth = 85;
-        int btnHeight = 18;
+        int btnWidth = 96;
+        int btnHeight = 20;
 
         Component skillName = Component.translatable("rpglevels.skill." + skillId);
         Component skillDesc = Component.translatable("rpglevels.skill." + skillId + ".desc");
@@ -113,48 +119,53 @@ public class RpgPhysicalSkillsScreen extends Screen {
     }
 
     @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (ModKeyMappings.OPEN_SKILLS_KEY.get().matches(keyCode, scanCode)
+                || (this.minecraft != null && this.minecraft.options.keyInventory.matches(keyCode, scanCode))) {
+            this.onClose();
+            return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
     public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        // Intencionalmente vacío para evitar processBlurEffect de 1.21
     }
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        // Darken backdrop without blur
-        graphics.fill(0, 0, this.width, this.height, 0xB0080A12);
-
-        // Dark RPG Backdrop Container
-        graphics.fill(leftPos, topPos, leftPos + GUI_WIDTH, topPos + GUI_HEIGHT, 0xF0101216);
-        graphics.renderOutline(leftPos, topPos, GUI_WIDTH, GUI_HEIGHT, 0xFFC5A059);
-        graphics.renderOutline(leftPos + 2, topPos + 2, GUI_WIDTH - 4, GUI_HEIGHT - 4, 0x55C5A059);
-
-        // Header Title
-        Component titleComp = Component.literal("§6§l⚔ ").append(Component.translatable("rpglevels.gui.skills_title")).append(Component.literal(" ⚔"));
-        graphics.drawCenteredString(this.font, titleComp, leftPos + GUI_WIDTH / 2, topPos + 10, 0xFFFFFFFF);
+        graphics.fill(0, 0, this.width, this.height, 0xB8080A12);
+        RpgUiHelper.drawPanelFrame(graphics, leftPos, topPos, GUI_WIDTH, GUI_HEIGHT);
 
         Player player = Minecraft.getInstance().player;
         PlayerRpgData data = (player != null) ? player.getData(ModAttachments.PLAYER_RPG_DATA) : null;
         int points = (data != null) ? data.getPhysicalSkillPoints() : 0;
 
-        // Subtitle: Available Points
+        Component titleComp = Component.literal("§6§l⚔ ").append(Component.translatable("rpglevels.gui.skills_title"));
+        graphics.drawString(this.font, titleComp, leftPos + 12, topPos + 31, 0xFFFFFFFF, true);
         Component pointsComp = Component.translatable("rpglevels.gui.points_available", points);
-        graphics.drawCenteredString(this.font, pointsComp, leftPos + GUI_WIDTH / 2, topPos + 24, 0xFFFFFFFF);
+        graphics.drawString(this.font, pointsComp, leftPos + GUI_WIDTH - 12 - this.font.width(pointsComp), topPos + 31, 0xFFFFFFFF, false);
 
-        // Column Titles
-        graphics.drawCenteredString(this.font, Component.translatable("rpglevels.gui.branch_agility"), leftPos + 60, topPos + 40, 0xFF55FFFF);
-        graphics.drawCenteredString(this.font, Component.translatable("rpglevels.gui.branch_strength"), leftPos + 162, topPos + 40, 0xFFFF5555);
-        graphics.drawCenteredString(this.font, Component.translatable("rpglevels.gui.branch_fortitude"), leftPos + 264, topPos + 40, 0xFFFFAA00);
+        // Encabezados de columnas
+        int c1Mid = leftPos + 68;
+        int c2Mid = leftPos + 180;
+        int c3Mid = leftPos + 292;
+        graphics.drawCenteredString(this.font, Component.translatable("rpglevels.gui.branch_agility"), c1Mid, topPos + 54, 0xFF55FFFF);
+        graphics.drawCenteredString(this.font, Component.translatable("rpglevels.gui.branch_strength"), c2Mid, topPos + 54, 0xFFFF5555);
+        graphics.drawCenteredString(this.font, Component.translatable("rpglevels.gui.branch_fortitude"), c3Mid, topPos + 54, 0xFFFFAA00);
 
-        // Connecting flow arrows between node tiers
-        graphics.drawCenteredString(this.font, "§8↓", leftPos + 60, topPos + 82, 0xFFAAAAAA);
-        graphics.drawCenteredString(this.font, "§8↓", leftPos + 60, topPos + 132, 0xFFAAAAAA);
+        // Conectores entre niveles
+        int[] mids = {c1Mid, c2Mid, c3Mid};
+        for (int mid : mids) {
+            graphics.drawCenteredString(this.font, "§8↓", mid, topPos + 100, 0xFFAAAAAA);
+            graphics.drawCenteredString(this.font, "§8↓", mid, topPos + 150, 0xFFAAAAAA);
+        }
 
-        graphics.drawCenteredString(this.font, "§8↓", leftPos + 162, topPos + 82, 0xFFAAAAAA);
-        graphics.drawCenteredString(this.font, "§8↓", leftPos + 162, topPos + 132, 0xFFAAAAAA);
+        String dashKey = ModKeyMappings.DASH_KEY.get().getTranslatedKeyMessage().getString();
+        graphics.drawCenteredString(this.font,
+                "§7Tecla Dash: §e[" + dashKey + "] §8| Doble Salto con §e[Espacio] §7(Pasa el cursor sobre cada nodo)",
+                leftPos + GUI_WIDTH / 2, topPos + GUI_HEIGHT - 16, 0xFF999999);
 
-        graphics.drawCenteredString(this.font, "§8↓", leftPos + 264, topPos + 82, 0xFFAAAAAA);
-        graphics.drawCenteredString(this.font, "§8↓", leftPos + 264, topPos + 132, 0xFFAAAAAA);
-
-        // Render all buttons & tooltips
         super.render(graphics, mouseX, mouseY, partialTick);
     }
 }

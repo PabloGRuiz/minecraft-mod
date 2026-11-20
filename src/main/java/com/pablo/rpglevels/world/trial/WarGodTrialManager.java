@@ -650,6 +650,8 @@ public class WarGodTrialManager {
                     .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
             player.sendSystemMessage(Component.literal("§eHas recibido la bendición de ").append(god.getBadge())
                     .append(Component.literal(" §7(" + god.getTitle() + ")§e.")));
+            player.sendSystemMessage(Component.literal("§6✦ Don Único — §l" + god.getBlessingName()
+                    + "§f: §7" + god.getBlessingShortSummary()));
             player.sendSystemMessage(
                     Component.literal("§a✔ ¡Has desbloqueado la progresión de Nivel RPG y mejora de estadísticas!"));
             player.sendSystemMessage(Component.literal(

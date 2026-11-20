@@ -120,13 +120,27 @@ public class CombatEvents {
 
         if (shieldParry && facingAttacker) {
             // PROBABILIDAD DE PARRY BASADA EN DESTREZA:
-            // Base 15% + 1.2% por punto de Destreza, tope máximo del 80%
+            // Base 15% + 1.2% por punto de Destreza (+ bono de Atenea), tope máximo del 80% (95% con Atenea)
             int dex = (data != null) ? data.getTotalStatPoints(player, StatType.DEXTERITY) : 0;
-            float parryChance = Math.min(0.80f, 0.15f + (dex * 0.012f));
+            boolean hasAthena = data != null && data.hasDivineBlessingUnlocked()
+                    && data.getPatronGod() == com.pablo.rpglevels.data.GreekGod.ATHENA;
+            int athenaTier = hasAthena ? com.pablo.rpglevels.data.GreekGod.getBlessingTier(data.getRank()) : 0;
+            float athenaParryBonus = hasAthena ? (athenaTier == 1 ? 0.10f : (athenaTier == 2 ? 0.15f : 0.20f)) : 0.0f;
+            float parryChance = Math.min(hasAthena ? 0.95f : 0.80f, 0.15f + (dex * 0.012f) + athenaParryBonus);
             boolean parrySuccess = player.getRandom().nextFloat() < parryChance;
 
             if (parrySuccess) {
                 event.setCanceled(true);
+
+                if (hasAthena) {
+                    float manaGain = athenaTier == 1 ? 10.0f : (athenaTier == 2 ? 15.0f : 20.0f);
+                    data.regenerateMana(player, manaGain);
+                    player.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+                            net.minecraft.world.effect.MobEffects.DAMAGE_RESISTANCE, 80, 0, false, false, true));
+                    if (player instanceof ServerPlayer sp) {
+                        ModNetworking.syncMana(sp);
+                    }
+                }
 
                 if (player.level() instanceof ServerLevel serverLevel) {
                     serverLevel.playSound(null, player.getX(), player.getY() + 1.0, player.getZ(),

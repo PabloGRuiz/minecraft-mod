@@ -825,6 +825,13 @@ public class AdventurerNpcEntity extends PathfinderMob implements RpgCombatDueli
 
     public void addAffinity(Player player, int amount) {
         if (player == null) return;
+        if (amount > 0) {
+            PlayerRpgData pData = player.getData(ModAttachments.PLAYER_RPG_DATA);
+            if (pData != null && pData.hasDivineBlessingUnlocked()
+                    && pData.getPatronGod() == com.pablo.rpglevels.data.GreekGod.APHRODITE) {
+                amount = Math.max(amount + 1, Math.round(amount * 1.5f));
+            }
+        }
         int current = getAffinity(player);
         int newScore = Math.max(0, Math.min(100, current + amount));
         affinityMap.put(player.getUUID(), newScore);

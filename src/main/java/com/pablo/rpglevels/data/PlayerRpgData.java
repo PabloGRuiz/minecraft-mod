@@ -393,7 +393,13 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         int dexterity = (player != null) ? getTotalStatPoints(player, StatType.DEXTERITY) : 0;
         // Base 600 ticks (30s), reducido en 10 ticks (0.5s) por cada punto de Destreza hasta un mínimo de 60 ticks (3s)
         int reduction = dexterity * 10;
-        return Math.max(60, BASE_DASH_COOLDOWN_TICKS - reduction);
+        int baseCd = Math.max(60, BASE_DASH_COOLDOWN_TICKS - reduction);
+        if (this.divineBlessingUnlocked && getPatronGod() == GreekGod.HERMES) {
+            int tier = GreekGod.getBlessingTier(getRank());
+            double mult = tier == 1 ? 0.80 : (tier == 2 ? 0.70 : 0.65);
+            return Math.max(40, (int) Math.round(baseCd * mult));
+        }
+        return baseCd;
     }
 
     public long getDashCooldownRemainingTicks(long currentTick, Player player) {
@@ -990,6 +996,11 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
 
         int spirit = (player != null) ? getTotalStatPoints(player, StatType.SPIRIT) : 5;
         double spiritMult = 1.0 + (Math.max(0, spirit - 5) * 0.02);
+        if (this.divineBlessingUnlocked && getPatronGod() == GreekGod.ATHENA) {
+            int tier = GreekGod.getBlessingTier(getRank());
+            double athenaMult = tier == 1 ? 1.15 : (tier == 2 ? 1.20 : 1.25);
+            spiritMult *= athenaMult;
+        }
         int amount = Math.max(1, (int) Math.round(baseAmount * spiritMult));
 
         this.rpgXp += amount;
@@ -1205,7 +1216,12 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
     public double getCritChance(Player player) {
         int luck = (player != null) ? getTotalStatPoints(player, StatType.LUCK) : 5;
         int dex = (player != null) ? getTotalStatPoints(player, StatType.DEXTERITY) : 5;
-        return Math.max(1.0, 5.0 + ((luck - 5) * 2.0) + (Math.max(0, dex - 5) * 0.5));
+        double chance = 5.0 + ((luck - 5) * 2.0) + (Math.max(0, dex - 5) * 0.5);
+        if (this.divineBlessingUnlocked && getPatronGod() == GreekGod.ARTEMIS) {
+            int tier = GreekGod.getBlessingTier(getRank());
+            chance += (tier == 1 ? 8.0 : (tier == 2 ? 12.0 : 15.0));
+        }
+        return Math.max(1.0, chance);
     }
 
     /**

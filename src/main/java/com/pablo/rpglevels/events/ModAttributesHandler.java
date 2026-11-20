@@ -30,6 +30,13 @@ public class ModAttributesHandler {
     private static final ResourceLocation MOD_SKILL_PHYSICAL_DAMAGE = ResourceLocation.fromNamespaceAndPath(RpgLevelsMod.MOD_ID, "stat_skill_physical_damage");
     private static final ResourceLocation MOD_SPIRIT_SPELL_POWER = ResourceLocation.fromNamespaceAndPath(RpgLevelsMod.MOD_ID, "stat_spirit_spell_power");
 
+    // God Blessing Passive Modifiers
+    private static final ResourceLocation MOD_GOD_HERMES_SPEED = ResourceLocation.fromNamespaceAndPath(RpgLevelsMod.MOD_ID, "god_hermes_speed");
+    private static final ResourceLocation MOD_GOD_HERMES_LUCK = ResourceLocation.fromNamespaceAndPath(RpgLevelsMod.MOD_ID, "god_hermes_luck");
+    private static final ResourceLocation MOD_GOD_HEPHAESTUS_ARMOR = ResourceLocation.fromNamespaceAndPath(RpgLevelsMod.MOD_ID, "god_hephaestus_armor");
+    private static final ResourceLocation MOD_GOD_APOLLO_ATK_SPEED = ResourceLocation.fromNamespaceAndPath(RpgLevelsMod.MOD_ID, "god_apollo_attack_speed");
+    private static final ResourceLocation MOD_GOD_ARTEMIS_NIGHT_SPEED = ResourceLocation.fromNamespaceAndPath(RpgLevelsMod.MOD_ID, "god_artemis_night_speed");
+
     // Old modifier IDs for clean removal
     private static final ResourceLocation OLD_MOD_STR = ResourceLocation.fromNamespaceAndPath(RpgLevelsMod.MOD_ID, "stat_buff_strength");
     private static final ResourceLocation OLD_MOD_HP = ResourceLocation.fromNamespaceAndPath(RpgLevelsMod.MOD_ID, "stat_buff_health");
@@ -114,6 +121,32 @@ public class ModAttributesHandler {
             boolean surge = data.isSpiritSurgeActive(player.level().getGameTime());
             com.pablo.rpglevels.compat.irons.IronsSpellsCompat.applySpiritModifiers(player, (int) Math.round(spirit), data.getChannelMagicTier(), surge);
         }
+
+        // 6. BONIFICACIONES PASIVAS DE BENDICIÓN DIVINA (Dios Olímpico)
+        com.pablo.rpglevels.data.GreekGod activeGod = data.hasDivineBlessingUnlocked() ? data.getPatronGod() : null;
+        int godTier = com.pablo.rpglevels.data.GreekGod.getBlessingTier(data.getRank());
+
+        double hermesSpeed = (activeGod == com.pablo.rpglevels.data.GreekGod.HERMES)
+                ? (godTier == 1 ? 0.10 : (godTier == 2 ? 0.15 : 0.20)) : 0.0;
+        double hermesLuck = (activeGod == com.pablo.rpglevels.data.GreekGod.HERMES)
+                ? (godTier == 1 ? 1.5 : (godTier == 2 ? 2.5 : 3.5)) : 0.0;
+        double hephaestusArmor = (activeGod == com.pablo.rpglevels.data.GreekGod.HEPHAESTUS)
+                ? (godTier * 2.0) : 0.0;
+        double apolloAtkSpd = (activeGod == com.pablo.rpglevels.data.GreekGod.APOLLO
+                && GodBlessingEvents.isInSunlight(player, player.level()))
+                ? (godTier == 1 ? 0.05 : (godTier == 2 ? 0.08 : 0.12)) : 0.0;
+
+        boolean isNightTime = player.level().dimensionType().natural()
+                && (player.level().getDayTime() % 24000L) >= 12500L
+                && (player.level().getDayTime() % 24000L) <= 23500L;
+        double artemisNightSpeed = (activeGod == com.pablo.rpglevels.data.GreekGod.ARTEMIS && isNightTime)
+                ? (godTier == 1 ? 0.08 : (godTier == 2 ? 0.12 : 0.16)) : 0.0;
+
+        applyModifier(player, Attributes.MOVEMENT_SPEED, MOD_GOD_HERMES_SPEED, hermesSpeed, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+        applyModifier(player, Attributes.LUCK, MOD_GOD_HERMES_LUCK, hermesLuck, AttributeModifier.Operation.ADD_VALUE);
+        applyModifier(player, Attributes.ARMOR, MOD_GOD_HEPHAESTUS_ARMOR, hephaestusArmor, AttributeModifier.Operation.ADD_VALUE);
+        applyModifier(player, Attributes.ATTACK_SPEED, MOD_GOD_APOLLO_ATK_SPEED, apolloAtkSpd, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+        applyModifier(player, Attributes.MOVEMENT_SPEED, MOD_GOD_ARTEMIS_NIGHT_SPEED, artemisNightSpeed, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
     }
 
     private static void applyModifier(Player player, Holder<Attribute> attribute, ResourceLocation id, double value, AttributeModifier.Operation op) {
