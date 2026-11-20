@@ -26,6 +26,13 @@ public class ModNetworking {
                 SyncRpgDataPayload::handle
         );
 
+        // Divine Smoke / Gear 5 Sync
+        registrar.playToClient(
+                SyncEntitySmokePayload.TYPE,
+                SyncEntitySmokePayload.STREAM_CODEC,
+                SyncEntitySmokePayload::handle
+        );
+
         // Quest Data Sync
         registrar.playToClient(
                 SyncQuestDataPayload.TYPE,

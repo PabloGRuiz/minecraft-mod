@@ -65,6 +65,18 @@ public class ClientEntityEvents {
                 com.pablo.rpglevels.client.model.ChubbyModel::createBodyLayer);
         event.registerLayerDefinition(com.pablo.rpglevels.client.model.RedfoxModel.LAYER_LOCATION,
                 com.pablo.rpglevels.client.model.RedfoxModel::createBodyLayer);
+        event.registerLayerDefinition(com.pablo.rpglevels.client.model.HumoModel.LAYER_LOCATION,
+                com.pablo.rpglevels.client.model.HumoModel::createBodyLayer);
+    }
+
+    @SubscribeEvent
+    public static void addLayers(EntityRenderersEvent.AddLayers event) {
+        for (net.minecraft.client.resources.PlayerSkin.Model skin : event.getSkins()) {
+            net.minecraft.client.renderer.entity.player.PlayerRenderer renderer = event.getSkin(skin);
+            if (renderer != null) {
+                renderer.addLayer(new com.pablo.rpglevels.client.renderer.HumoPlayerLayer(renderer, event.getEntityModels()));
+            }
+        }
     }
 
     @SubscribeEvent

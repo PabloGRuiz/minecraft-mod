@@ -113,6 +113,10 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
     private int spiritualTierLevel = 1;
     private boolean spiritualEngineer = false;
 
+    // Transformación / Manto Celestial (Hagoromo divino estilo Gear 5)
+    private boolean celestialMantleActive = false;
+    private long celestialMantleUntilTick = 0L;
+
     // Mana suppression while First Release is active
     private float lastReleasedManaCap = -1.0f;
 
@@ -660,6 +664,32 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
     public long getOppressiveAuraUntilTick() {
         return oppressiveAuraUntilTick;
     }
+
+    public boolean isCelestialMantleActive(long currentTick) {
+        return celestialMantleActive || (currentTick > 0 && currentTick < celestialMantleUntilTick);
+    }
+
+    public boolean isCelestialMantleActive() {
+        return celestialMantleActive;
+    }
+
+    public void setCelestialMantleActive(boolean active) {
+        this.celestialMantleActive = active;
+    }
+
+    public void activateCelestialMantle(long currentTick, int durationTicks) {
+        this.celestialMantleUntilTick = currentTick + durationTicks;
+    }
+
+    public long getCelestialMantleUntilTick() {
+        return celestialMantleUntilTick;
+    }
+
+    // Métodos alias para compatibilidad
+    public boolean isDivineSmokeActive(long currentTick) { return isCelestialMantleActive(currentTick); }
+    public boolean isDivineSmokeActive() { return isCelestialMantleActive(); }
+    public void setDivineSmokeActive(boolean active) { setCelestialMantleActive(active); }
+    public void activateDivineSmoke(long currentTick, int durationTicks) { activateCelestialMantle(currentTick, durationTicks); }
 
     public void activateSpiritualResonance(long currentTick, int durationTicks, int cinematicTicks) {
         this.spiritualResonanceUntilTick = currentTick + durationTicks;
@@ -1356,6 +1386,11 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         tag.putInt("BanditsKilledYesterday", banditsKilledYesterday);
         tag.putLong("LastAmbushCheckDay", lastAmbushCheckDay);
         tag.putBoolean("PendingAmbushToday", pendingAmbushToday);
+        tag.putBoolean("CelestialMantleActive", this.celestialMantleActive);
+        tag.putLong("CelestialMantleUntilTick", this.celestialMantleUntilTick);
+        // Compatibilidad hacia atrás
+        tag.putBoolean("DivineSmokeActive", this.celestialMantleActive);
+        tag.putLong("DivineSmokeUntilTick", this.celestialMantleUntilTick);
 
         ListTag list = new ListTag();
         for (Map.Entry<Integer, StatType> entry : chosenMilestones.entrySet()) {
@@ -1521,6 +1556,16 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         }
         if (tag.contains("PendingAmbushToday", Tag.TAG_BYTE)) {
             this.pendingAmbushToday = tag.getBoolean("PendingAmbushToday");
+        }
+        if (tag.contains("CelestialMantleActive", Tag.TAG_BYTE)) {
+            this.celestialMantleActive = tag.getBoolean("CelestialMantleActive");
+        } else if (tag.contains("DivineSmokeActive", Tag.TAG_BYTE)) {
+            this.celestialMantleActive = tag.getBoolean("DivineSmokeActive");
+        }
+        if (tag.contains("CelestialMantleUntilTick", Tag.TAG_LONG)) {
+            this.celestialMantleUntilTick = tag.getLong("CelestialMantleUntilTick");
+        } else if (tag.contains("DivineSmokeUntilTick", Tag.TAG_LONG)) {
+            this.celestialMantleUntilTick = tag.getLong("DivineSmokeUntilTick");
         }
         if (tag.contains("CurrentLifeFortitude", Tag.TAG_INT)) {
             this.currentLifeFortitude = tag.getInt("CurrentLifeFortitude");

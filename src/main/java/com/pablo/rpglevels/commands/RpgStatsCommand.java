@@ -44,6 +44,7 @@ import com.pablo.rpglevels.data.AuraStatHelper;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -612,6 +613,24 @@ public class RpgStatsCommand {
                 .then(Commands.argument("target", EntityArgument.entity())
                         .requires(source -> source.hasPermission(2))
                         .executes(context -> executeAuraCheck(context.getSource(), EntityArgument.getEntity(context, "target")))));
+
+        cmd.then(Commands.literal("manto")
+                .executes(context -> executeToggleCelestialMantle(context.getSource(), Collections.singleton(context.getSource().getPlayerOrException())))
+                .then(Commands.argument("targets", EntityArgument.players())
+                        .requires(source -> source.hasPermission(2))
+                        .executes(context -> executeToggleCelestialMantle(context.getSource(), EntityArgument.getPlayers(context, "targets")))));
+
+        cmd.then(Commands.literal("mantocelestial")
+                .executes(context -> executeToggleCelestialMantle(context.getSource(), Collections.singleton(context.getSource().getPlayerOrException())))
+                .then(Commands.argument("targets", EntityArgument.players())
+                        .requires(source -> source.hasPermission(2))
+                        .executes(context -> executeToggleCelestialMantle(context.getSource(), EntityArgument.getPlayers(context, "targets")))));
+
+        cmd.then(Commands.literal("smoke")
+                .executes(context -> executeToggleCelestialMantle(context.getSource(), Collections.singleton(context.getSource().getPlayerOrException())))
+                .then(Commands.argument("targets", EntityArgument.players())
+                        .requires(source -> source.hasPermission(2))
+                        .executes(context -> executeToggleCelestialMantle(context.getSource(), EntityArgument.getPlayers(context, "targets")))));
 
         dispatcher.register(cmd);
     }
@@ -1511,5 +1530,25 @@ public class RpgStatsCommand {
             return living;
         }
         return null;
+    }
+
+    private static int executeToggleCelestialMantle(CommandSourceStack source, Collection<ServerPlayer> targets) {
+        for (ServerPlayer player : targets) {
+            PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
+            if (data != null) {
+                boolean newState = !data.isCelestialMantleActive();
+                data.setCelestialMantleActive(newState);
+
+                // Sincronizar datos RPG y avisar a clientes que trackean al jugador
+                PacketDistributor.sendToPlayer(player, new com.pablo.rpglevels.network.SyncRpgDataPayload(data.serializeNBT(player.registryAccess())));
+                PacketDistributor.sendToPlayersTrackingEntityAndSelf(player,
+                        new com.pablo.rpglevels.network.SyncEntitySmokePayload(player.getId(), newState, 0L));
+
+                Component msg = Component.literal("§6[Manto Celestial] §rEfecto: "
+                        + (newState ? "§a§lACTIVADO" : "§c§lDESACTIVADO"));
+                player.sendSystemMessage(msg);
+            }
+        }
+        return targets.size();
     }
 }
