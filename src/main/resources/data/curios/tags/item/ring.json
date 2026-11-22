@@ -1,7 +1,7 @@
 {
   "replace": false,
   "values": [
-    "rpglevels:ancient_ring",
-    "rpglevels:warrior_ring"
+    "tenseicraft:ancient_ring",
+    "tenseicraft:warrior_ring"
   ]
 }

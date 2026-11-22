@@ -1,10 +1,10 @@
 {
   "replace": false,
   "values": [
-    "rpglevels:adventurer_npc",
-    "rpglevels:bandit",
-    "rpglevels:townswoman_npc",
-    "rpglevels:undead_adventurer"
+    "tenseicraft:adventurer_npc",
+    "tenseicraft:bandit",
+    "tenseicraft:townswoman_npc",
+    "tenseicraft:undead_adventurer"
   ]
 }
 

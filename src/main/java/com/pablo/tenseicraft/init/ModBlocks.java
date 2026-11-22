@@ -1,0 +1,104 @@
+package com.pablo.tenseicraft.init;
+
+import com.pablo.tenseicraft.TenseiCraftMod;
+import com.pablo.tenseicraft.items.ModItems;
+import com.pablo.tenseicraft.world.dimension.RiftMonolithBlock;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Rarity;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.neoforged.neoforge.registries.DeferredBlock;
+import net.neoforged.neoforge.registries.DeferredRegister;
+
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+public class ModBlocks {
+    public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(TenseiCraftMod.MOD_ID);
+
+    public static final DeferredBlock<RiftMonolithBlock> RIFT_MONOLITH = registerBlock("rift_monolith",
+            () -> new RiftMonolithBlock(BlockBehaviour.Properties.of()
+                    .sound(SoundType.DEEPSLATE)
+                    .strength(4.0f, 1200.0f)
+                    .lightLevel(state -> 12)
+                    .requiresCorrectToolForDrops()),
+            block -> new BlockItem(block, new Item.Properties().rarity(Rarity.EPIC)));
+
+    public static final DeferredBlock<com.pablo.tenseicraft.world.dimension.AbyssPortalBlock> ABYSS_PORTAL =
+            BLOCKS.register("abyss_portal", com.pablo.tenseicraft.world.dimension.AbyssPortalBlock::new);
+
+    // Piedra del Abismo: Roca única de escala de grises/ceniza que compone todo el terreno del Abismo
+    public static final DeferredBlock<Block> ABYSSAL_STONE = registerBlock("abyssal_stone",
+            () -> new Block(BlockBehaviour.Properties.of()
+                    .sound(SoundType.STONE)
+                    .strength(2.2f, 6.0f)
+                    .requiresCorrectToolForDrops()),
+            block -> new BlockItem(block, new Item.Properties()));
+
+    // Mineral de Voidsteel: Vetas luminosas violeta fluorescente incrustadas en la roca del Abismo
+    public static final DeferredBlock<Block> VOIDSTEEL_ORE = registerBlock("voidsteel_ore",
+            () -> new net.minecraft.world.level.block.DropExperienceBlock(
+                    net.minecraft.util.valueproviders.UniformInt.of(3, 7),
+                    BlockBehaviour.Properties.of()
+                            .sound(SoundType.DEEPSLATE)
+                            .strength(4.5f, 9.0f)
+                            .lightLevel(state -> 11) // Bloque luminoso
+                            .requiresCorrectToolForDrops()),
+            block -> new BlockItem(block, new Item.Properties().rarity(Rarity.RARE)));
+
+    // Estatuas decorativas de compañeros (caben en 1 bloque)
+    public static final DeferredBlock<com.pablo.tenseicraft.blocks.StatueBlock> BRAMBI_STATUE = registerBlock("brambi_statue",
+            () -> new com.pablo.tenseicraft.blocks.StatueBlock(
+                    BlockBehaviour.Properties.of()
+                            .sound(SoundType.STONE)
+                            .strength(1.5f, 6.0f)
+                            .noOcclusion(),
+                    () -> net.minecraft.sounds.SoundEvents.CHERRY_LEAVES_BREAK,
+                    () -> net.minecraft.core.particles.ParticleTypes.CHERRY_LEAVES),
+            block -> new BlockItem(block, new Item.Properties().rarity(Rarity.RARE)));
+
+    public static final DeferredBlock<com.pablo.tenseicraft.blocks.StatueBlock> STARRY_STATUE = registerBlock("starry_statue",
+            () -> new com.pablo.tenseicraft.blocks.StatueBlock(
+                    BlockBehaviour.Properties.of()
+                            .sound(SoundType.STONE)
+                            .strength(1.5f, 6.0f)
+                            .noOcclusion(),
+                    () -> net.minecraft.sounds.SoundEvents.AMETHYST_BLOCK_CHIME,
+                    () -> net.minecraft.core.particles.ParticleTypes.ENCHANT),
+            block -> new BlockItem(block, new Item.Properties().rarity(Rarity.RARE)));
+
+    public static final DeferredBlock<com.pablo.tenseicraft.blocks.StatueBlock> CHUBBY_STATUE = registerBlock("chubby_statue",
+            () -> new com.pablo.tenseicraft.blocks.StatueBlock(
+                    BlockBehaviour.Properties.of()
+                            .sound(SoundType.STONE)
+                            .strength(1.5f, 6.0f)
+                            .noOcclusion(),
+                    () -> net.minecraft.sounds.SoundEvents.AMETHYST_BLOCK_CHIME,
+                    () -> net.minecraft.core.particles.ParticleTypes.ELECTRIC_SPARK),
+            block -> new BlockItem(block, new Item.Properties().rarity(Rarity.RARE)));
+
+    // Cultivo de la Flor de la Vida (Semillas de Vida -> Flor Arcoíris -> Pétalos Arcoíris)
+    public static final DeferredBlock<com.pablo.tenseicraft.blocks.LifeFlowerCropBlock> LIFE_FLOWER_CROP =
+            BLOCKS.register("life_flower_crop",
+                    () -> new com.pablo.tenseicraft.blocks.LifeFlowerCropBlock(
+                            BlockBehaviour.Properties.ofFullCopy(net.minecraft.world.level.block.Blocks.WHEAT)
+                                    .lightLevel(state -> state.getValue(com.pablo.tenseicraft.blocks.LifeFlowerCropBlock.AGE) == 7 ? 7 : 0)));
+
+    // Yunque Mágico (vendido por Megu al superar su habilidad de herrera)
+    public static final DeferredBlock<com.pablo.tenseicraft.blocks.MagicAnvilBlock> MAGIC_ANVIL = registerBlock("magic_anvil",
+            () -> new com.pablo.tenseicraft.blocks.MagicAnvilBlock(
+                    BlockBehaviour.Properties.of()
+                            .sound(SoundType.ANVIL)
+                            .strength(5.0f, 1200.0f)
+                            .lightLevel(state -> 7)
+                            .requiresCorrectToolForDrops()),
+            block -> new BlockItem(block, new Item.Properties().rarity(Rarity.EPIC)));
+
+    private static <T extends Block> DeferredBlock<T> registerBlock(String name, Supplier<T> blockSupplier, Function<T, BlockItem> itemFactory) {
+        DeferredBlock<T> block = BLOCKS.register(name, blockSupplier);
+        ModItems.ITEMS.register(name, () -> itemFactory.apply(block.get()));
+        return block;
+    }
+}

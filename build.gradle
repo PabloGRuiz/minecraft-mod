@@ -51,10 +51,6 @@ dependencies {
     runtimeOnly "maven.modrinth:lionfish-api:fTRMVgyZ"
     runtimeOnly "maven.modrinth:l_enders-cataclysm:mYBUDZWl"
 
-    // Apothic Attributes + Placebo (Apotheosis RPG Attributes)
-    runtimeOnly "maven.modrinth:placebo:1Ypo4tf4"
-    runtimeOnly "maven.modrinth:apothic-attributes:Xtaunf84"
-
     // Optimization & Shaders (Sodium + Iris + FerriteCore)
     runtimeOnly "maven.modrinth:sodium:Pb3OXVqC"
     runtimeOnly "maven.modrinth:iris:t3ruzodq"

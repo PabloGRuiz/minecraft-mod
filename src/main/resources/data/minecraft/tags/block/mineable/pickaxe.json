@@ -1,7 +1,8 @@
 {
   "replace": false,
   "values": [
-    "rpglevels:abyssal_stone",
-    "rpglevels:voidsteel_ore"
+    "tenseicraft:abyssal_stone",
+    "tenseicraft:voidsteel_ore",
+    "tenseicraft:magic_anvil"
   ]
 }

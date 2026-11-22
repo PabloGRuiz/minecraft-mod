@@ -1,6 +1,6 @@
-# ⚔️ RPG Levels - Minecraft NeoForge Mod (1.21.1)
+# ⚔️ TenseiCraft - Minecraft NeoForge Mod (1.21.1)
 
-Mod de rol y progresión para **Minecraft 1.21.1** desarrollado sobre **NeoForge**. Incluye sistemas de Rango de Aventureros, Tarjeta de Gremio, Sliders de Control de Poder, Técnicas Espirituales, Cristales de Alma, Contratos y Bounties Diarios, Reinos y Aldeas procedurales, y la dimensión del Abismo.
+Mod RPG isekai de rol y progresión para **Minecraft 1.21.1** desarrollado sobre **NeoForge**. Incluye Misiones Principales guiadas, Sistema de Rango de Aventureros, Tarjeta de Gremio, Sliders de Control de Poder, Técnicas Espirituales, Cristales de Alma, Contratos Diarios, Reinos y Aldeas procedurales, el Abismo, El Gensokyo y jefes épicos.
 
 ---
 
@@ -60,11 +60,11 @@ Para abrir Minecraft con el mod cargado:
 Copia y pega el siguiente mensaje a tu agente de **Antigravity** en tu primer turno de chat. Esto le dará todo el contexto del mod, las convenciones de código y le pedirá verificar el entorno:
 
 ```text
-¡Hola Antigravity! Voy a trabajar en conjunto en el desarrollo de este mod de Minecraft llamado "RPG Levels".
+¡Hola Antigravity! Voy a trabajar en conjunto en el desarrollo de este mod de Minecraft llamado "TenseiCraft".
 El mod está desarrollado en Java 21 sobre NeoForge 1.21.1.
 
 Por favor realiza lo siguiente:
-1. Inspecciona la estructura del proyecto y familiarízate con las clases en src/main/java/com/pablo/rpglevels/ (sistemas de RPG, datos en ModAttachments, entidades, eventos de renderizado de ki, misiones y generación de reinos).
+1. Inspecciona la estructura del proyecto y familiarízate con las clases en src/main/java/com/pablo/tenseicraft/ (sistemas de RPG, misiones principales, datos en ModAttachments, entidades, eventos de renderizado de ki, misiones y generación de reinos).
 2. Ejecuta un `./gradlew compileJava` en la terminal para verificar que el entorno de desarrollo y las librerías de NeoForge estén en orden y sin errores de compilación.
 3. Confírmame qué herramientas y estado general tiene el mod para que podamos empezar a programar nuevas características.
 ```

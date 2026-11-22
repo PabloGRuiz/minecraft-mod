@@ -1,0 +1,20 @@
+{
+  "name": "Primera Liberación",
+  "category": "tenseicraft:spiritual_swords",
+  "icon": "minecraft:nether_star",
+  "sortnum": 3,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Al combatir con tu espada alcanzarás $(6)100/100 de afinidad$(0).$(br2)Habla con Alice para que te guíe en el despertar de la hoja. Tu espada mutará revelando su verdadera apariencia elemental (Fuego, Hielo, Viento, Rayo, Tierra o Sombra).$(br2)Presiona $(l)[Z]$(0) con el arma en mano para entrar en estado de $(5)Primera Liberación$(0)."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "$(6)$(l)Efectos de la Liberación:$(0)$(br)$(e)• Saturación Infinita:$(0) Regenera tu vitalidad velozmente.$(br)$(b)• Magia Gratuita:$(0) Lanza todas tus técnicas $(l)sin gastar maná$(0).$(br)$(c)• Drenaje Espiritual:$(0) Tu maná no se regenera y se consume con rapidez.$(br2)$(d)$(l)Dominio (Afinidad 100/200):$(0)$(br)Continúa combatiendo para subir de 100 a 200 de afinidad. Al dominar el arma, el drenaje de maná se reducirá a casi cero."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "$(5)$(l)Aspecto y Formas de Hoja:$(0)$(br2)Cada tipo de espada despertada cuenta con dos apariencias exclusivas ($(b)Variante I Clásica$(0) y $(6)Variante II Alternativa$(0)) con diferente silueta y paleta de color.$(br2)Puedes alternar libremente su apariencia agachándote ($(l)Shift$(0)) y haciendo $(l)Clic Derecho$(0) con el arma sobre un $(e)Yunque$(0) o $(e)Mesa de Herrería$(0)."
+    }
+  ]
+}

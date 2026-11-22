@@ -1,0 +1,28 @@
+{
+    "criteria":  {
+                     "impossible":  {
+                                        "trigger":  "minecraft:impossible"
+                                    }
+                 },
+    "parent":  "tenseicraft:find_guild",
+    "display":  {
+                    "description":  {
+                                        "text":  "Alcanza el nivel de experiencia requerido y asciende a Rango E en el Gremio."
+                                    },
+                    "show_toast":  true,
+                    "icon":  {
+                                 "id":  "minecraft:iron_chestplate"
+                             },
+                    "hidden":  false,
+                    "announce_to_chat":  true,
+                    "title":  {
+                                  "text":  "Superando los Límites"
+                              },
+                    "frame":  "task"
+                },
+    "requirements":  [
+                         [
+                             "impossible"
+                         ]
+                     ]
+}

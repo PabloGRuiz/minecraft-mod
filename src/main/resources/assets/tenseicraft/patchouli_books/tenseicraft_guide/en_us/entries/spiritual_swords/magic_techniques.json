@@ -1,0 +1,17 @@
+{
+  "name": "Cánticos Espirituales",
+  "category": "tenseicraft:spiritual_swords",
+  "icon": "minecraft:blaze_powder",
+  "sortnum": 2,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Para entonar una Técnica Espiritual aprendida, mantén pulsada la tecla $(l)[ALT IZQ]$(0) y presiona en secuencia numérica los sellos correspondientes en tu teclado.$(br2)$(6)$(l)Nivel Principiante:$(0)$(br)$(e)• Nro. 1: Physical Boost [1-2-3]$(0) (75 MP)$(br)$(a)• Nro. 2: Low Healing [1-3-2]$(0) (25 MP)$(br)$(b)• Nro. 3: Low Paralize [2-1-3]$(0) (60 MP)"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "$(d)• Nro. 4: Low Purification [3-2-1]$(0) (20 MP)$(br)$(c)• Nro. 5: Elemental Ball [3-1-2]$(0) (25 MP)$(br)$(8)• Nro. 6: Shadow Step [2-3-1]$(0) (40 MP)$(br2)$(5)$(l)Nivel Intermedio:$(0)$(br)$(a)• Nro. 10: Fast Healing [3-2-1-2]$(0) (80 MP)$(br)Cura inmediatamente al compañero con menor vida porcentual.$(br2)Cada técnica tiene un breve cooldown proporcional a su poder."
+    }
+  ]
+}
+

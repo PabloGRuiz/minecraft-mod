@@ -1,0 +1,11 @@
+{
+  "variants": {
+    "axis=x": {
+      "model": "tenseicraft:block/abyss_portal_ns"
+    },
+    "axis=z": {
+      "model": "tenseicraft:block/abyss_portal_ew"
+    }
+  }
+}
+

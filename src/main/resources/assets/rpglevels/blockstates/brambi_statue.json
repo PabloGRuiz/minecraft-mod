@@ -1,8 +1,0 @@
-{
-  "variants": {
-    "facing=north": { "model": "rpglevels:block/brambi_statue" },
-    "facing=east":  { "model": "rpglevels:block/brambi_statue", "y": 90 },
-    "facing=south": { "model": "rpglevels:block/brambi_statue", "y": 180 },
-    "facing=west":  { "model": "rpglevels:block/brambi_statue", "y": 270 }
-  }
-}

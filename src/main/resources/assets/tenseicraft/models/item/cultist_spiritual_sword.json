@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "tenseicraft:item/cultist_spiritual_sword"
+  }
+}
+

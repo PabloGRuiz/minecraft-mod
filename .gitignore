@@ -23,6 +23,7 @@ MODS_ALPHA_AMIGOS/
 .project
 .classpath
 .settings/
+*.code-workspace
 
 # OS and temporary backup files
 .DS_Store

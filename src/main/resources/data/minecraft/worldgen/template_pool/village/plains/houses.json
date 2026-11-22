@@ -3,7 +3,7 @@
     {
       "element": {
         "element_type": "minecraft:legacy_single_pool_element",
-        "location": "rpglevels:village/plains/houses/guild_house",
+        "location": "tenseicraft:village/plains/houses/guild_house",
         "processors": "minecraft:mossify_10_percent",
         "projection": "rigid"
       },

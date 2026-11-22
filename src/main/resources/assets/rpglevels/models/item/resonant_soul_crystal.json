@@ -1,6 +1,0 @@
-{
-  "parent": "minecraft:item/generated",
-  "textures": {
-    "layer0": "rpglevels:item/resonant_soul_crystal"
-  }
-}

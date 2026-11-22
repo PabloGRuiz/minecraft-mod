@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/template_anvil",
+  "textures": {
+    "particle": "tenseicraft:block/magic_anvil",
+    "body": "tenseicraft:block/magic_anvil",
+    "top": "tenseicraft:block/magic_anvil_top"
+  }
+}

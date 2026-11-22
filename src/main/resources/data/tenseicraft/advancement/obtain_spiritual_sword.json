@@ -1,0 +1,28 @@
+{
+    "criteria":  {
+                     "impossible":  {
+                                        "trigger":  "minecraft:impossible"
+                                    }
+                 },
+    "parent":  "tenseicraft:meet_alice",
+    "display":  {
+                    "description":  {
+                                        "text":  "Completa el encargo de purificar 5 monstruos de Rango D y recibe la Espada Espiritual virgen."
+                                    },
+                    "show_toast":  true,
+                    "icon":  {
+                                 "id":  "tenseicraft:spiritual_sword"
+                             },
+                    "hidden":  false,
+                    "announce_to_chat":  true,
+                    "title":  {
+                                  "text":  "Temple Espiritual"
+                              },
+                    "frame":  "task"
+                },
+    "requirements":  [
+                         [
+                             "impossible"
+                         ]
+                     ]
+}

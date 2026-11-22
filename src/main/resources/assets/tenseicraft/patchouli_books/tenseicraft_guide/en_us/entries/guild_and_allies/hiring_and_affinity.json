@@ -1,0 +1,17 @@
+{
+  "name": "Contratos y Afinidad",
+  "category": "tenseicraft:guild_and_allies",
+  "icon": "minecraft:emerald",
+  "sortnum": 1,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Los aventureros independientes descansan en las aldeas y campamentos del reino.$(br2)Interactúa con ellos para contratarlos por un día completo de juego (24h de Minecraft) a cambio de una tarifa en esmeraldas acorde a su rango.$(br2)Un aventurero contratado te seguirá lealmente y combatirá a cualquier monstruo que te amenace."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "$(6)$(l)Afinidad (0 - 100):$(0)$(br)Tu relación con cada aventurero evoluciona con el tiempo.$(br2)$(e)• Combates:$(0) Sobrevivir a batallas peligrosas juntos forja respeto mutuo.$(br)$(a)• Charlas diarias:$(0) Dialogar fortalece la empatía.$(br)$(d)• Obsequios:$(0) Entregarles gemas, pociones o comida de calidad elevará rápidamente su afinidad."
+    }
+  ]
+}
+

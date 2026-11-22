@@ -1,0 +1,12 @@
+{
+  "music.reimu_boss": {
+    "subtitle": "subtitle.tenseicraft.music.reimu_boss",
+    "sounds": [
+      {
+        "name": "tenseicraft:music/reimu_boss",
+        "stream": true,
+        "volume": 0.5
+      }
+    ]
+  }
+}

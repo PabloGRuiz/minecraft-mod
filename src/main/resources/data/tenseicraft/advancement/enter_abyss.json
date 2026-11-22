@@ -1,0 +1,28 @@
+{
+    "criteria":  {
+                     "impossible":  {
+                                        "trigger":  "minecraft:impossible"
+                                    }
+                 },
+    "parent":  "tenseicraft:rank_b",
+    "display":  {
+                    "description":  {
+                                        "text":  "Cruza la brecha dimensional de Alice y desciende a la peligrosa dimensión del Abismo."
+                                    },
+                    "show_toast":  true,
+                    "icon":  {
+                                 "id":  "minecraft:crying_obsidian"
+                             },
+                    "hidden":  false,
+                    "announce_to_chat":  true,
+                    "title":  {
+                                  "text":  "Hacia las Profundidades"
+                              },
+                    "frame":  "task"
+                },
+    "requirements":  [
+                         [
+                             "impossible"
+                         ]
+                     ]
+}

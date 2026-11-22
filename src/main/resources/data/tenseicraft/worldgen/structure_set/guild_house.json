@@ -1,0 +1,15 @@
+{
+  "structures": [
+    {
+      "structure": "tenseicraft:guild_house",
+      "weight": 1
+    }
+  ],
+  "placement": {
+    "type": "minecraft:random_spread",
+    "spacing": 22,
+    "separation": 10,
+    "salt": 48291047
+  }
+}
+

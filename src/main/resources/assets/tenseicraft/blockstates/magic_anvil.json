@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "tenseicraft:block/magic_anvil",
+      "y": 270
+    },
+    "facing=north": {
+      "model": "tenseicraft:block/magic_anvil",
+      "y": 180
+    },
+    "facing=south": {
+      "model": "tenseicraft:block/magic_anvil"
+    },
+    "facing=west": {
+      "model": "tenseicraft:block/magic_anvil",
+      "y": 90
+    }
+  }
+}

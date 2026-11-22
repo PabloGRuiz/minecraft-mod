@@ -1,0 +1,16 @@
+{
+  "name": "Alice y la Purga",
+  "category": "tenseicraft:spiritual_swords",
+  "icon": "minecraft:amethyst_shard",
+  "sortnum": 0,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "En las aldeas podrás toparte con $(5)Alice$(0), la ingeniera de los antiguos Segadores Espirituales.$(br2)Para demostrar que eres digno de portar una de sus armas sagradas, te encomendará la misión de $(l)Purificar 5 monstruos de Rango D$(0) (Brujas, Hoglins o Ahogados con tridente).$(br2)Al completar la purga, habla con ella para reclamar tu premio."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "$(5)$(l)Recompensas de Alice:$(0)$(br)$(e)1. Espada Espiritual virgen:$(0) Un arma dormida lista para sincronizarse con tu alma.$(br2)$(b)2. Despertar Espiritual:$(0) Capacidad de acumular maná y entonar técnicas.$(br2)$(d)3. Tienda de Técnicas:$(0) Acceso al aprendizaje de hechizos a cambio de 5 esmeraldas cada uno."
+    }
+  ]
+}

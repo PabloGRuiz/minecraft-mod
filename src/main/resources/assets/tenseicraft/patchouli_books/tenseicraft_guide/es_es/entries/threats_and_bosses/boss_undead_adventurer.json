@@ -1,0 +1,12 @@
+{
+  "name": "Aventurero No Muerto",
+  "category": "tenseicraft:threats_and_bosses",
+  "icon": "minecraft:skeleton_skull",
+  "sortnum": 2,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Un antiguo aventurero de rango supremo que pereció en las profundidades y cuya alma fue atrapada por la oscuridad.$(br2)Blande un espadón pesado, es capaz de bloquear y contraatacar en el momento justo, y entra en frenesí cuando su salud decae.$(br2)Derrotarlo liberará su espíritu y otorgará valiosas reliquias."
+    }
+  ]
+}

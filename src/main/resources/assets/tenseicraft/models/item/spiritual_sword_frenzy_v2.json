@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "tenseicraft:item/spiritual_sword_frenzy_v2"
+  }
+}

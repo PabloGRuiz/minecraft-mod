@@ -1,0 +1,28 @@
+{
+    "criteria":  {
+                     "impossible":  {
+                                        "trigger":  "minecraft:impossible"
+                                    }
+                 },
+    "parent":  "tenseicraft:enter_abyss",
+    "display":  {
+                    "description":  {
+                                        "text":  "Derrota al Cultista de los Segadores en el Abismo, frustrando el regreso de los demonios."
+                                    },
+                    "show_toast":  true,
+                    "icon":  {
+                                 "id":  "tenseicraft:cultist_spiritual_sword"
+                             },
+                    "hidden":  false,
+                    "announce_to_chat":  true,
+                    "title":  {
+                                  "text":  "El Fin de la Herejía (Alpha Finale)"
+                              },
+                    "frame":  "challenge"
+                },
+    "requirements":  [
+                         [
+                             "impossible"
+                         ]
+                     ]
+}

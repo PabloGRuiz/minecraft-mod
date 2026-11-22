@@ -1,0 +1,28 @@
+{
+    "criteria":  {
+                     "impossible":  {
+                                        "trigger":  "minecraft:impossible"
+                                    }
+                 },
+    "parent":  "tenseicraft:first_release",
+    "display":  {
+                    "description":  {
+                                        "text":  "Alcanza el máximo de 200 de afinidad con tu arma para dominar su poder y minimizar el drenaje de maná."
+                                    },
+                    "show_toast":  true,
+                    "icon":  {
+                                 "id":  "minecraft:beacon"
+                             },
+                    "hidden":  false,
+                    "announce_to_chat":  true,
+                    "title":  {
+                                  "text":  "Dominio Espiritual Absoluto"
+                              },
+                    "frame":  "challenge"
+                },
+    "requirements":  [
+                         [
+                             "impossible"
+                         ]
+                     ]
+}

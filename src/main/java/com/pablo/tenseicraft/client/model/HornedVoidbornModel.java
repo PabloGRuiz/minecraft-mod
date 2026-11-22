@@ -1,0 +1,226 @@
+package com.pablo.tenseicraft.client.model;
+
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.pablo.tenseicraft.TenseiCraftMod;
+import com.pablo.tenseicraft.entities.HornedVoidbornEntity;
+import net.minecraft.client.model.ArmedModel;
+import net.minecraft.client.model.HierarchicalModel;
+import net.minecraft.client.model.geom.ModelLayerLocation;
+import net.minecraft.client.model.geom.ModelPart;
+import net.minecraft.client.model.geom.PartPose;
+import net.minecraft.client.model.geom.builders.*;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.HumanoidArm;
+
+public class HornedVoidbornModel<T extends HornedVoidbornEntity> extends HierarchicalModel<T> implements ArmedModel {
+
+    public static final ModelLayerLocation LAYER_LOCATION =
+            new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(TenseiCraftMod.MOD_ID, "horned_voidborn"), "main");
+
+    private final ModelPart root;
+    private final ModelPart head;
+    private final ModelPart right_horn;
+    private final ModelPart left_horn;
+    private final ModelPart torso;
+    private final ModelPart hueco;
+    private final ModelPart right_leg;
+    private final ModelPart right_foot;
+    private final ModelPart left_leg;
+    private final ModelPart left_foot;
+    private final ModelPart left_arm;
+    private final ModelPart left_hand;
+    private final ModelPart right_arm;
+    private final ModelPart right_hand;
+    private final ModelPart garras;
+
+    public HornedVoidbornModel(ModelPart root) {
+        this.root = root;
+        this.head = root.getChild("head");
+        this.right_horn = this.head.getChild("right_horn");
+        this.left_horn = this.head.getChild("left_horn");
+        this.torso = root.getChild("torso");
+        this.hueco = this.torso.getChild("hueco");
+        this.right_leg = root.getChild("right_leg");
+        this.right_foot = this.right_leg.getChild("right_foot");
+        this.left_leg = root.getChild("left_leg");
+        this.left_foot = this.left_leg.getChild("left_foot");
+        this.left_arm = root.getChild("left_arm");
+        this.left_hand = this.left_arm.getChild("left_hand");
+        this.right_arm = root.getChild("right_arm");
+        this.right_hand = this.right_arm.getChild("right_hand");
+        this.garras = this.right_hand.getChild("garras");
+    }
+
+    public static LayerDefinition createBodyLayer() {
+        MeshDefinition meshdefinition = new MeshDefinition();
+        PartDefinition partdefinition = meshdefinition.getRoot();
+
+        PartDefinition head = partdefinition.addOrReplaceChild("head", CubeListBuilder.create()
+                .texOffs(64, 51).addBox(-1.0F, -1.0F, -2.0F, 2.0F, 6.0F, 3.0F, new CubeDeformation(0.0F))
+                .texOffs(0, 14).addBox(-4.0F, -8.0F, -4.0F, 8.0F, 8.0F, 8.0F, new CubeDeformation(0.0F))
+                .texOffs(54, 20).addBox(-4.0F, -7.0F, -5.0F, 8.0F, 7.0F, 1.0F, new CubeDeformation(0.0F))
+                .texOffs(12, 42).addBox(-3.0F, -6.0F, -6.0F, 6.0F, 6.0F, 1.0F, new CubeDeformation(0.0F))
+                .texOffs(62, 35).addBox(-2.0F, -6.0F, -8.0F, 4.0F, 6.0F, 2.0F, new CubeDeformation(0.0F))
+                .texOffs(64, 43).addBox(-2.0F, -6.0F, -10.0F, 4.0F, 6.0F, 2.0F, new CubeDeformation(0.0F))
+                .texOffs(48, 68).addBox(-1.0F, -5.0F, -12.0F, 2.0F, 5.0F, 2.0F, new CubeDeformation(0.0F))
+                .texOffs(72, 21).addBox(-1.0F, -4.0F, -13.0F, 2.0F, 5.0F, 1.0F, new CubeDeformation(0.0F)),
+                PartPose.offset(0.0F, -21.0F, 0.0F));
+
+        PartDefinition right_horn = head.addOrReplaceChild("right_horn", CubeListBuilder.create(), PartPose.offset(4.0F, -7.0F, 3.0F));
+        right_horn.addOrReplaceChild("cube_r1", CubeListBuilder.create().texOffs(62, 28).addBox(-2.0F, -2.0F, -1.0F, 3.0F, 3.0F, 4.0F, new CubeDeformation(0.0F)), PartPose.offsetAndRotation(-7.0F, -2.0F, 5.0F, 0.1309F, -0.2618F, 0.0F));
+        right_horn.addOrReplaceChild("cube_r2", CubeListBuilder.create().texOffs(68, 8).addBox(-1.0F, -2.0F, -1.0F, 2.0F, 2.0F, 3.0F, new CubeDeformation(0.0F)), PartPose.offsetAndRotation(-9.0F, -2.0F, 8.0F, 0.0F, -0.48F, 0.0F));
+        right_horn.addOrReplaceChild("cube_r3", CubeListBuilder.create().texOffs(56, 72).addBox(-1.0F, -1.0F, -2.0F, 1.0F, 1.0F, 2.0F, new CubeDeformation(0.0F)), PartPose.offsetAndRotation(-10.0F, -2.0F, 11.0F, 0.0F, -0.48F, 0.0F));
+        right_horn.addOrReplaceChild("cube_r4", CubeListBuilder.create().texOffs(32, 49).addBox(-1.0F, -2.0F, -1.0F, 3.0F, 3.0F, 7.0F, new CubeDeformation(0.0F)), PartPose.offsetAndRotation(-8.0F, 0.0F, 0.0F, 0.3927F, 0.0F, 0.0F));
+
+        PartDefinition left_horn = head.addOrReplaceChild("left_horn", CubeListBuilder.create(), PartPose.offset(4.0F, -7.0F, 3.0F));
+        left_horn.addOrReplaceChild("cube_r5", CubeListBuilder.create().texOffs(44, 8).addBox(-1.0F, -2.0F, -1.0F, 2.0F, 2.0F, 3.0F, new CubeDeformation(0.0F)), PartPose.offsetAndRotation(1.0F, -2.0F, 8.0F, 0.0F, 0.48F, 0.0F));
+        left_horn.addOrReplaceChild("cube_r6", CubeListBuilder.create().texOffs(58, 13).addBox(-1.0F, -2.0F, -1.0F, 3.0F, 3.0F, 4.0F, new CubeDeformation(0.0F)), PartPose.offsetAndRotation(-1.0F, -2.0F, 5.0F, 0.1309F, 0.2618F, 0.0F));
+        left_horn.addOrReplaceChild("cube_r7", CubeListBuilder.create().texOffs(72, 69).addBox(0.0F, -1.0F, -2.0F, 1.0F, 1.0F, 2.0F, new CubeDeformation(0.0F)), PartPose.offsetAndRotation(2.0F, -2.0F, 11.0F, 0.0F, 0.48F, 0.0F));
+        left_horn.addOrReplaceChild("cube_r8", CubeListBuilder.create().texOffs(12, 49).addBox(-2.0F, -2.0F, -1.0F, 3.0F, 3.0F, 7.0F, new CubeDeformation(0.0F)), PartPose.offsetAndRotation(0.0F, 0.0F, 0.0F, 0.3927F, 0.0F, 0.0F));
+
+        PartDefinition torso = partdefinition.addOrReplaceChild("torso", CubeListBuilder.create()
+                .texOffs(0, 60).addBox(-1.0F, 4.0F, -1.0F, 2.0F, 11.0F, 2.0F, new CubeDeformation(0.0F))
+                .texOffs(32, 14).addBox(-5.0F, 14.0F, -2.0F, 10.0F, 3.0F, 3.0F, new CubeDeformation(0.0F))
+                .texOffs(0, 0).addBox(-6.0F, -4.0F, -3.0F, 12.0F, 9.0F, 5.0F, new CubeDeformation(0.0F)),
+                PartPose.offset(0.0F, -13.0F, 0.0F));
+
+        PartDefinition hueco = torso.addOrReplaceChild("hueco", CubeListBuilder.create()
+                .texOffs(68, 0).addBox(-3.0F, -38.0F, -3.0F, 0.0F, 3.0F, 5.0F, new CubeDeformation(0.0F))
+                .texOffs(34, 8).addBox(-2.0F, -39.0F, -3.0F, 0.0F, 1.0F, 5.0F, new CubeDeformation(0.0F))
+                .texOffs(34, 8).addBox(-2.0F, -35.0F, -3.0F, 0.0F, 1.0F, 5.0F, new CubeDeformation(0.0F))
+                .texOffs(34, 8).mirror().addBox(2.0F, -35.0F, -3.0F, 0.0F, 1.0F, 5.0F, new CubeDeformation(0.0F)).mirror(false)
+                .texOffs(34, 8).mirror().addBox(2.0F, -39.0F, -3.0F, 0.0F, 1.0F, 5.0F, new CubeDeformation(0.0F)).mirror(false)
+                .texOffs(68, 0).mirror().addBox(3.0F, -38.0F, -3.0F, 0.0F, 3.0F, 5.0F, new CubeDeformation(0.0F)).mirror(false),
+                PartPose.offset(0.0F, 37.0F, 0.0F));
+
+        hueco.addOrReplaceChild("cube_r9", CubeListBuilder.create().texOffs(64, 60).addBox(1.0F, -3.0F, -3.0F, 0.0F, 4.0F, 5.0F, new CubeDeformation(0.0F)), PartPose.offsetAndRotation(1.0F, -33.0F, 0.0F, 0.0F, 0.0F, -1.5708F));
+        hueco.addOrReplaceChild("cube_r10", CubeListBuilder.create().texOffs(34, 8).mirror().addBox(-1.0F, -3.0F, -3.0F, 0.0F, 1.0F, 5.0F, new CubeDeformation(0.0F)).mirror(false), PartPose.offsetAndRotation(0.0F, -34.0F, 0.0F, 0.0F, 0.0F, 1.5708F));
+        hueco.addOrReplaceChild("cube_r11", CubeListBuilder.create().texOffs(34, 8).mirror().addBox(-1.0F, -3.0F, -3.0F, 0.0F, 1.0F, 5.0F, new CubeDeformation(0.0F)).mirror(false), PartPose.offsetAndRotation(0.0F, -37.0F, 0.0F, 0.0F, 0.0F, 1.5708F));
+        hueco.addOrReplaceChild("cube_r12", CubeListBuilder.create().texOffs(64, 60).addBox(1.0F, -3.0F, -3.0F, 0.0F, 4.0F, 5.0F, new CubeDeformation(0.0F)), PartPose.offsetAndRotation(1.0F, -38.0F, 0.0F, 0.0F, 0.0F, -1.5708F));
+        hueco.addOrReplaceChild("cube_r13", CubeListBuilder.create().texOffs(34, 8).addBox(1.0F, -3.0F, -3.0F, 0.0F, 1.0F, 5.0F, new CubeDeformation(0.0F)), PartPose.offsetAndRotation(0.0F, -37.0F, 0.0F, 0.0F, 0.0F, -1.5708F));
+        hueco.addOrReplaceChild("cube_r14", CubeListBuilder.create().texOffs(34, 8).addBox(1.0F, -3.0F, -3.0F, 0.0F, 1.0F, 5.0F, new CubeDeformation(0.0F)), PartPose.offsetAndRotation(0.0F, -34.0F, 0.0F, 0.0F, 0.0F, -1.5708F));
+
+        PartDefinition right_leg = partdefinition.addOrReplaceChild("right_leg", CubeListBuilder.create()
+                .texOffs(56, 0).addBox(-1.0F, 10.0F, -1.0F, 3.0F, 10.0F, 3.0F, new CubeDeformation(0.0F))
+                .texOffs(12, 59).addBox(-1.0F, 0.0F, -1.0F, 3.0F, 10.0F, 3.0F, new CubeDeformation(0.0F)),
+                PartPose.offset(-5.0F, 3.0F, -1.0F));
+
+        right_leg.addOrReplaceChild("right_foot", CubeListBuilder.create()
+                .texOffs(64, 69).addBox(-2.0F, 1.0F, -3.0F, 1.0F, 1.0F, 3.0F, new CubeDeformation(0.0F))
+                .texOffs(56, 68).addBox(2.0F, 1.0F, -3.0F, 1.0F, 1.0F, 3.0F, new CubeDeformation(0.0F))
+                .texOffs(32, 20).addBox(-2.0F, 0.0F, -1.0F, 5.0F, 2.0F, 6.0F, new CubeDeformation(0.0F))
+                .texOffs(8, 72).addBox(0.0F, 1.0F, -3.0F, 1.0F, 1.0F, 3.0F, new CubeDeformation(0.0F)),
+                PartPose.offset(0.0F, 19.0F, -2.0F));
+
+        PartDefinition left_leg = partdefinition.addOrReplaceChild("left_leg", CubeListBuilder.create()
+                .texOffs(24, 59).addBox(-1.0F, 10.0F, -1.0F, 3.0F, 10.0F, 3.0F, new CubeDeformation(0.0F))
+                .texOffs(36, 59).addBox(-1.0F, 0.0F, -1.0F, 3.0F, 10.0F, 3.0F, new CubeDeformation(0.0F)),
+                PartPose.offset(4.0F, 3.0F, -1.0F));
+
+        left_leg.addOrReplaceChild("left_foot", CubeListBuilder.create()
+                .texOffs(72, 13).addBox(-3.0F, 1.0F, -3.0F, 1.0F, 1.0F, 3.0F, new CubeDeformation(0.0F))
+                .texOffs(16, 72).addBox(1.0F, 1.0F, -3.0F, 1.0F, 1.0F, 3.0F, new CubeDeformation(0.0F))
+                .texOffs(34, 0).addBox(-3.0F, 0.0F, -1.0F, 5.0F, 2.0F, 6.0F, new CubeDeformation(0.0F))
+                .texOffs(72, 17).addBox(-1.0F, 1.0F, -3.0F, 1.0F, 1.0F, 3.0F, new CubeDeformation(0.0F)),
+                PartPose.offset(1.0F, 19.0F, -2.0F));
+
+        PartDefinition left_arm = partdefinition.addOrReplaceChild("left_arm", CubeListBuilder.create()
+                .texOffs(0, 42).addBox(0.0F, 12.0F, -2.0F, 3.0F, 15.0F, 3.0F, new CubeDeformation(0.0F))
+                .texOffs(50, 28).addBox(0.0F, -1.0F, -2.0F, 3.0F, 13.0F, 3.0F, new CubeDeformation(0.0F)),
+                PartPose.offset(6.0F, -15.0F, 0.0F));
+
+        left_arm.addOrReplaceChild("left_hand", CubeListBuilder.create()
+                .texOffs(48, 60).addBox(-1.0F, 0.0F, -3.0F, 3.0F, 3.0F, 5.0F, new CubeDeformation(0.0F))
+                .texOffs(8, 67).addBox(1.0F, 2.0F, 1.0F, 1.0F, 3.0F, 1.0F, new CubeDeformation(0.0F))
+                .texOffs(72, 72).addBox(1.0F, 2.0F, -1.0F, 1.0F, 3.0F, 1.0F, new CubeDeformation(0.0F))
+                .texOffs(0, 73).addBox(1.0F, 2.0F, -3.0F, 1.0F, 3.0F, 1.0F, new CubeDeformation(0.0F))
+                .texOffs(4, 73).addBox(-1.0F, 2.0F, -2.0F, 1.0F, 3.0F, 1.0F, new CubeDeformation(0.0F)),
+                PartPose.offset(1.0F, 26.0F, 0.0F));
+
+        PartDefinition right_arm = partdefinition.addOrReplaceChild("right_arm", CubeListBuilder.create()
+                .texOffs(30, 30).addBox(-4.0F, 12.0F, -3.0F, 5.0F, 14.0F, 5.0F, new CubeDeformation(0.0F))
+                .texOffs(52, 44).addBox(-3.0F, -1.0F, -2.0F, 3.0F, 13.0F, 3.0F, new CubeDeformation(0.0F)),
+                PartPose.offset(-6.0F, -15.0F, 0.0F));
+
+        PartDefinition right_hand = right_arm.addOrReplaceChild("right_hand", CubeListBuilder.create()
+                .texOffs(0, 30).addBox(-3.0F, 0.0F, -5.0F, 7.0F, 4.0F, 8.0F, new CubeDeformation(0.0F)),
+                PartPose.offset(-2.0F, 25.0F, 0.0F));
+
+        right_hand.addOrReplaceChild("garras", CubeListBuilder.create()
+                .texOffs(36, 72).addBox(2.0F, 1.0F, -3.0F, 1.0F, 6.0F, 1.0F, new CubeDeformation(0.0F))
+                .texOffs(40, 72).addBox(1.0F, 1.0F, 2.0F, 1.0F, 6.0F, 1.0F, new CubeDeformation(0.0F))
+                .texOffs(44, 72).addBox(2.0F, 1.0F, -1.0F, 1.0F, 6.0F, 1.0F, new CubeDeformation(0.0F))
+                .texOffs(32, 72).addBox(2.0F, 1.0F, -5.0F, 1.0F, 6.0F, 1.0F, new CubeDeformation(0.0F))
+                .texOffs(28, 72).addBox(-2.0F, 1.0F, -5.0F, 1.0F, 6.0F, 1.0F, new CubeDeformation(0.0F))
+                .texOffs(24, 72).addBox(-4.0F, 1.0F, -3.0F, 1.0F, 6.0F, 1.0F, new CubeDeformation(0.0F))
+                .texOffs(8, 60).addBox(-4.0F, 1.0F, 0.0F, 1.0F, 6.0F, 1.0F, new CubeDeformation(0.0F))
+                .texOffs(26, 42).addBox(-3.0F, 1.0F, 2.0F, 1.0F, 6.0F, 1.0F, new CubeDeformation(0.0F)),
+                PartPose.offset(1.0F, 3.0F, 0.0F));
+
+        return LayerDefinition.create(meshdefinition, 128, 128);
+    }
+
+    @Override
+    public ModelPart root() {
+        return this.root;
+    }
+
+    @Override
+    public void setupAnim(T entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch) {
+        this.root().getAllParts().forEach(ModelPart::resetPose);
+
+        this.head.yRot = netHeadYaw * ((float) Math.PI / 180F);
+        this.head.xRot = headPitch * ((float) Math.PI / 180F);
+
+        this.right_leg.xRot = Mth.cos(limbSwing * 0.6662F) * 1.2F * limbSwingAmount;
+        this.left_leg.xRot = Mth.cos(limbSwing * 0.6662F + (float) Math.PI) * 1.2F * limbSwingAmount;
+
+        this.right_arm.xRot = Mth.cos(limbSwing * 0.6662F + (float) Math.PI) * 0.85F * limbSwingAmount - 0.15F;
+        this.left_arm.xRot = Mth.cos(limbSwing * 0.6662F) * 0.85F * limbSwingAmount - 0.10F;
+
+        this.right_arm.zRot = 0.08F + Mth.cos(ageInTicks * 0.09F) * 0.04F;
+        this.left_arm.zRot = -0.08F - Mth.cos(ageInTicks * 0.09F) * 0.04F;
+        this.torso.xRot = Mth.sin(ageInTicks * 0.06F) * 0.03F;
+
+        // 1. Postura de Embestida con Cuernos
+        if (entity.isCharging()) {
+            this.torso.xRot = 0.45F;
+            this.head.xRot += 0.55F;
+            this.right_arm.xRot = -0.95F;
+            this.left_arm.xRot = -0.95F;
+            this.right_arm.zRot = 0.30F;
+            this.left_arm.zRot = -0.30F;
+            return;
+        }
+
+        // 2. Zarpazo Feroz con su brazo derecho de garras
+        int slashTicks = entity.getClawSlashTicks();
+        if (slashTicks > 0 || this.attackTime > 0.0F) {
+            float swing = (slashTicks > 0)
+                    ? Mth.sin((1.0F - (slashTicks / 12.0F)) * (float) Math.PI)
+                    : Mth.sin(this.attackTime * (float) Math.PI);
+            this.right_arm.xRot = -1.85F * swing;
+            this.right_arm.yRot = -0.50F * swing;
+            this.right_arm.zRot = 0.35F * swing;
+            this.right_hand.xRot = 0.55F * swing;
+            this.left_arm.xRot = -0.60F * swing;
+            this.torso.yRot = -0.35F * swing;
+            this.torso.xRot = 0.20F * swing;
+        }
+    }
+
+    @Override
+    public void translateToHand(HumanoidArm arm, PoseStack poseStack) {
+        this.root.translateAndRotate(poseStack);
+        if (arm == HumanoidArm.RIGHT) {
+            this.right_arm.translateAndRotate(poseStack);
+            this.right_hand.translateAndRotate(poseStack);
+            poseStack.translate(0.0F, -0.55F, -0.10F);
+        } else {
+            this.left_arm.translateAndRotate(poseStack);
+            this.left_hand.translateAndRotate(poseStack);
+            poseStack.translate(0.0F, -0.55F, -0.10F);
+        }
+    }
+}

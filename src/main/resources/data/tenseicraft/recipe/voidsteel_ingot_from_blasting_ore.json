@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:blasting",
+  "category": "misc",
+  "cookingtime": 200,
+  "experience": 3.0,
+  "ingredient": {
+    "item": "tenseicraft:voidsteel_ore"
+  },
+  "result": {
+    "id": "tenseicraft:voidsteel_ingot"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "tenseicraft:block/chubby_statue" },
+    "facing=east":  { "model": "tenseicraft:block/chubby_statue", "y": 90 },
+    "facing=south": { "model": "tenseicraft:block/chubby_statue", "y": 180 },
+    "facing=west":  { "model": "tenseicraft:block/chubby_statue", "y": 270 }
+  }
+}
