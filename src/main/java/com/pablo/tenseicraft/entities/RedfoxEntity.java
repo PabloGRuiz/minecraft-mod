@@ -87,7 +87,7 @@ public class RedfoxEntity extends PathfinderMob {
     @Override
     public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty, MobSpawnType spawnType, @Nullable SpawnGroupData spawnGroupData) {
         SpawnGroupData data = super.finalizeSpawn(level, difficulty, spawnType, spawnGroupData);
-        this.setCustomName(Component.literal("§6Redfox §7- §eAventurera Kitsune"));
+        this.setCustomName(Component.literal("§6Redfox §7- §eAventurero Kitsune"));
         this.setCustomNameVisible(true);
         this.setPersistenceRequired();
 
@@ -177,7 +177,12 @@ public class RedfoxEntity extends PathfinderMob {
                         5, 0.3, 0.3, 0.3, 0.02);
             }
 
-            String greeting = getRandomGreeting();
+            String greeting;
+            if (data != null && data.isAliceSentToRedfox() && !data.isPrimordialFuryTrained()) {
+                greeting = "§6\"¡Espera un segundo! Esa presión que emana de tu espada sellada... ¿Alice te envió conmigo porque el acero se negó a abrirse ante ti?\n\n¡Ja! A mí me pasó exactamente lo mismo. Si quieres, puedo entrenarte y enseñarte a pelear sin liberarla.\"";
+            } else {
+                greeting = getRandomGreeting();
+            }
 
             PacketDistributor.sendToPlayer(serverPlayer, new OpenNpcDialoguePayload(
                     this.getId(),

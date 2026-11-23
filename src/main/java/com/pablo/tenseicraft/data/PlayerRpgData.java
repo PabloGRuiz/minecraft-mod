@@ -137,6 +137,16 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
     private int meguReforgeCount = 0;
     private boolean meguAnvilUnlocked = false;
 
+    // Furia Primordial / Destino Celestial (Manto Celestial sin Liberación de Espada)
+    // En fase de prueba: 100% asignado por defecto para testear el flujo completo
+    private boolean primordialDestiny = true;
+    private boolean swordRejectionTriggered = false;
+    private boolean aliceSentToRedfox = false;
+    private boolean primordialFuryTabUnlocked = false;
+    private boolean primordialFuryTrained = false;
+    private float primordialFuryCharge = 0.0f; // 0.0f a 100.0f
+    private boolean primordialFuryActive = false;
+
     public PlayerRpgData() {
     }
 
@@ -694,6 +704,67 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
 
     public long getCelestialMantleUntilTick() {
         return celestialMantleUntilTick;
+    }
+
+    // === Furia Primordial (Destino Celestial / Modo Tachy con Manto Celestial) ===
+    public boolean hasPrimordialDestiny() {
+        return primordialDestiny;
+    }
+
+    public void setPrimordialDestiny(boolean primordialDestiny) {
+        this.primordialDestiny = primordialDestiny;
+    }
+
+    public boolean isSwordRejectionTriggered() {
+        return swordRejectionTriggered;
+    }
+
+    public void setSwordRejectionTriggered(boolean triggered) {
+        this.swordRejectionTriggered = triggered;
+    }
+
+    public boolean isAliceSentToRedfox() {
+        return aliceSentToRedfox;
+    }
+
+    public void setAliceSentToRedfox(boolean sent) {
+        this.aliceSentToRedfox = sent;
+    }
+
+    public boolean isPrimordialFuryTabUnlocked() {
+        return primordialFuryTabUnlocked;
+    }
+
+    public void setPrimordialFuryTabUnlocked(boolean unlocked) {
+        this.primordialFuryTabUnlocked = unlocked;
+    }
+
+    public boolean isPrimordialFuryTrained() {
+        return primordialFuryTrained;
+    }
+
+    public void setPrimordialFuryTrained(boolean trained) {
+        this.primordialFuryTrained = trained;
+    }
+
+    public float getPrimordialFuryCharge() {
+        return primordialFuryCharge;
+    }
+
+    public void setPrimordialFuryCharge(float charge) {
+        this.primordialFuryCharge = Math.max(0.0f, Math.min(100.0f, charge));
+    }
+
+    public void addPrimordialFuryCharge(float delta) {
+        setPrimordialFuryCharge(this.primordialFuryCharge + delta);
+    }
+
+    public boolean isPrimordialFuryActive() {
+        return primordialFuryActive;
+    }
+
+    public void setPrimordialFuryActive(boolean active) {
+        this.primordialFuryActive = active;
     }
 
     // Métodos alias para compatibilidad
@@ -1347,6 +1418,13 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         this.skillCooldownTotalTicks.putAll(other.skillCooldownTotalTicks);
         this.meguReforgeCount = other.meguReforgeCount;
         this.meguAnvilUnlocked = other.meguAnvilUnlocked;
+        this.primordialDestiny = other.primordialDestiny;
+        this.swordRejectionTriggered = other.swordRejectionTriggered;
+        this.aliceSentToRedfox = other.aliceSentToRedfox;
+        this.primordialFuryTabUnlocked = other.primordialFuryTabUnlocked;
+        this.primordialFuryTrained = other.primordialFuryTrained;
+        this.primordialFuryCharge = other.primordialFuryCharge;
+        this.primordialFuryActive = false;
     }
 
     @Override
@@ -1416,6 +1494,13 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         tag.putLong("DivineSmokeUntilTick", this.celestialMantleUntilTick);
         tag.putInt("MeguReforgeCount", this.meguReforgeCount);
         tag.putBoolean("MeguAnvilUnlocked", this.meguAnvilUnlocked);
+        tag.putBoolean("PrimordialDestiny", this.primordialDestiny);
+        tag.putBoolean("SwordRejectionTriggered", this.swordRejectionTriggered);
+        tag.putBoolean("AliceSentToRedfox", this.aliceSentToRedfox);
+        tag.putBoolean("PrimordialFuryTabUnlocked", this.primordialFuryTabUnlocked);
+        tag.putBoolean("PrimordialFuryTrained", this.primordialFuryTrained);
+        tag.putFloat("PrimordialFuryCharge", this.primordialFuryCharge);
+        tag.putBoolean("PrimordialFuryActive", this.primordialFuryActive);
 
         ListTag list = new ListTag();
         for (Map.Entry<Integer, StatType> entry : chosenMilestones.entrySet()) {
@@ -1597,6 +1682,29 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         }
         if (tag.contains("MeguAnvilUnlocked", Tag.TAG_BYTE)) {
             this.meguAnvilUnlocked = tag.getBoolean("MeguAnvilUnlocked");
+        }
+        if (tag.contains("PrimordialDestiny", Tag.TAG_BYTE)) {
+            this.primordialDestiny = tag.getBoolean("PrimordialDestiny");
+        } else {
+            this.primordialDestiny = true; // 100% en fase de prueba
+        }
+        if (tag.contains("SwordRejectionTriggered", Tag.TAG_BYTE)) {
+            this.swordRejectionTriggered = tag.getBoolean("SwordRejectionTriggered");
+        }
+        if (tag.contains("AliceSentToRedfox", Tag.TAG_BYTE)) {
+            this.aliceSentToRedfox = tag.getBoolean("AliceSentToRedfox");
+        }
+        if (tag.contains("PrimordialFuryTabUnlocked", Tag.TAG_BYTE)) {
+            this.primordialFuryTabUnlocked = tag.getBoolean("PrimordialFuryTabUnlocked");
+        }
+        if (tag.contains("PrimordialFuryTrained", Tag.TAG_BYTE)) {
+            this.primordialFuryTrained = tag.getBoolean("PrimordialFuryTrained");
+        }
+        if (tag.contains("PrimordialFuryCharge", Tag.TAG_FLOAT)) {
+            this.primordialFuryCharge = Math.max(0.0f, Math.min(100.0f, tag.getFloat("PrimordialFuryCharge")));
+        }
+        if (tag.contains("PrimordialFuryActive", Tag.TAG_BYTE)) {
+            this.primordialFuryActive = tag.getBoolean("PrimordialFuryActive");
         }
         if (tag.contains("CurrentLifeFortitude", Tag.TAG_INT)) {
             this.currentLifeFortitude = tag.getInt("CurrentLifeFortitude");

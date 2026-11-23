@@ -115,6 +115,22 @@ public class RpgStatsCommand {
                     return executeInfo(player);
                 }));
 
+        // /<root> furia max -> Llena la barra de Furia Primordial al 100% para pruebas
+        cmd.then(Commands.literal("furia")
+                .requires(source -> source.hasPermission(2))
+                .then(Commands.literal("max")
+                        .executes(context -> {
+                            ServerPlayer player = context.getSource().getPlayerOrException();
+                            PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
+                            if (data == null) return 0;
+                            data.setPrimordialFuryCharge(100.0f);
+                            ModNetworking.syncToPlayer(player);
+                            player.serverLevel().playSound(null, player.getX(), player.getY(), player.getZ(),
+                                    SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0f, 1.3f);
+                            player.sendSystemMessage(Component.literal("§f§l[✦] §6Furia Primordial cargada al §e100%§6."));
+                            return 1;
+                        })));
+
         // /<root> choose <stat> [milestone] -> Allocate milestone attribute point
         cmd.then(Commands.literal("choose")
                 .then(Commands.argument("stat", StringArgumentType.word())

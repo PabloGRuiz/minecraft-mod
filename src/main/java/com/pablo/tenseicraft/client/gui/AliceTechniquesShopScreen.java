@@ -78,8 +78,6 @@ public class AliceTechniquesShopScreen extends Screen {
             Button buyBtn = Button.builder(btnText, b -> {
                 ModNetworking.sendBuySpiritualSkill(tech.getId());
                 b.active = false;
-                // Schedule GUI refresh
-                Minecraft.getInstance().tell(this::rebuildWidgets);
             })
             .bounds(leftPos + GUI_WIDTH - 105, currentY + 1, 95, 18)
             .tooltip(Tooltip.create(Component.literal(tooltipContent)))
@@ -109,6 +107,13 @@ public class AliceTechniquesShopScreen extends Screen {
                 this.minecraft.setScreen(this.parentScreen);
             }
         }).bounds(leftPos + GUI_WIDTH - 95, topPos + GUI_HEIGHT - 23, 85, 18).build());
+    }
+
+    /**
+     * Reconstruye los botones de la tienda al instante cuando llegan los datos sincronizados del servidor.
+     */
+    public void refreshFromServer() {
+        this.rebuildWidgets();
     }
 
     public static int getPlayerEmeralds(Player player) {

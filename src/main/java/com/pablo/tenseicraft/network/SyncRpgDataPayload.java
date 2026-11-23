@@ -33,6 +33,10 @@ public record SyncRpgDataPayload(CompoundTag tag) implements CustomPacketPayload
                 PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
                 if (data != null) {
                     data.deserializeNBT(player.registryAccess(), payload.tag());
+                    net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+                    if (mc.screen instanceof com.pablo.tenseicraft.client.gui.AliceTechniquesShopScreen shop) {
+                        shop.refreshFromServer();
+                    }
                 }
             }
         });

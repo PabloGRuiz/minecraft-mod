@@ -108,19 +108,31 @@ public class NpcDialogueScreen extends Screen {
 
         // 1. Chat button
         boolean hasAliceTrialEvent = false;
-        if ("alice".equals(npcType)) {
-            Player localPlayer = Minecraft.getInstance().player;
-            if (localPlayer != null) {
-                ItemStack sword = findSpiritualSword(localPlayer);
+        boolean hasAliceRejectionEvent = false;
+        boolean hasRedfoxTrainEvent = false;
+        Player localPlayerCheck = Minecraft.getInstance().player;
+        com.pablo.tenseicraft.data.PlayerRpgData checkData = localPlayerCheck != null
+                ? localPlayerCheck.getData(com.pablo.tenseicraft.data.ModAttachments.PLAYER_RPG_DATA)
+                : null;
+
+        if ("alice".equals(npcType) && localPlayerCheck != null) {
+            if (checkData != null && checkData.isSwordRejectionTriggered() && !checkData.isAliceSentToRedfox()) {
+                hasAliceRejectionEvent = true;
+            } else {
+                ItemStack sword = findSpiritualSword(localPlayerCheck);
                 if (sword != null && com.pablo.tenseicraft.items.SpiritualSwordItem.getAffinity(sword) >= 100
-                        && !com.pablo.tenseicraft.items.SpiritualSwordItem.isFirstReleaseUnlocked(sword)) {
+                        && !com.pablo.tenseicraft.items.SpiritualSwordItem.isFirstReleaseUnlocked(sword)
+                        && (checkData == null || !checkData.isAliceSentToRedfox())) {
                     hasAliceTrialEvent = true;
                 }
             }
+        } else if ("redfox".equals(npcType) && checkData != null
+                && checkData.isAliceSentToRedfox() && !checkData.isPrimordialFuryTrained()) {
+            hasRedfoxTrainEvent = true;
         }
 
         boolean hasComradeBondEvent = "adventurer".equals(npcType) && isHiredByPlayer && !isEternalComrade && affinity >= 100;
-        boolean hasExclamation = hasAliceTrialEvent || hasComradeBondEvent;
+        boolean hasExclamation = hasAliceTrialEvent || hasAliceRejectionEvent || hasRedfoxTrainEvent || hasComradeBondEvent;
 
         Component chatLabel = hasExclamation
                 ? Component.literal("§6💬 Charlar (!)")
@@ -129,6 +141,10 @@ public class NpcDialogueScreen extends Screen {
         Tooltip chatTooltip;
         if (hasComradeBondEvent) {
             chatTooltip = Tooltip.create(Component.literal("§6[¡Vínculo Eterno Desbloqueado!]\n§eTu compañero desea hablar contigo sobre su futuro juntos.\n§7Sellará una hermandad eterna y pasará a ser parte de tu familia."));
+        } else if (hasAliceRejectionEvent) {
+            chatTooltip = Tooltip.create(Component.literal("§f[¡Rechazo de la Espada Espiritual!]\n§eCuéntale a Alice que tu espada se negó a ser liberada."));
+        } else if (hasRedfoxTrainEvent) {
+            chatTooltip = Tooltip.create(Component.literal("§6[¡Entrenamiento de Furia Primordial!]\n§eAlice te envió con Redfox.\n§7Conversa con él sobre tu Espada Espiritual sellada."));
         } else if (hasAliceTrialEvent) {
             chatTooltip = Tooltip.create(Component.literal("§6[¡Prueba Espiritual Disponible!]\n§eTu espada alcanzó 100 de afinidad.\n§7Alice te revelará el camino para despertar su Primera Liberación."));
         } else {
@@ -519,6 +535,25 @@ public class NpcDialogueScreen extends Screen {
             }).bounds(rightColumnX, secondRowY, 150, btnHeight)
             .tooltip(Tooltip.create(Component.literal("§c[Desafío del Santuario Hakurei]\n§eReimu volverá a desplegar sus reglas de Spell Cards para combatir contra ti.\n§7- Rango Calamidad (5000 HP)\n§7- Proyectiles mortales al instante\n§7- Aturdida 5s por golpe antes de empujarte")))
             .build());
+        }
+
+        // 9. Redfox specific: Primordial Fury Training
+        if ("redfox".equals(npcType) && checkData != null && checkData.isAliceSentToRedfox()) {
+            int secondRowY = actionY + 24;
+            if (!checkData.isPrimordialFuryTrained()) {
+                this.addRenderableWidget(Button.builder(Component.literal("§f✦ Entrenar Furia Primordial"), b -> {
+                    ModNetworking.sendNpcDialogueAction(entityId, NpcDialogueActionPayload.ACTION_REDFOX_TRAIN_PRIMORDIAL_FURY);
+                }).bounds(rightColumnX, secondRowY, 175, btnHeight)
+                .tooltip(Tooltip.create(Component.literal("§f§l[Entrenamiento de Redfox]\n§eAprende a combatir con tu Espada Espiritual sellada.\n§7- Despierta el modo temporal §fFuria Primordial §7(Manto Celestial).\n§7- Desbloquea la barra de carga en el HUD y los 3 combos destructivos.")))
+                .build());
+            } else {
+                Button masteredBtn = Button.builder(Component.literal("§a✔ Furia Primordial Dominada"), b -> {})
+                        .bounds(rightColumnX, secondRowY, 175, btnHeight)
+                        .tooltip(Tooltip.create(Component.literal("§aYa completaste el entrenamiento de Redfox.\n§7Revisa la solapa §eFuria §7en tu menú para consultar los controles y combos.")))
+                        .build();
+                masteredBtn.active = false;
+                this.addRenderableWidget(masteredBtn);
+            }
         }
 
         // Close / Farewell button

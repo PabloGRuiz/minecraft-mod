@@ -65,6 +65,59 @@ public record ToggleSwordReleasePayload(boolean unused) implements CustomPacketP
                 return;
             }
 
+            PlayerRpgData rpgData = player.getData(ModAttachments.PLAYER_RPG_DATA);
+
+            // 0. Camino de Furia Primordial (Destino Celestial: la espada no se libera; [Z] desata el Manto Celestial)
+            if (rpgData != null && rpgData.hasPrimordialDestiny()) {
+                if (rpgData.isPrimordialFuryTrained()) {
+                    com.pablo.tenseicraft.events.PrimordialFuryEvents.tryActivateFury(player);
+                    return;
+                }
+
+                if (rpgData.isSwordRejectionTriggered()) {
+                    if (!rpgData.isAliceSentToRedfox()) {
+                        player.displayClientMessage(Component.literal("§cLa espada se niega a abrirse ante ti... Habla con §dAlice§c."), true);
+                    } else {
+                        player.displayClientMessage(Component.literal("§eTu espada no puede liberarse. Busca a §6Redfox §epara aprender otro camino."), true);
+                    }
+                    player.serverLevel().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.8f, 0.8f);
+                    return;
+                }
+
+                // Si llegó a 100 de afinidad y Alice le dio luz verde para la prueba -> ¡RECHAZO DE LA ESPADA!
+                int affinity = SpiritualSwordItem.getAffinity(stack);
+                if (affinity < 100) {
+                    player.displayClientMessage(Component.literal("§cTu afinidad con la espada es de " + affinity + "/100. Necesitas alcanzar 100 de afinidad antes de la prueba."), true);
+                    player.serverLevel().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.VILLAGER_NO, SoundSource.PLAYERS, 0.8f, 1.0f);
+                    return;
+                }
+
+                if (!SpiritualSwordItem.isTrialReady(stack)) {
+                    player.displayClientMessage(Component.literal("§dTu espada vibra con máxima afinidad. Habla primero con §bAlice §dpara recibir sus instrucciones."), true);
+                    player.serverLevel().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.VILLAGER_YES, SoundSource.PLAYERS, 0.8f, 1.2f);
+                    return;
+                }
+
+                // ¡Evento de Rechazo del Destino Primordial!
+                rpgData.setSwordRejectionTriggered(true);
+                ModNetworking.syncToPlayer(player);
+
+                ServerLevel sl = player.serverLevel();
+                sl.sendParticles(ParticleTypes.SMOKE, player.getX(), player.getY() + 1.0, player.getZ(), 45, 0.5, 0.7, 0.5, 0.08);
+                sl.sendParticles(ParticleTypes.CLOUD, player.getX(), player.getY() + 1.0, player.getZ(), 25, 0.6, 0.5, 0.6, 0.06);
+                sl.sendParticles(ParticleTypes.CRIT, player.getX(), player.getY() + 1.0, player.getZ(), 30, 0.5, 0.6, 0.5, 0.15);
+                sl.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ITEM_BREAK, SoundSource.PLAYERS, 1.2f, 0.6f);
+                sl.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.WARDEN_SONIC_BOOM, SoundSource.PLAYERS, 0.5f, 1.4f);
+
+                player.sendSystemMessage(Component.empty());
+                player.sendSystemMessage(Component.literal("§c§l[✦] ¡La Espada Espiritual vibra violentamente y se niega a ser liberada!"));
+                player.sendSystemMessage(Component.literal("§7«La hoja rechaza tu llamado... Tu espíritu es demasiado salvaje para quedar encerrado en el acero.»"));
+                player.sendSystemMessage(Component.literal("§eVuelve a hablar con §dAlice §epara contarle lo sucedido."));
+                player.sendSystemMessage(Component.empty());
+                player.displayClientMessage(Component.literal("§c¡La espada rechaza abrirse ante ti! Habla con §dAlice§c."), true);
+                return;
+            }
+
             // 1. Si la Primera Liberación YA está desbloqueada: Alternar estado activo / inactivo
             if (SpiritualSwordItem.isFirstReleaseUnlocked(stack)) {
                 PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);

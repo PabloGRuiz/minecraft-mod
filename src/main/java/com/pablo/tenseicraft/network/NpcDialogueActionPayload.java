@@ -64,6 +64,7 @@ public record NpcDialogueActionPayload(int entityId, int actionType) implements 
     public static final int ACTION_MEGU_REFORGE = 30;
     public static final int ACTION_MEGU_BUY_MAGIC_ANVIL = 31;
     public static final int ACTION_REIMU_CHALLENGE = 32;
+    public static final int ACTION_REDFOX_TRAIN_PRIMORDIAL_FURY = 33;
 
     public static final Type<NpcDialogueActionPayload> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath(TenseiCraftMod.MOD_ID, "npc_dialogue_action"));
@@ -697,7 +698,25 @@ public record NpcDialogueActionPayload(int entityId, int actionType) implements 
         switch (action) {
             case ACTION_CHAT -> {
                 ItemStack sword = findSpiritualSword(player);
-                if (sword != null && com.pablo.tenseicraft.items.SpiritualSwordItem.isFirstReleaseUnlocked(sword)) {
+                if (rpgData.isPrimordialFuryTrained()) {
+                    responseDialogue = "§d\"¡Increíble, " + playerName + "! Puedo sentir el eco de la §fFuria Primordial §ddormido en tu cuerpo. Redfox hizo un trabajo excepcional contigo... Mantén tu espada sellada y deja que el Manto Celestial hable en la batalla.\"";
+                    player.serverLevel().playSound(null, player.getX(), player.getY(), player.getZ(),
+                            SoundEvents.VILLAGER_YES, SoundSource.NEUTRAL, 1.0F, 1.2F);
+                } else if (rpgData.isAliceSentToRedfox()) {
+                    responseDialogue = "§d\"Busca a §6Redfox§d, el aventurero Kitsune errante que recorre las aldeas. Él pasó por lo mismo que tú y es el único que puede enseñarte a luchar sin liberar tu espada.\"";
+                    player.serverLevel().playSound(null, player.getX(), player.getY(), player.getZ(),
+                            SoundEvents.VILLAGER_YES, SoundSource.NEUTRAL, 1.0F, 1.1F);
+                } else if (rpgData.isSwordRejectionTriggered()) {
+                    rpgData.setAliceSentToRedfox(true);
+                    ModNetworking.syncToPlayer(player);
+                    responseDialogue = "§d\"¿Qué dices, " + playerName + "...? ¿La Espada Espiritual rechazó por completo abrirse ante ti?!\n\n...No puede ser. Has nacido con un §f§lDestino Primordial§d. Tu energía espiritual es demasiado indomable para quedar encerrada dentro de una hoja; por eso el acero se niega a obedecerte.\n\nYo no puedo entrenarte en ese camino, pero conozco a un solo guerrero al que le ocurrió lo mismo y logró dominar el combate con su espada sellada: §6Redfox§d, el aventurero Kitsune que viaja por las aldeas. ¡Ve a hablar con él!\"";
+                    player.serverLevel().playSound(null, player.getX(), player.getY(), player.getZ(),
+                            SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 1.0F, 1.05F);
+                    player.serverLevel().playSound(null, player.getX(), player.getY(), player.getZ(),
+                            SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.2F);
+                    player.serverLevel().sendParticles(ParticleTypes.CLOUD, player.getX(), player.getY() + 1.0, player.getZ(), 35, 0.5, 0.7, 0.5, 0.05);
+                    player.serverLevel().sendParticles(ParticleTypes.END_ROD, player.getX(), player.getY() + 1.1, player.getZ(), 25, 0.4, 0.6, 0.4, 0.08);
+                } else if (sword != null && com.pablo.tenseicraft.items.SpiritualSwordItem.isFirstReleaseUnlocked(sword)) {
                     responseDialogue = "§d\"¡Excelente trabajo al dominar la Primera Liberación de tu espada espiritual, " + playerName + "! Siente su filo... Aún queda mucho poder dormido por extraer de su esencia. Cuando estés listo y alcances una mayor maestría, podrás buscar dominar y conseguir tu Segunda Liberación.\"";
                     player.serverLevel().playSound(null, player.getX(), player.getY(), player.getZ(),
                             SoundEvents.VILLAGER_YES, SoundSource.NEUTRAL, 1.0F, 1.2F);
@@ -1079,12 +1098,50 @@ public record NpcDialogueActionPayload(int entityId, int actionType) implements 
         switch (action) {
             case ACTION_CHAT -> {
                 redfox.addAffinity(player, 1);
-                dialogue = redfox.getRandomGreeting();
-                player.serverLevel().playSound(null, redfox.getX(), redfox.getY(), redfox.getZ(),
-                        SoundEvents.FOX_AMBIENT, SoundSource.NEUTRAL, 1.0F, 1.1F);
-                player.serverLevel().sendParticles(ParticleTypes.HAPPY_VILLAGER,
-                        redfox.getX(), redfox.getY() + 1.2, redfox.getZ(),
-                        4, 0.2, 0.2, 0.2, 0.02);
+                if (data != null && data.isAliceSentToRedfox() && !data.isPrimordialFuryTrained()) {
+                    dialogue = "§6\"¡Espera un segundo! Esa presión que emana de tu espada sellada... ¿Alice te envió conmigo porque el acero se negó a abrirse ante ti?\n\n¡Ja! A mí me pasó exactamente lo mismo hace mucho tiempo. Cuando tu espíritu no cabe dentro de una hoja, tienes que aprender a desatarlo desde tu propio cuerpo. Si quieres, puedo entrenarte y mostrarte cómo pelear a mi manera.\"";
+                    player.serverLevel().playSound(null, redfox.getX(), redfox.getY(), redfox.getZ(),
+                            SoundEvents.FOX_AMBIENT, SoundSource.NEUTRAL, 1.0F, 1.25F);
+                    player.serverLevel().sendParticles(ParticleTypes.END_ROD,
+                            redfox.getX(), redfox.getY() + 1.2, redfox.getZ(),
+                            12, 0.3, 0.4, 0.3, 0.04);
+                } else if (data != null && data.isPrimordialFuryTrained()) {
+                    dialogue = "§6\"¿Cómo se siente desatar la §fFuria Primordial§6? Mantén tu espíritu ardiendo en combate con la espada sellada y deja que el Manto Celestial envuelva tus hombros cuando llegue el momento. ¡Haz temblar el suelo!\"";
+                    player.serverLevel().playSound(null, redfox.getX(), redfox.getY(), redfox.getZ(),
+                            SoundEvents.FOX_AMBIENT, SoundSource.NEUTRAL, 1.0F, 1.15F);
+                } else {
+                    dialogue = redfox.getRandomGreeting();
+                    player.serverLevel().playSound(null, redfox.getX(), redfox.getY(), redfox.getZ(),
+                            SoundEvents.FOX_AMBIENT, SoundSource.NEUTRAL, 1.0F, 1.1F);
+                    player.serverLevel().sendParticles(ParticleTypes.HAPPY_VILLAGER,
+                            redfox.getX(), redfox.getY() + 1.2, redfox.getZ(),
+                            4, 0.2, 0.2, 0.2, 0.02);
+                }
+            }
+            case ACTION_REDFOX_TRAIN_PRIMORDIAL_FURY -> {
+                if (data != null && data.isAliceSentToRedfox() && !data.isPrimordialFuryTrained()) {
+                    data.setPrimordialFuryTabUnlocked(true);
+                    data.setPrimordialFuryTrained(true);
+                    data.setPrimordialFuryCharge(100.0f); // Lista al 100% para probar inmediatamente
+                    ModNetworking.syncToPlayer(player);
+                    redfox.addAffinity(player, 10);
+
+                    ServerLevel sl = player.serverLevel();
+                    sl.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 1.1F, 1.0F);
+                    sl.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 0.9F, 1.3F);
+                    sl.sendParticles(ParticleTypes.CLOUD, player.getX(), player.getY() + 1.0, player.getZ(), 45, 0.6, 0.8, 0.6, 0.08);
+                    sl.sendParticles(ParticleTypes.END_ROD, player.getX(), player.getY() + 1.1, player.getZ(), 35, 0.5, 0.7, 0.5, 0.12);
+
+                    // Aviso del sistema (fuera del diálogo inmersivo del NPC)
+                    player.sendSystemMessage(Component.empty());
+                    player.sendSystemMessage(Component.literal("§6§l[✦] §e¡Has despertado la §f§lFuria Primordial§e!"));
+                    player.sendSystemMessage(Component.literal("§7• Entra a §eRPG §7en tu inventario (o presiona §e[K]§7) y revisa la nueva solapa §f§lFuria §7para ver tus habilidades y cómo activarlas."));
+                    player.sendSystemMessage(Component.empty());
+
+                    dialogue = "§6\"¡Eso es! Siente cómo la §f§lFuria Primordial §6desborda de tu interior y envuelve tus hombros como el §fManto Celestial§6.\n\nDe ahora en más, tu espada sellada no será una limitación, sino el arma con la que harás temblar la tierra. Pelea con fiereza para acumular esa energía, y cuando sientas que está al límite... ¡desátala sin contenerte!\"";
+                } else {
+                    dialogue = "§6\"Ya conoces mis secretos de combate. ¡Sal ahí fuera y demuestra el poder de la Furia Primordial!\"";
+                }
             }
             case ACTION_GIFT -> {
                 ItemStack held = player.getMainHandItem();

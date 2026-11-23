@@ -47,9 +47,9 @@ dependencies {
     implementation "maven.modrinth:irons-lib:sQyzhxuH"
     implementation "maven.modrinth:geckolib:Grwn5rUB"
 
-    // L'Ender's Cataclysm + Lionfish API
-    runtimeOnly "maven.modrinth:lionfish-api:fTRMVgyZ"
-    runtimeOnly "maven.modrinth:l_enders-cataclysm:mYBUDZWl"
+    // L'Ender's Cataclysm + Lionfish API (opcional, probado en launcher)
+    // runtimeOnly "maven.modrinth:lionfish-api:fTRMVgyZ"
+    // runtimeOnly "maven.modrinth:l_enders-cataclysm:mYBUDZWl"
 
     // Optimization & Shaders (Sodium + Iris + FerriteCore)
     runtimeOnly "maven.modrinth:sodium:Pb3OXVqC"

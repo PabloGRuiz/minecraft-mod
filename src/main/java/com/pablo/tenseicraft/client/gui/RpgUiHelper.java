@@ -22,7 +22,8 @@ public final class RpgUiHelper {
         QUESTS("Misiones"),
         SKILLS("Técnicas"),
         POWER("Poder"),
-        PARTY("Grupo");
+        PARTY("Grupo"),
+        FURY("Furia");
 
         private final String label;
 
@@ -49,16 +50,34 @@ public final class RpgUiHelper {
         int startX = leftPos + 8;
         int endX = leftPos + guiWidth - 26;
         int gap = 3;
-        NavTab[] tabs = NavTab.values();
-        int btnW = (endX - startX - gap * (tabs.length - 1)) / tabs.length;
+
+        Minecraft mc = Minecraft.getInstance();
+        boolean showFuryTab = (activeTab == NavTab.FURY);
+        if (!showFuryTab && mc.player != null) {
+            com.pablo.tenseicraft.data.PlayerRpgData rpgData = mc.player.getData(com.pablo.tenseicraft.data.ModAttachments.PLAYER_RPG_DATA);
+            if (rpgData != null && rpgData.isPrimordialFuryTabUnlocked()) {
+                showFuryTab = true;
+            }
+        }
+
+        java.util.List<NavTab> visibleTabs = new java.util.ArrayList<>();
+        for (NavTab t : NavTab.values()) {
+            if (t == NavTab.FURY && !showFuryTab) continue;
+            visibleTabs.add(t);
+        }
+
+        int btnW = (endX - startX - gap * (visibleTabs.size() - 1)) / visibleTabs.size();
         int y = topPos + 6;
 
-        for (int i = 0; i < tabs.length; i++) {
-            NavTab tab = tabs[i];
+        for (int i = 0; i < visibleTabs.size(); i++) {
+            NavTab tab = visibleTabs.get(i);
             int bx = startX + i * (btnW + gap);
             boolean isActive = (tab == activeTab);
-            Component label = Component.literal((isActive ? "§6§l" : "§7") + tab.getLabel());
+            Component label = Component.literal((isActive ? (tab == NavTab.FURY ? "§f§l" : "§6§l") : (tab == NavTab.FURY ? "§e" : "§7")) + tab.getLabel());
             String keyName = getKeyLabelForTab(tab);
+            Component tooltipText = tab == NavTab.FURY
+                    ? Component.literal("§f§lFuria Primordial §8[Manto Celestial]")
+                    : Component.literal("§e" + tab.getLabel() + " §8[" + keyName + "]");
 
             Button btn = Button.builder(label, b -> {
                 if (!isActive) {
@@ -66,7 +85,7 @@ public final class RpgUiHelper {
                 }
             })
             .bounds(bx, y, btnW, 16)
-            .tooltip(Tooltip.create(Component.literal("§e" + tab.getLabel() + " §8[" + keyName + "]")))
+            .tooltip(Tooltip.create(tooltipText))
             .build();
 
             btn.active = !isActive;
@@ -87,6 +106,7 @@ public final class RpgUiHelper {
             case SKILLS -> ModKeyMappings.OPEN_SKILLS_KEY.get().getTranslatedKeyMessage().getString();
             case POWER -> ModKeyMappings.OPEN_POWER_CONTROL_KEY.get().getTranslatedKeyMessage().getString();
             case PARTY -> ModKeyMappings.PARTY_KEY.get().getTranslatedKeyMessage().getString();
+            case FURY -> ModKeyMappings.RELEASE_SWORD_KEY.get().getTranslatedKeyMessage().getString();
         };
     }
 
@@ -99,6 +119,7 @@ public final class RpgUiHelper {
             case SKILLS -> mc.setScreen(new RpgPhysicalSkillsScreen(null));
             case POWER -> mc.setScreen(new PowerControlScreen(null));
             case PARTY -> mc.setScreen(new PartyScreen());
+            case FURY -> mc.setScreen(new PrimordialFuryScreen(null));
         }
     }
 

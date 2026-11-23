@@ -245,6 +245,13 @@ public class ModNetworking {
                 ReforgeResultPayload.STREAM_CODEC,
                 ReforgeResultPayload::handle
         );
+
+        // Furia Primordial Combos (Client -> Server)
+        registrar.playToServer(
+                PrimordialFuryComboPayload.TYPE,
+                PrimordialFuryComboPayload.STREAM_CODEC,
+                PrimordialFuryComboPayload::handle
+        );
     }
 
     public static void openPartyScreen(ServerPlayer player) {

@@ -15,12 +15,12 @@ import net.minecraft.resources.ResourceLocation;
 
 /**
  * Renderizador para el proyectil Danmaku {@link EnergyAttackEntity}.
- * Centra y escala el modelo 3D acorde a {@link EnergyAttackEntity#getOrbScale()} con brillo completo.
+ * Renderiza el disco Ying-Yang giratorio horizontal a escala configurable con brillo completo.
  */
 public class EnergyAttackRenderer extends EntityRenderer<EnergyAttackEntity> {
 
     private static final ResourceLocation TEXTURE =
-            ResourceLocation.fromNamespaceAndPath(TenseiCraftMod.MOD_ID, "textures/entity/energy_attack.png");
+            ResourceLocation.fromNamespaceAndPath(TenseiCraftMod.MOD_ID, "textures/entity/yingyang.png");
 
     private final EnergyAttackModel model;
 
@@ -39,15 +39,15 @@ public class EnergyAttackRenderer extends EntityRenderer<EnergyAttackEntity> {
     public void render(EnergyAttackEntity entity, float entityYaw, float partialTick,
                        PoseStack poseStack, MultiBufferSource bufferSource, int packedLight) {
         float ageInTicks = entity.tickCount + partialTick;
-        float visualScale = entity.getOrbScale() * 2.25F;
+        float scale = entity.getOrbScale();
 
         poseStack.pushPose();
-        // Centrar exactamente en la hitbox (1.125 * scale de alto -> centro en 0.5625 * scale = 0.25F * visualScale)
-        poseStack.translate(0.0F, 0.25F * visualScale, 0.0F);
-        poseStack.scale(visualScale, visualScale, visualScale);
-        // Convertir ejes de EntityModel (Y abajo) a mundo y trasladar el centro (0, 18px, 0) = (0, 1.125F, 0) al origen
+        // Centrar verticalmente en la hitbox de la entidad (altura total = 1.125F * scale -> centro a 0.5625F * scale)
+        poseStack.translate(0.0F, 0.5625F * scale, 0.0F);
+        // Escalar según el scale de la entidad (el modelo base mide 16x16 píxeles = 1x1 bloque)
+        poseStack.scale(scale, scale, scale);
+        // Convertir de coordenadas de EntityModel (Y hacia abajo) a espacio del mundo (Y hacia arriba)
         poseStack.scale(-1.0F, -1.0F, 1.0F);
-        poseStack.translate(0.0F, -1.125F, 0.0F);
 
         this.model.setupAnim(entity, 0.0F, 0.0F, ageInTicks, 0.0F, 0.0F);
         VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityCutoutNoCull(TEXTURE));

@@ -535,11 +535,11 @@ public class ReimuBossEntity extends Monster {
     }
 
     private void tickDanmakuPatterns(ServerLevel sl, Player target, int stage) {
-        Vec3 origin = new Vec3(this.getX(), this.getY() + 0.9, this.getZ());
-        Vec3 toPlayer = target.position().add(0.0, 0.9, 0.0).subtract(origin);
-        double flatLen = Math.hypot(toPlayer.x, toPlayer.z);
+        double projY = this.hasAnchor ? (this.anchorY + 1.1) : (this.getY() + 0.9);
+        Vec3 origin = new Vec3(this.getX(), projY, this.getZ());
+        Vec3 toPlayer = target.position().subtract(origin);
         float aimYaw = (float) Math.atan2(toPlayer.z, toPlayer.x);
-        float aimPitchY = flatLen > 1.0E-4 ? (float) Math.max(-0.25, Math.min(0.25, toPlayer.y / flatLen * 0.4)) : 0.0F;
+        float aimPitchY = 0.0F; // Disparo estrictamente horizontal paralelo al piso
 
         switch (stage) {
             case 1 -> {
@@ -577,7 +577,7 @@ public class ReimuBossEntity extends Monster {
                         spawnDanmakuOrb(sl, origin, new Vec3(Math.cos(angB), 0.0, Math.sin(angB)).scale(0.34), 0.8F, 150);
                     }
                     if (this.patternTick % 35 == 0) {
-                        Vec3 bigDir = toPlayer.normalize().scale(0.24);
+                        Vec3 bigDir = new Vec3(toPlayer.x, 0.0, toPlayer.z).normalize().scale(0.24);
                         spawnDanmakuOrb(sl, origin, bigDir, 1.55F, 180);
                     }
                 }
@@ -608,7 +608,8 @@ public class ReimuBossEntity extends Monster {
                 }
                 if (this.patternTick % 22 == 0) {
                     spawnAimedFan(sl, origin, aimYaw, aimPitchY, 7, 0.16F, 0.44F, 0.85F);
-                    spawnDanmakuOrb(sl, origin, toPlayer.normalize().scale(0.21), 2.1F, 200);
+                    Vec3 flatToPlayer = new Vec3(toPlayer.x, 0.0, toPlayer.z).normalize().scale(0.21);
+                    spawnDanmakuOrb(sl, origin, flatToPlayer, 2.1F, 200);
                     sl.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.HOSTILE, 1.0F, 1.8F);
                 }
                 if (this.patternTick % 50 == 1) {
@@ -645,7 +646,8 @@ public class ReimuBossEntity extends Monster {
         orb.setLethalInstakill(true);
         orb.setMaxLifeTicks(lifeTicks);
         orb.setPos(pos.x, pos.y, pos.z);
-        orb.setDeltaMovement(velocity);
+        // Garantizar trayectoria estrictamente horizontal (paralela al piso)
+        orb.setDeltaMovement(new Vec3(velocity.x, 0.0, velocity.z));
         sl.addFreshEntity(orb);
     }
 

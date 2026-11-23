@@ -80,6 +80,7 @@ public record BuySpiritualSkillPayload(String skillId) implements CustomPacketPa
 
             // Unlock skill
             data.unlockSkill(tech.getId());
+            player.inventoryMenu.broadcastChanges();
             ModNetworking.syncToPlayer(player);
 
             // Deliver Iron's Spells Official Scroll
