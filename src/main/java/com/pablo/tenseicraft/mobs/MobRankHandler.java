@@ -30,6 +30,7 @@ public class MobRankHandler {
                 || entity instanceof com.pablo.tenseicraft.entities.MeguNpcEntity
                 || entity instanceof com.pablo.tenseicraft.entities.AliceNpcEntity
                 || entity instanceof com.pablo.tenseicraft.entities.RedfoxEntity
+                || entity instanceof com.pablo.tenseicraft.entities.CinnamorollEntity
                 || entity instanceof com.pablo.tenseicraft.entities.VoidbornEntity
                 || entity instanceof com.pablo.tenseicraft.entities.HornlessVoidbornEntity
                 || entity instanceof com.pablo.tenseicraft.entities.HornedVoidbornEntity

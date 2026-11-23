@@ -137,6 +137,7 @@ public class TenseiCraftMod {
         event.put(ModEntities.MEGU.get(), com.pablo.tenseicraft.entities.MeguNpcEntity.createAttributes().build());
         event.put(ModEntities.REIMU_BOSS.get(), com.pablo.tenseicraft.entities.ReimuBossEntity.createAttributes().build());
         event.put(ModEntities.REIMU_NPC.get(), com.pablo.tenseicraft.entities.ReimuNpcEntity.createAttributes().build());
+        event.put(ModEntities.CINNAMOROLL.get(), com.pablo.tenseicraft.entities.CinnamorollEntity.createAttributes().build());
     }
 
     private void registerSpawnPlacements(RegisterSpawnPlacementsEvent event) {

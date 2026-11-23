@@ -184,6 +184,14 @@ public class ModItems {
                     0xFAD02C, // Amarillo relámpago
                     new Item.Properties()));
 
+    // Huevo generador de Cinnamoroll (Cachorrito blanco de las nubes)
+    public static final DeferredItem<Item> CINNAMOROLL_SPAWN_EGG = ITEMS.register("cinnamoroll_spawn_egg",
+            () -> new DeferredSpawnEggItem(
+                    ModEntities.CINNAMOROLL,
+                    0xFFFFFF, // Blanco nube suave
+                    0x89CFF0, // Celeste pastel Cinnamoroll
+                    new Item.Properties()));
+
     // Huevo generador de Redfox (Aventurera Kitsune errante)
     public static final DeferredItem<Item> REDFOX_SPAWN_EGG = ITEMS.register("redfox_spawn_egg",
             () -> new DeferredSpawnEggItem(

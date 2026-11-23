@@ -213,4 +213,11 @@ public class ModEntities {
                     .eyeHeight(1.62f)
                     .clientTrackingRange(12)
                     .build("reimu_npc"));
+
+    public static final Supplier<EntityType<CinnamorollEntity>> CINNAMOROLL =
+            ENTITIES.register("cinnamoroll", () -> EntityType.Builder.of(CinnamorollEntity::new, MobCategory.CREATURE)
+                    .sized(0.75f, 0.95f)
+                    .eyeHeight(0.72f)
+                    .clientTrackingRange(10)
+                    .build("cinnamoroll"));
 }

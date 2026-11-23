@@ -69,6 +69,8 @@ public class ClientEntityEvents {
                 com.pablo.tenseicraft.client.model.HumoModel::createBodyLayer);
         event.registerLayerDefinition(com.pablo.tenseicraft.client.model.EnergyAttackModel.LAYER_LOCATION,
                 com.pablo.tenseicraft.client.model.EnergyAttackModel::createBodyLayer);
+        event.registerLayerDefinition(com.pablo.tenseicraft.client.model.CinnamorollModel.LAYER_LOCATION,
+                com.pablo.tenseicraft.client.model.CinnamorollModel::createBodyLayer);
     }
 
     @SubscribeEvent
@@ -126,6 +128,8 @@ public class ClientEntityEvents {
                 com.pablo.tenseicraft.client.renderer.ReimuBossRenderer::new);
         event.registerEntityRenderer(ModEntities.REIMU_NPC.get(),
                 com.pablo.tenseicraft.client.renderer.ReimuNpcRenderer::new);
+        event.registerEntityRenderer(ModEntities.CINNAMOROLL.get(),
+                com.pablo.tenseicraft.client.renderer.CinnamorollRenderer::new);
         event.registerEntityRenderer(ModEntities.HOLLOW_ROCK.get(),
                 (ctx) -> new net.minecraft.client.renderer.entity.ThrownItemRenderer<>(ctx, 2.2f, false));
         event.registerEntityRenderer(ModEntities.SPIRITUAL_BEAM.get(),

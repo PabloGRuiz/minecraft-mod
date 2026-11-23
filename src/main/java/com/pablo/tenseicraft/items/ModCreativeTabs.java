@@ -34,6 +34,7 @@ public class ModCreativeTabs {
                         output.accept(ModItems.STARRY_SPAWN_EGG.get());
                         output.accept(ModItems.BRAMBI_SPAWN_EGG.get());
                         output.accept(ModItems.CHUBBY_SPAWN_EGG.get());
+                        output.accept(ModItems.CINNAMOROLL_SPAWN_EGG.get());
                         output.accept(ModItems.REDFOX_SPAWN_EGG.get());
                         output.accept(ModItems.VOIDBORN_SPAWN_EGG.get());
                         output.accept(ModItems.VOIDBORN_EXECUTOR_SPAWN_EGG.get());
