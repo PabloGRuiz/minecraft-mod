@@ -100,7 +100,9 @@ public class ModItems {
             () -> new net.minecraft.world.item.SwordItem(net.minecraft.world.item.Tiers.NETHERITE,
                     new Item.Properties().attributes(
                             net.minecraft.world.item.SwordItem.createAttributes(net.minecraft.world.item.Tiers.NETHERITE, 8, -2.4f)
-                    ).rarity(Rarity.EPIC)));
+                    ).component(net.minecraft.core.component.DataComponents.UNBREAKABLE,
+                            new net.minecraft.world.item.component.Unbreakable(true))
+                    .rarity(Rarity.EPIC)));
 
     // Huevo generador de Cultista (Jefe Hazard)
     public static final DeferredItem<Item> CULTIST_SPAWN_EGG = ITEMS.register("cultist_spawn_egg",

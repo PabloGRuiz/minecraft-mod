@@ -654,6 +654,9 @@ public class RpgStatsCommand {
                         .then(Commands.argument("targets", EntityArgument.players())
                                 .executes(context -> executeResetQuests(context.getSource(), EntityArgument.getPlayers(context, "targets"))))));
 
+        cmd.then(buildSoulSubcommand("soul"));
+        cmd.then(buildSoulSubcommand("alma"));
+
         dispatcher.register(cmd);
     }
 
@@ -1469,6 +1472,7 @@ public class RpgStatsCommand {
                 "§b/tc rank <set|ascend|<rango>> §f- Rango de aventurero (F a A)\n" +
                 "§b/tc reputation <get|add|set> §f- Reputación y moralidad (-100 a +100)\n" +
                 "§b/tc sword <info|affinity|toggle|release|element|style|resonance|give|all> §f- Espada Espiritual\n" +
+                "§b/tc soul <info|set|reroll> §f- Inspeccionar o ajustar Densidad del Alma\n" +
                 "§b/tc world <rift|alice|ambush|trial|irregular|kit> §f- Eventos de mundo y pruebas\n" +
                 "§b/tc quests reset §f- Reiniciar Misiones Principales al Capítulo 1\n" +
                 "\n§7Atajos directos: §8/tc points <cant>, /tc rank <F..A>, /tc affinity <0..100>, /tenseikit, /tc aura"
@@ -1587,5 +1591,147 @@ public class RpgStatsCommand {
             }
         }
         return targets.size();
+    }
+
+    private static final List<String> SOUL_DENSITY_SUGGESTIONS = List.of("minor", "moderate", "high", "irregular");
+
+    private static LiteralArgumentBuilder<CommandSourceStack> buildSoulSubcommand(String literalName) {
+        return Commands.literal(literalName)
+                .requires(source -> source.hasPermission(2))
+                .executes(ctx -> executeSoulInfo(ctx.getSource(), ctx.getSource().getPlayerOrException()))
+                .then(Commands.literal("info")
+                        .executes(ctx -> executeSoulInfo(ctx.getSource(), ctx.getSource().getPlayerOrException()))
+                        .then(Commands.argument("target", EntityArgument.player())
+                                .executes(ctx -> executeSoulInfo(ctx.getSource(), EntityArgument.getPlayer(ctx, "target")))))
+                .then(Commands.literal("set")
+                        .then(Commands.argument("density", StringArgumentType.word())
+                                .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(SOUL_DENSITY_SUGGESTIONS, builder))
+                                .executes(ctx -> executeSoulSet(
+                                        ctx.getSource(),
+                                        Collections.singleton(ctx.getSource().getPlayerOrException()),
+                                        StringArgumentType.getString(ctx, "density")))
+                                .then(Commands.argument("targets", EntityArgument.players())
+                                        .executes(ctx -> executeSoulSet(
+                                                ctx.getSource(),
+                                                EntityArgument.getPlayers(ctx, "targets"),
+                                                StringArgumentType.getString(ctx, "density"))))))
+                .then(Commands.literal("reroll")
+                        .executes(ctx -> executeSoulReroll(ctx.getSource(), Collections.singleton(ctx.getSource().getPlayerOrException())))
+                        .then(Commands.argument("targets", EntityArgument.players())
+                                .executes(ctx -> executeSoulReroll(ctx.getSource(), EntityArgument.getPlayers(ctx, "targets")))));
+    }
+
+    private static int executeSoulInfo(CommandSourceStack source, ServerPlayer target) {
+        PlayerRpgData data = target.getData(ModAttachments.PLAYER_RPG_DATA);
+        if (data == null) return 0;
+
+        com.pablo.tenseicraft.data.SoulDensity density = data.getSoulDensity();
+        String capStr = density.isUncapped() ? "Ilimitado (60+)" : String.valueOf(data.getSoulDensityStatCap());
+        String pathStr = density.isDenseSoul()
+                ? "§fFuria Primordial §7(Espada en liberación constante sin +50% / Resonancia)"
+                : "§dPrimera Liberación + Resonancia Espiritual";
+
+        source.sendSuccess(() -> Component.literal("§5========================================"), false);
+        source.sendSuccess(() -> Component.literal("§d✦ DENSIDAD DEL ALMA: §f" + target.getName().getString()), false);
+        source.sendSuccess(() -> Component.literal("§e• Nivel de Densidad: §b" + density.getDisplayName() + " §7(" + density.getId() + ")"), false);
+        source.sendSuccess(() -> Component.literal("§e• Techo por Stat: §a" + capStr), false);
+        source.sendSuccess(() -> Component.literal("§e• Camino de Despertar: " + pathStr), false);
+        source.sendSuccess(() -> Component.literal(String.format(java.util.Locale.ROOT,
+                "§e• Descontrol: §bCoste Maná x%.2f §8| §cFallo %.0f%% §8| §6Efectividad %.0f%%",
+                data.getSkillManaCostMultiplier(),
+                data.getTechniqueFailChance() * 100.0f,
+                data.getTechniqueEffectivenessMultiplier() * 100.0f)), false);
+        source.sendSuccess(() -> Component.literal("§5========================================"), false);
+        return 1;
+    }
+
+    private static int executeSoulSet(CommandSourceStack source, Collection<ServerPlayer> targets, String densityArg) {
+        com.pablo.tenseicraft.data.SoulDensity density = com.pablo.tenseicraft.data.SoulDensity.fromId(densityArg);
+        if (density == null) {
+            source.sendFailure(Component.literal("§cDensidad no válida. Usa: minor, moderate, high o irregular."));
+            return 0;
+        }
+
+        for (ServerPlayer player : targets) {
+            PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
+            if (data != null) {
+                data.setSoulDensity(density, player.getRandom());
+                if (!density.isDenseSoul() && data.isPrimordialFuryActive()) {
+                    data.setPrimordialFuryActive(false);
+                    data.setCelestialMantleActive(false);
+                    PacketDistributor.sendToPlayersTrackingEntityAndSelf(player,
+                            new com.pablo.tenseicraft.network.SyncEntitySmokePayload(player.getId(), false, 0L));
+                }
+                syncPlayerSwordsToSoulDensity(player, data);
+                ModAttributesHandler.updatePlayerAttributes(player);
+                ModNetworking.syncToPlayer(player);
+                ModNetworking.syncMana(player);
+                String capStr = density.isUncapped() ? "60+ (Sin techo)" : String.valueOf(data.getSoulDensityStatCap());
+                source.sendSuccess(() -> Component.literal("§aDensidad del Alma de §f" + player.getName().getString()
+                        + " §aestablecida en §b" + density.getDisplayName() + " §7(Techo: " + capStr + ")"), true);
+            }
+        }
+        return targets.size();
+    }
+
+    private static int executeSoulReroll(CommandSourceStack source, Collection<ServerPlayer> targets) {
+        for (ServerPlayer player : targets) {
+            PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
+            if (data != null) {
+                com.pablo.tenseicraft.data.SoulDensity rolled = com.pablo.tenseicraft.data.SoulDensity.rollRandom(player.getRandom());
+                data.setSoulDensity(rolled, player.getRandom());
+                if (!rolled.isDenseSoul() && data.isPrimordialFuryActive()) {
+                    data.setPrimordialFuryActive(false);
+                    data.setCelestialMantleActive(false);
+                    PacketDistributor.sendToPlayersTrackingEntityAndSelf(player,
+                            new com.pablo.tenseicraft.network.SyncEntitySmokePayload(player.getId(), false, 0L));
+                }
+                syncPlayerSwordsToSoulDensity(player, data);
+                ModAttributesHandler.updatePlayerAttributes(player);
+                ModNetworking.syncToPlayer(player);
+                ModNetworking.syncMana(player);
+                String capStr = rolled.isUncapped() ? "60+ (Sin techo)" : String.valueOf(data.getSoulDensityStatCap());
+                source.sendSuccess(() -> Component.literal("§aNueva Densidad del Alma para §f" + player.getName().getString()
+                        + "§a: §b" + rolled.getDisplayName() + " §7(Techo: " + capStr + ")"), true);
+            }
+        }
+        return targets.size();
+    }
+
+    private static void syncPlayerSwordsToSoulDensity(ServerPlayer player, PlayerRpgData data) {
+        boolean dense = data.isDenseSoul();
+        boolean changed = false;
+        for (ItemStack stack : player.getInventory().items) {
+            if (stack.getItem() instanceof SpiritualSwordItem && SpiritualSwordItem.isSoulBound(stack)) {
+                SpiritualSwordItem.setDenseSoulBlade(stack, dense);
+                if (dense) {
+                    SpiritualSwordItem.setFirstRelease(stack, true);
+                    SpiritualSwordItem.syncAwakenedSpell(stack, false);
+                } else {
+                    if (!SpiritualSwordItem.isFirstReleaseUnlocked(stack)) {
+                        SpiritualSwordItem.setFirstRelease(stack, false);
+                    }
+                    SpiritualSwordItem.syncAwakenedSpell(stack, true);
+                }
+                changed = true;
+            }
+        }
+        ItemStack off = player.getOffhandItem();
+        if (off.getItem() instanceof SpiritualSwordItem && SpiritualSwordItem.isSoulBound(off)) {
+            SpiritualSwordItem.setDenseSoulBlade(off, dense);
+            if (dense) {
+                SpiritualSwordItem.setFirstRelease(off, true);
+                SpiritualSwordItem.syncAwakenedSpell(off, false);
+            } else {
+                if (!SpiritualSwordItem.isFirstReleaseUnlocked(off)) {
+                    SpiritualSwordItem.setFirstRelease(off, false);
+                }
+                SpiritualSwordItem.syncAwakenedSpell(off, true);
+            }
+            changed = true;
+        }
+        if (changed) {
+            PacketDistributor.sendToPlayer(player, new io.redspace.ironsspellbooks.network.EquipmentChangedPacket());
+        }
     }
 }

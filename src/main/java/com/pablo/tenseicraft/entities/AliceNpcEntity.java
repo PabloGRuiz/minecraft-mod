@@ -380,7 +380,7 @@ public class AliceNpcEntity extends PathfinderMob {
                 this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
                         SoundEvents.VILLAGER_YES, SoundSource.NEUTRAL, 0.9F, 1.2F);
             } else {
-                dialogue = "Recuerda, camarada: nombra tu Espada Espiritual en un yunque, acumula 200 unidades de Maná entrenando tu Espíritu, y empuña el arma para canalizar tu magia. Así forjarás el Vínculo Maestro-Arma oficial y comenzará a autorrepararse. ¡Alcanza el Rango B de aventurero para recibir la misión del Segador Corrupto!";
+                dialogue = "Recuerda, camarada: nombra tu Espada Espiritual en un yunque, acumula 200 unidades de Maná entrenando tu Espíritu, y empuña el arma para canalizar tu magia. Así forjarás el Vínculo Maestro-Arma oficial. ¡Alcanza el Rango B de aventurero para recibir la misión del Segador Corrupto!";
                 this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
                         SoundEvents.VILLAGER_YES, SoundSource.NEUTRAL, 0.9F, 1.2F);
             }

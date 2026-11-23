@@ -42,10 +42,11 @@ public class EnergyAttackRenderer extends EntityRenderer<EnergyAttackEntity> {
         float scale = entity.getOrbScale();
 
         poseStack.pushPose();
-        // Centrar verticalmente en la hitbox de la entidad (altura total = 1.125F * scale -> centro a 0.5625F * scale)
-        poseStack.translate(0.0F, 0.5625F * scale, 0.0F);
-        // Escalar según el scale de la entidad (el modelo base mide 16x16 píxeles = 1x1 bloque)
-        poseStack.scale(scale, scale, scale);
+        // Centrar verticalmente en la hitbox real del disco (0.35F * scale -> mitad = entity.getBbHeight() * 0.5F)
+        poseStack.translate(0.0F, entity.getBbHeight() * 0.5F, 0.0F);
+        // Disco visual ligeramente más amplio y grueso que el núcleo letal para mejor visibilidad y esquive justo estilo Touhou
+        float visualScale = scale * 1.15F;
+        poseStack.scale(visualScale, visualScale * 2.0F, visualScale);
         // Convertir de coordenadas de EntityModel (Y hacia abajo) a espacio del mundo (Y hacia arriba)
         poseStack.scale(-1.0F, -1.0F, 1.0F);
 

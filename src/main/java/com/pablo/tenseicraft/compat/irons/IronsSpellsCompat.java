@@ -35,6 +35,8 @@ public class IronsSpellsCompat {
             ResourceLocation.fromNamespaceAndPath(TenseiCraftMod.MOD_ID, "stat_spirit_mana_regen");
     private static final ResourceLocation MOD_SPIRIT_GENERAL_SPELL_POWER =
             ResourceLocation.fromNamespaceAndPath(TenseiCraftMod.MOD_ID, "stat_spirit_general_spell_power");
+    private static final ResourceLocation MOD_SOUL_DENSITY_IRONS_SPELL_PENALTY =
+            ResourceLocation.fromNamespaceAndPath(TenseiCraftMod.MOD_ID, "soul_density_irons_spell_penalty");
 
     private static Boolean ironsLoaded = null;
 
@@ -135,6 +137,10 @@ public class IronsSpellsCompat {
 
             double bonusSpellPower = (spirit - 5) * 0.015; // +/- 1.5% Poder de Hechizo general en Iron's Spells respecto a base 5
             applyModifier(player, AttributeRegistry.SPELL_POWER, MOD_SPIRIT_GENERAL_SPELL_POWER, bonusSpellPower, AttributeModifier.Operation.ADD_VALUE);
+
+            PlayerRpgData rpgData = player.getData(ModAttachments.PLAYER_RPG_DATA);
+            double soulPenalty = (rpgData != null) ? (rpgData.getTechniqueEffectivenessMultiplier() - 1.0) : 0.0;
+            applyModifier(player, AttributeRegistry.SPELL_POWER, MOD_SOUL_DENSITY_IRONS_SPELL_PENALTY, soulPenalty, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
         } catch (Throwable t) {
             TenseiCraftMod.LOGGER.error("Error aplicando modificadores de espíritu para Iron's Spells: ", t);
         }
@@ -205,6 +211,86 @@ public class IronsSpellsCompat {
                         1.0f,
                         0.6f
                 );
+                return;
+            }
+
+            if (data.isDenseSoul()) {
+                String resId = com.pablo.tenseicraft.magic.spiritual.SpiritualSpells.SPIRITUAL_RESONANCE.get().getSpellId();
+                if (resId.equals(event.getSpellId())) {
+                    event.setCanceled(true);
+                    if (!player.level().isClientSide()) {
+                        player.displayClientMessage(
+                                Component.literal("§cTu alma densa rechaza la Resonancia Espiritual; canaliza tu Furia Primordial en su lugar."),
+                                true
+                        );
+                        player.level().playSound(
+                                null,
+                                player.getX(), player.getY(), player.getZ(),
+                                SoundEvents.FIRE_EXTINGUISH,
+                                SoundSource.PLAYERS,
+                                0.8f,
+                                1.2f
+                        );
+                    }
+                    return;
+                }
+
+                if (!player.level().isClientSide()) {
+                    io.redspace.ironsspellbooks.api.spells.AbstractSpell spell =
+                            io.redspace.ironsspellbooks.api.registry.SpellRegistry.getSpell(event.getSpellId());
+                    int baseCost = (spell != null) ? spell.getManaCost(event.getSpellLevel()) : 0;
+                    float mult = data.getSkillManaCostMultiplier();
+                    float extraCost = baseCost * Math.max(0.0f, mult - 1.0f);
+                    MagicData magicData = MagicData.getPlayerMagicData(player);
+
+                    if (baseCost > 0 && extraCost > 0.0f && magicData != null) {
+                        float requiredTotal = baseCost + extraCost;
+                        if (magicData.getMana() < requiredTotal) {
+                            event.setCanceled(true);
+                            player.displayClientMessage(
+                                    Component.literal("§c¡Tu alma densa exige más energía! Requiere §b"
+                                            + (int) Math.ceil(requiredTotal) + " MP"),
+                                    true
+                            );
+                            player.level().playSound(
+                                    null,
+                                    player.getX(), player.getY(), player.getZ(),
+                                    SoundEvents.FIRE_EXTINGUISH,
+                                    SoundSource.PLAYERS,
+                                    0.8f,
+                                    1.4f
+                            );
+                            return;
+                        }
+                        consumeIronsMana(player, extraCost);
+                    }
+
+                    float failChance = data.getTechniqueFailChance();
+                    if (failChance > 0.0f && player.getRandom().nextFloat() < failChance) {
+                        if (baseCost > 0) {
+                            consumeIronsMana(player, baseCost);
+                        }
+                        event.setCanceled(true);
+                        if (player.level() instanceof net.minecraft.server.level.ServerLevel sl) {
+                            sl.sendParticles(net.minecraft.core.particles.ParticleTypes.LARGE_SMOKE,
+                                    player.getX(), player.getY() + 1.1, player.getZ(), 12, 0.3, 0.4, 0.3, 0.04);
+                            sl.sendParticles(net.minecraft.core.particles.ParticleTypes.ELECTRIC_SPARK,
+                                    player.getX(), player.getY() + 1.1, player.getZ(), 15, 0.35, 0.45, 0.35, 0.12);
+                        }
+                        player.level().playSound(
+                                null,
+                                player.getX(), player.getY(), player.getZ(),
+                                SoundEvents.FIRE_EXTINGUISH,
+                                SoundSource.PLAYERS,
+                                0.9f,
+                                0.85f
+                        );
+                        player.displayClientMessage(
+                                Component.literal("§c⚡ ¡Tu inmensa energía espiritual se descontroló y el hechizo falló!"),
+                                true
+                        );
+                    }
+                }
             }
         }
 

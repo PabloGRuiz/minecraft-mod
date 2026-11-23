@@ -101,6 +101,16 @@ public class SpiritualResonanceSpell extends AbstractSpell {
         if (entity instanceof Player player) {
             PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
             if (data != null) {
+                if (data.isDenseSoul()) {
+                    if (player instanceof ServerPlayer serverPlayer) {
+                        serverPlayer.displayClientMessage(
+                                Component.literal("§cTu alma densa rechaza la Resonancia Espiritual; canaliza tu Furia Primordial en su lugar."),
+                                true
+                        );
+                        serverLevel.playSound(null, player.blockPosition(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.8f, 1.2f);
+                    }
+                    return;
+                }
                 long currentTick = level.getGameTime();
                 int durationTicks = 600; // 30 segundos
                 int cinematicTicks = 70; // 3.5 segundos de cinemática épica

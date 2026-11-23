@@ -45,7 +45,7 @@ public class PrimordialFuryClientEvents {
         }
 
         PlayerRpgData data = mc.player.getData(ModAttachments.PLAYER_RPG_DATA);
-        if (data == null || !data.isPrimordialFuryTrained() || !data.isPrimordialFuryActive()
+        if (data == null || !data.isDenseSoul() || !data.isPrimordialFuryTrained() || !data.isPrimordialFuryActive()
                 || !(mc.player.getMainHandItem().getItem() instanceof SpiritualSwordItem)) {
             wasAttackDown = false;
             leftClickHoldTicks = 0;
@@ -115,31 +115,36 @@ public class PrimordialFuryClientEvents {
             return;
 
         PlayerRpgData data = mc.player.getData(ModAttachments.PLAYER_RPG_DATA);
-        if (data == null || !data.isPrimordialFuryTrained())
+        if (data == null || !data.isDenseSoul() || !data.isPrimordialFuryTrained())
             return;
 
         GuiGraphics g = event.getGuiGraphics();
+        int screenW = g.guiWidth();
         int screenH = g.guiHeight();
 
         float charge = Mth.clamp(data.getPrimordialFuryCharge(), 0.0f, 100.0f);
         boolean active = data.isPrimordialFuryActive();
         boolean ready = !active && charge >= 100.0f;
 
-        int barW = 128;
-        int barH = 8;
-        int x = 12;
-        int y = screenH - 36;
+        int barW = 92;
+        int barH = 6;
+        int x = screenW - barW - 10;
+        int y = screenH - 16;
 
-        // Fondo translúcido estilo HUD RPG
-        g.fill(x - 4, y - 14, x + barW + 4, y + barH + 14, 0xA80D101B);
+        // Fondo translúcido compacto en la esquina inferior derecha
+        g.fill(x - 4, y - 13, x + barW + 4, y + barH + 4, 0xA80D101B);
         int borderColor = active ? 0xFFFFFFFF : (ready ? 0xFFFFD700 : 0xFF6B728E);
-        g.renderOutline(x - 4, y - 14, barW + 8, barH + 28, borderColor);
+        g.renderOutline(x - 4, y - 13, barW + 8, barH + 17, borderColor);
 
-        // Título superior
-        String title = active
-                ? "§f§l✦ FURIA PRIMORDIAL §e[ACTIVA]"
-                : (ready ? "§6§l✦ FURIA PRIMORDIAL §f[LISTA]" : "§f✦ Furia Primordial");
-        g.drawString(mc.font, Component.literal(title), x, y - 11, 0xFFFFFFFF, true);
+        // Encabezado compacto de una línea (sin teclas en pantalla)
+        String leftLabel = active ? "§f§l✦ Furia" : (ready ? "§6§l✦ Furia" : "§f✦ Furia");
+        String rightLabel = (active && leftClickHoldTicks > 2)
+                ? "§eTajo " + Math.min(100, (leftClickHoldTicks * 100) / HOLD_TICKS_FOR_ASCENDING_SLASH) + "%"
+                : (active ? "§e" : (ready ? "§6§l" : "§7")) + Math.round(charge) + "%";
+
+        g.drawString(mc.font, Component.literal(leftLabel), x, y - 10, 0xFFFFFFFF, true);
+        int rightW = mc.font.width(rightLabel);
+        g.drawString(mc.font, Component.literal(rightLabel), x + barW - rightW, y - 10, 0xFFFFFFFF, true);
 
         // Barra vacía
         g.fill(x, y, x + barW, y + barH, 0xFF1A1F30);
@@ -152,21 +157,5 @@ public class PrimordialFuryClientEvents {
             g.fillGradient(x, y, x + fillW, y + barH, colorTop, colorBot);
         }
         g.renderOutline(x, y, barW, barH, 0xFF3B425C);
-
-        // Subtítulo de estado / pista de teclas
-        String sub;
-        if (active) {
-            if (leftClickHoldTicks > 2) {
-                int pct = Math.min(100, (leftClickHoldTicks * 100) / HOLD_TICKS_FOR_ASCENDING_SLASH);
-                sub = "§eCargando Tajo Ascendente... §f" + pct + "%";
-            } else {
-                sub = "§f" + Math.round(charge) + "% §7Correr/Saltar/Mant. §fLMB";
-            }
-        } else if (ready) {
-            sub = "§ePresiona §f§l[Z] §econ tu espada sellada";
-        } else {
-            sub = "§7Carga: §f" + Math.round(charge) + "% §8(Pelea con espada sellada)";
-        }
-        g.drawString(mc.font, Component.literal(sub), x, y + barH + 3, 0xFFCCCCCC, false);
     }
 }

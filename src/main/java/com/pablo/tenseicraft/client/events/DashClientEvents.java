@@ -56,8 +56,9 @@ public class DashClientEvents {
             return;
         }
 
-        if (data.getCurrentMana(player) < PlayerRpgData.DASH_MANA_COST) {
-            player.displayClientMessage(net.minecraft.network.chat.Component.literal("§c¡Maná insuficiente para el Dash! §8(Requiere 20 PM)"), true);
+        float dashManaCost = PlayerRpgData.DASH_MANA_COST * data.getSkillManaCostMultiplier();
+        if (data.getCurrentMana(player) < dashManaCost) {
+            player.displayClientMessage(net.minecraft.network.chat.Component.literal("§c¡Maná insuficiente para el Dash! §8(Requiere " + (int) Math.ceil(dashManaCost) + " PM)"), true);
             player.playSound(SoundEvents.VILLAGER_NO, 0.8f, 1.2f);
             return;
         }

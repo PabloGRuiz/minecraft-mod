@@ -60,7 +60,7 @@ public class PrimordialFuryEvents {
 
     public static void tryActivateFury(ServerPlayer player) {
         PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
-        if (data == null || !data.isPrimordialFuryTrained()) return;
+        if (data == null || !data.isDenseSoul() || !data.isPrimordialFuryTrained()) return;
 
         if (data.isPrimordialFuryActive()) {
             player.displayClientMessage(Component.literal("§f✦ Furia Primordial ya está activa (§e"
@@ -70,7 +70,7 @@ public class PrimordialFuryEvents {
 
         if (data.getPrimordialFuryCharge() < 100.0f) {
             player.displayClientMessage(Component.literal("§cFuria Primordial insuficiente (§e"
-                    + Math.round(data.getPrimordialFuryCharge()) + "%§c/100%). Pelea con tu espada sellada para cargarla."), true);
+                    + Math.round(data.getPrimordialFuryCharge()) + "%§c/100%). Pelea con tu Espada Espiritual para cargarla."), true);
             player.serverLevel().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.7f, 1.3f);
             return;
@@ -79,6 +79,7 @@ public class PrimordialFuryEvents {
         // ¡DESATAR FURIA PRIMORDIAL!
         data.setPrimordialFuryActive(true);
         data.setCelestialMantleActive(true);
+        ModAttributesHandler.updatePlayerAttributes(player);
         ModNetworking.syncToPlayer(player);
         PacketDistributor.sendToPlayersTrackingEntityAndSelf(player, new SyncEntitySmokePayload(player.getId(), true, 0L));
 
@@ -141,6 +142,16 @@ public class PrimordialFuryEvents {
 
         if (!data.isPrimordialFuryActive()) return;
 
+        if (!data.isDenseSoul()) {
+            data.setPrimordialFuryActive(false);
+            data.setCelestialMantleActive(false);
+            AERIAL_DROP_START_TICK.remove(player.getUUID());
+            ModAttributesHandler.updatePlayerAttributes(player);
+            ModNetworking.syncToPlayer(player);
+            PacketDistributor.sendToPlayersTrackingEntityAndSelf(player, new SyncEntitySmokePayload(player.getId(), false, 0L));
+            return;
+        }
+
         // Drenar la barra gradualmente (modo temporal estilo Tachy)
         float nextCharge = data.getPrimordialFuryCharge() - DRAIN_PER_TICK;
         data.setPrimordialFuryCharge(nextCharge);
@@ -165,6 +176,7 @@ public class PrimordialFuryEvents {
             data.setPrimordialFuryActive(false);
             data.setCelestialMantleActive(false);
             AERIAL_DROP_START_TICK.remove(player.getUUID());
+            ModAttributesHandler.updatePlayerAttributes(player);
             ModNetworking.syncToPlayer(player);
             PacketDistributor.sendToPlayersTrackingEntityAndSelf(player, new SyncEntitySmokePayload(player.getId(), false, 0L));
 
@@ -181,7 +193,7 @@ public class PrimordialFuryEvents {
         if (!(player.getMainHandItem().getItem() instanceof SpiritualSwordItem)) return;
 
         PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
-        if (data != null && data.isPrimordialFuryActive()) {
+        if (data != null && data.isDenseSoul() && data.isPrimordialFuryActive()) {
             // +40% de daño en golpes con la espada sellada durante Furia Primordial
             event.setAmount(event.getAmount() * 1.40f);
         }
@@ -194,7 +206,7 @@ public class PrimordialFuryEvents {
         if (!SpiritualSwordItem.isValidCombatTarget(player, event.getEntity())) return;
 
         PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
-        if (data == null || !data.isPrimordialFuryTrained()) return;
+        if (data == null || !data.isDenseSoul() || !data.isPrimordialFuryTrained()) return;
 
         ServerLevel sl = player.serverLevel();
         LivingEntity target = event.getEntity();
@@ -226,7 +238,7 @@ public class PrimordialFuryEvents {
         if (!(player.getMainHandItem().getItem() instanceof SpiritualSwordItem)) return;
 
         PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
-        if (data == null || !data.isPrimordialFuryTrained() || data.isPrimordialFuryActive()) return;
+        if (data == null || !data.isDenseSoul() || !data.isPrimordialFuryTrained() || data.isPrimordialFuryActive()) return;
 
         float before = data.getPrimordialFuryCharge();
         if (before < 100.0f) {
@@ -254,7 +266,7 @@ public class PrimordialFuryEvents {
         if (!(player.getMainHandItem().getItem() instanceof SpiritualSwordItem)) return;
 
         PlayerRpgData data = player.getData(ModAttachments.PLAYER_RPG_DATA);
-        if (data == null || !data.isPrimordialFuryTrained() || !data.isPrimordialFuryActive()) return;
+        if (data == null || !data.isDenseSoul() || !data.isPrimordialFuryTrained() || !data.isPrimordialFuryActive()) return;
 
         long now = player.level().getGameTime();
 

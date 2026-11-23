@@ -291,13 +291,13 @@ public class GensokyoDimensionEvents {
         BlockState air = Blocks.AIR.defaultBlockState();
         BlockState grass = Blocks.GRASS_BLOCK.defaultBlockState();
 
-        for (int x = -14; x <= 14; x++) {
-            for (int z = -7; z <= 28; z++) {
+        for (int x = -20; x <= 20; x++) {
+            for (int z = -18; z <= 34; z++) {
                 BlockPos floorPos = new BlockPos(x, SURFACE_Y - 1, z);
                 if (level.getBlockState(floorPos).isAir() || level.getBlockState(floorPos).is(BlockTags.LOGS)) {
                     level.setBlock(floorPos, grass, flags);
                 }
-                for (int y = SURFACE_Y; y <= SURFACE_Y + 12; y++) {
+                for (int y = SURFACE_Y; y <= SURFACE_Y + 24; y++) {
                     BlockPos pos = new BlockPos(x, y, z);
                     BlockState state = level.getBlockState(pos);
                     if (!state.isAir()) {

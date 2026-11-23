@@ -137,9 +137,13 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
     private int meguReforgeCount = 0;
     private boolean meguAnvilUnlocked = false;
 
-    // Furia Primordial / Destino Celestial (Manto Celestial sin Liberación de Espada)
-    // En fase de prueba: 100% asignado por defecto para testear el flujo completo
-    private boolean primordialDestiny = true;
+    // Densidad del Alma (atributo oculto): techo de stats y desvío a Furia Primordial en almas densas
+    private boolean soulDensityRolled = false;
+    private String soulDensityId = SoulDensity.MINOR.getId();
+    private int soulDensityStatCap = 42;
+
+    // Furia Primordial / Destino Celestial (Manto Celestial en almas de densidad Alta o Irregular)
+    private boolean primordialDestiny = false;
     private boolean swordRejectionTriggered = false;
     private boolean aliceSentToRedfox = false;
     private boolean primordialFuryTabUnlocked = false;
@@ -706,9 +710,57 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         return celestialMantleUntilTick;
     }
 
-    // === Furia Primordial (Destino Celestial / Modo Tachy con Manto Celestial) ===
+    // === Densidad del Alma (Atributo Oculto) & Furia Primordial ===
+    public SoulDensity getSoulDensity() {
+        SoulDensity parsed = SoulDensity.fromId(this.soulDensityId);
+        return (parsed != null) ? parsed : SoulDensity.MINOR;
+    }
+
+    public int getSoulDensityStatCap() {
+        SoulDensity density = getSoulDensity();
+        if (density.isUncapped()) {
+            return Integer.MAX_VALUE;
+        }
+        if (this.soulDensityStatCap < density.getMinCap() || this.soulDensityStatCap > density.getMaxCap()) {
+            return density.getMinCap();
+        }
+        return this.soulDensityStatCap;
+    }
+
+    public boolean isDenseSoul() {
+        return getSoulDensity().isDenseSoul();
+    }
+
+    public float getSkillManaCostMultiplier() {
+        return getSoulDensity().getManaCostMultiplier();
+    }
+
+    public float getTechniqueFailChance() {
+        return getSoulDensity().getFailChance();
+    }
+
+    public float getTechniqueEffectivenessMultiplier() {
+        return getSoulDensity().getEffectivenessMultiplier();
+    }
+
+    public boolean rollSoulDensityIfNeeded(net.minecraft.util.RandomSource random) {
+        if (this.soulDensityRolled) {
+            return false;
+        }
+        setSoulDensity(SoulDensity.rollRandom(random), random);
+        return true;
+    }
+
+    public void setSoulDensity(SoulDensity density, net.minecraft.util.RandomSource random) {
+        SoulDensity target = (density != null) ? density : SoulDensity.MINOR;
+        this.soulDensityRolled = true;
+        this.soulDensityId = target.getId();
+        this.soulDensityStatCap = target.rollStatCap(random);
+        this.primordialDestiny = target.isDenseSoul();
+    }
+
     public boolean hasPrimordialDestiny() {
-        return primordialDestiny;
+        return isDenseSoul();
     }
 
     public void setPrimordialDestiny(boolean primordialDestiny) {
@@ -1000,6 +1052,7 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         this.permanentDexterity = 1 + random.nextInt(10);
         this.permanentSpirit = 1 + random.nextInt(10);
         this.permanentLuck = 1 + random.nextInt(10);
+        rollSoulDensityIfNeeded(random);
         return true;
     }
 
@@ -1237,19 +1290,35 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         if (statType == StatType.SPIRIT && player != null && player.level() != null) {
             total += getActiveSpiritSurgeBonus(player.level().getGameTime());
         }
-        if (player != null && isHoldingReleasedSpiritualSword(player)) {
-            // Power-up masivo de Primera Liberación: +50% a todas las estadísticas RPG (+5 puntos base)
-            total = (int) Math.round(total * 1.5) + 5;
+        if (isDenseSoul()) {
+            // Almas Densas (Alta / Irregular): NO reciben +50% de Primera Liberación ni x2 de Resonancia,
+            // sino x3 al desatar la Furia Primordial.
+            if (this.primordialFuryActive) {
+                total = total * 3;
+            }
+        } else {
+            if (player != null && isHoldingReleasedSpiritualSword(player)) {
+                // Power-up masivo de Primera Liberación: +50% a todas las estadísticas RPG (+5 puntos base)
+                total = (int) Math.round(total * 1.5) + 5;
+            }
+            if (player != null && player.level() != null && isSpiritualResonanceActive(player.level().getGameTime())) {
+                // Resonancia Espiritual (Modo Supremo a 200 de Afinidad): ¡x2 (DUPLICACIÓN) a todas las estadísticas RPG!
+                total = total * 2;
+            }
         }
-        if (player != null && player.level() != null && isSpiritualResonanceActive(player.level().getGameTime())) {
-            // Resonancia Espiritual (Modo Supremo a 200 de Afinidad): ¡x2 (DUPLICACIÓN) a todas las estadísticas RPG!
-            total = total * 2;
+        SoulDensity density = getSoulDensity();
+        if (!density.isUncapped()) {
+            total = Math.min(total, getSoulDensityStatCap());
         }
         return total;
     }
 
     public static boolean isHoldingReleasedSpiritualSword(Player player) {
         if (player == null) return false;
+        PlayerRpgData rpgData = player.getData(ModAttachments.PLAYER_RPG_DATA);
+        if (rpgData != null && rpgData.isDenseSoul()) {
+            return false;
+        }
         ItemStack main = player.getMainHandItem();
         if (main.getItem() instanceof com.pablo.tenseicraft.items.SpiritualSwordItem && com.pablo.tenseicraft.items.SpiritualSwordItem.isFirstRelease(main)) {
             return true;
@@ -1357,6 +1426,16 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         this.hasKilledFirstMonster = false;
         this.warTrialCompleted = false;
         this.physicalSkillPoints = 0;
+        this.soulDensityRolled = false;
+        this.soulDensityId = SoulDensity.MINOR.getId();
+        this.soulDensityStatCap = 42;
+        this.primordialDestiny = false;
+        this.swordRejectionTriggered = false;
+        this.aliceSentToRedfox = false;
+        this.primordialFuryTabUnlocked = false;
+        this.primordialFuryTrained = false;
+        this.primordialFuryCharge = 0.0f;
+        this.primordialFuryActive = false;
     }
 
     public void copyFrom(PlayerRpgData other) {
@@ -1418,6 +1497,9 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         this.skillCooldownTotalTicks.putAll(other.skillCooldownTotalTicks);
         this.meguReforgeCount = other.meguReforgeCount;
         this.meguAnvilUnlocked = other.meguAnvilUnlocked;
+        this.soulDensityRolled = other.soulDensityRolled;
+        this.soulDensityId = other.soulDensityId;
+        this.soulDensityStatCap = other.soulDensityStatCap;
         this.primordialDestiny = other.primordialDestiny;
         this.swordRejectionTriggered = other.swordRejectionTriggered;
         this.aliceSentToRedfox = other.aliceSentToRedfox;
@@ -1494,7 +1576,10 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         tag.putLong("DivineSmokeUntilTick", this.celestialMantleUntilTick);
         tag.putInt("MeguReforgeCount", this.meguReforgeCount);
         tag.putBoolean("MeguAnvilUnlocked", this.meguAnvilUnlocked);
-        tag.putBoolean("PrimordialDestiny", this.primordialDestiny);
+        tag.putBoolean("SoulDensityRolled", this.soulDensityRolled);
+        tag.putString("SoulDensityId", getSoulDensity().getId());
+        tag.putInt("SoulDensityStatCap", getSoulDensityStatCap());
+        tag.putBoolean("PrimordialDestiny", isDenseSoul());
         tag.putBoolean("SwordRejectionTriggered", this.swordRejectionTriggered);
         tag.putBoolean("AliceSentToRedfox", this.aliceSentToRedfox);
         tag.putBoolean("PrimordialFuryTabUnlocked", this.primordialFuryTabUnlocked);
@@ -1683,11 +1768,17 @@ public class PlayerRpgData implements INBTSerializable<CompoundTag> {
         if (tag.contains("MeguAnvilUnlocked", Tag.TAG_BYTE)) {
             this.meguAnvilUnlocked = tag.getBoolean("MeguAnvilUnlocked");
         }
-        if (tag.contains("PrimordialDestiny", Tag.TAG_BYTE)) {
-            this.primordialDestiny = tag.getBoolean("PrimordialDestiny");
-        } else {
-            this.primordialDestiny = true; // 100% en fase de prueba
+        if (tag.contains("SoulDensityRolled", Tag.TAG_BYTE)) {
+            this.soulDensityRolled = tag.getBoolean("SoulDensityRolled");
         }
+        if (tag.contains("SoulDensityId", Tag.TAG_STRING)) {
+            SoulDensity parsed = SoulDensity.fromId(tag.getString("SoulDensityId"));
+            this.soulDensityId = (parsed != null) ? parsed.getId() : SoulDensity.MINOR.getId();
+        }
+        if (tag.contains("SoulDensityStatCap", Tag.TAG_INT)) {
+            this.soulDensityStatCap = tag.getInt("SoulDensityStatCap");
+        }
+        this.primordialDestiny = getSoulDensity().isDenseSoul();
         if (tag.contains("SwordRejectionTriggered", Tag.TAG_BYTE)) {
             this.swordRejectionTriggered = tag.getBoolean("SwordRejectionTriggered");
         }

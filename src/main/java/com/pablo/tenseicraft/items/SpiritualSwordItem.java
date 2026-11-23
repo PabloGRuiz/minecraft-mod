@@ -63,6 +63,7 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
     public static final String TAG_RELEASE = "BladeRelease";
     public static final String TAG_RESONANCE = "BladeResonance";
     public static final String TAG_SOUL_SEED = "SoulSeed";
+    public static final String TAG_DENSE_SOUL_BLADE = "DenseSoulBlade";
 
     public static boolean isValidCombatTarget(Entity attacker, Entity target) {
         if (target == null || !target.isAlive() || target == attacker) return false;
@@ -266,7 +267,7 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
     public SpiritualSwordItem(Properties properties) {
         super(Tiers.IRON, properties
                 .attributes(SwordItem.createAttributes(Tiers.IRON, 3.5F, -2.4F))
-                .durability(750)
+                .component(DataComponents.UNBREAKABLE, new net.minecraft.world.item.component.Unbreakable(true))
                 .rarity(Rarity.RARE));
     }
 
@@ -360,7 +361,7 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
     }
 
     public static int getMaxAffinity(ItemStack stack) {
-        return isFirstReleaseUnlocked(stack) ? 200 : 100;
+        return (isFirstReleaseUnlocked(stack) || isFirstRelease(stack)) ? 200 : 100;
     }
 
     public static int getAffinity(ItemStack stack) {
@@ -404,6 +405,21 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
         syncAwakenedSpell(stack);
     }
 
+    public static boolean isDenseSoulBlade(ItemStack stack) {
+        CompoundTag tag = getReadOnlyTag(stack);
+        return tag != null && tag.getBoolean(TAG_DENSE_SOUL_BLADE);
+    }
+
+    public static void setDenseSoulBlade(ItemStack stack, boolean dense) {
+        if (isDenseSoulBlade(stack) == dense) {
+            return;
+        }
+        CustomData customData = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY);
+        CompoundTag tag = customData.copyTag();
+        tag.putBoolean(TAG_DENSE_SOUL_BLADE, dense);
+        stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+    }
+
     public static void bindSoulVassal(ItemStack stack, Player player) {
         imprintSoulBlade(stack, player);
 
@@ -414,9 +430,17 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
         tag.putString(TAG_OWNER_UUID, player.getUUID().toString());
         stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
 
-        // En estado base recién enlazado se mantiene la textura base spiritual_sword00 (sin CustomModelData)
-        stack.remove(DataComponents.CUSTOM_MODEL_DATA);
-        syncAwakenedSpell(stack);
+        PlayerRpgData pData = player.getData(ModAttachments.PLAYER_RPG_DATA);
+        boolean denseSoul = pData != null && pData.isDenseSoul();
+        setDenseSoulBlade(stack, denseSoul);
+        if (denseSoul) {
+            setFirstRelease(stack, true);
+            syncAwakenedSpell(stack, false);
+        } else {
+            // En estado base recién enlazado se mantiene la textura base spiritual_sword00 (sin CustomModelData)
+            stack.remove(DataComponents.CUSTOM_MODEL_DATA);
+            syncAwakenedSpell(stack, true);
+        }
 
         if (player instanceof net.minecraft.server.level.ServerPlayer sp) {
             com.pablo.tenseicraft.advancements.ModAdvancements.award(sp, com.pablo.tenseicraft.advancements.ModAdvancements.FORGE_SOUL_BOND);
@@ -428,17 +452,25 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
     }
 
     // =========================================================================
-    // SISTEMA IRROMPIBLE + REPARACIÓN CON MANÁ
+    // SISTEMA IRROMPIBLE (ESPADAS VÍRGENES Y VINCULADAS INDESTRUCTIBLES)
     // =========================================================================
     @Override
+    public boolean isDamageable(ItemStack stack) {
+        return false;
+    }
+
+    @Override
+    public boolean isBarVisible(ItemStack stack) {
+        return false;
+    }
+
+    @Override
     public void setDamage(ItemStack stack, int damage) {
-        // Nunca se rompe por completo: se detiene como máximo en maxDamage - 1
-        int clamped = Math.min(damage, stack.getMaxDamage() - 1);
-        super.setDamage(stack, Math.max(0, clamped));
+        super.setDamage(stack, 0);
     }
 
     public static boolean isTemporarilyExhausted(ItemStack stack) {
-        return stack.getDamageValue() >= stack.getMaxDamage() - 1;
+        return false;
     }
 
     // =========================================================================
@@ -849,11 +881,16 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
     }
 
     public static boolean syncAwakenedSpell(ItemStack stack) {
+        return syncAwakenedSpell(stack, !isDenseSoulBlade(stack));
+    }
+
+    public static boolean syncAwakenedSpell(ItemStack stack, boolean allowResonance) {
+        int maxSlots = allowResonance ? 4 : 3;
         // Regla: Las técnicas de la Espada Espiritual SOLO aparecen en la interfaz/rueda del ISB al tener la espada liberada (Primera Liberación activa).
         if (!isFirstRelease(stack)) {
             ISpellContainer cur = ISpellContainer.get(stack);
-            if (cur == null || !cur.isEmpty() || !cur.isSpellWheel() || cur.mustEquip() || cur.getMaxSpellCount() != 4) {
-                ISpellContainer.set(stack, ISpellContainer.create(4, true, false));
+            if (cur == null || !cur.isEmpty() || !cur.isSpellWheel() || cur.mustEquip() || cur.getMaxSpellCount() != maxSlots) {
+                ISpellContainer.set(stack, ISpellContainer.create(maxSlots, true, false));
                 return true;
             }
             return false;
@@ -870,7 +907,7 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
         int targetLevel = getAwakenedSpellLevel(stack);
         boolean hasSecondary = senbon || (affinity >= 150);
         boolean hasTertiary = affinity >= 200;
-        boolean hasQuaternary = affinity >= 200;
+        boolean hasQuaternary = allowResonance && (affinity >= 200);
         io.redspace.ironsspellbooks.api.spells.AbstractSpell secondarySpell = hasSecondary
                 ? (senbon ? com.pablo.tenseicraft.magic.spiritual.SpiritualSpells.SENBONZAKURA_VORTEX.get() : getSecondaryAwakenedSpell(release))
                 : null;
@@ -879,22 +916,28 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
 
         ISpellContainer container = ISpellContainer.get(stack);
         boolean needsUpdate = true;
-        if (container != null && container.getMaxSpellCount() == 4 && container.isSpellWheel() && !container.mustEquip()) {
+        if (container != null && container.getMaxSpellCount() == maxSlots && container.isSpellWheel() && !container.mustEquip()) {
             io.redspace.ironsspellbooks.api.spells.SpellData slot0 = container.getSpellAtIndex(0);
             io.redspace.ironsspellbooks.api.spells.SpellData slot1 = container.getSpellAtIndex(1);
             io.redspace.ironsspellbooks.api.spells.SpellData slot2 = container.getSpellAtIndex(2);
-            io.redspace.ironsspellbooks.api.spells.SpellData slot3 = container.getSpellAtIndex(3);
+            io.redspace.ironsspellbooks.api.spells.SpellData slot3 = (maxSlots >= 4)
+                    ? container.getSpellAtIndex(3)
+                    : io.redspace.ironsspellbooks.api.spells.SpellData.EMPTY;
 
-            boolean slot0Ok = (slot0 != null && slot0.getSpell() == primarySpell && slot0.getLevel() == targetLevel && slot0.isLocked());
+            boolean slot0Ok = (slot0 != null && slot0 != io.redspace.ironsspellbooks.api.spells.SpellData.EMPTY
+                    && slot0.getSpell() == primarySpell && slot0.getLevel() == targetLevel && slot0.isLocked());
             boolean slot1Ok = hasSecondary
-                    ? (slot1 != null && slot1.getSpell() == secondarySpell && slot1.getLevel() == targetLevel && slot1.isLocked())
-                    : (slot1 == null);
+                    ? (slot1 != null && slot1 != io.redspace.ironsspellbooks.api.spells.SpellData.EMPTY
+                            && slot1.getSpell() == secondarySpell && slot1.getLevel() == targetLevel && slot1.isLocked())
+                    : (slot1 == null || slot1 == io.redspace.ironsspellbooks.api.spells.SpellData.EMPTY);
             boolean slot2Ok = hasTertiary
-                    ? (slot2 != null && slot2.getSpell() == tertiarySpell && slot2.getLevel() == targetLevel && slot2.isLocked())
-                    : (slot2 == null);
-            boolean slot3Ok = hasQuaternary
-                    ? (slot3 != null && slot3.getSpell() == quaternarySpell && slot3.getLevel() == targetLevel && slot3.isLocked())
-                    : (slot3 == null);
+                    ? (slot2 != null && slot2 != io.redspace.ironsspellbooks.api.spells.SpellData.EMPTY
+                            && slot2.getSpell() == tertiarySpell && slot2.getLevel() == targetLevel && slot2.isLocked())
+                    : (slot2 == null || slot2 == io.redspace.ironsspellbooks.api.spells.SpellData.EMPTY);
+            boolean slot3Ok = !allowResonance || (hasQuaternary
+                    ? (slot3 != null && slot3 != io.redspace.ironsspellbooks.api.spells.SpellData.EMPTY
+                            && slot3.getSpell() == quaternarySpell && slot3.getLevel() == targetLevel && slot3.isLocked())
+                    : (slot3 == null || slot3 == io.redspace.ironsspellbooks.api.spells.SpellData.EMPTY));
 
             if (slot0Ok && slot1Ok && slot2Ok && slot3Ok) {
                 needsUpdate = false;
@@ -902,12 +945,12 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
         }
 
         if (needsUpdate) {
-            // maxSpells=4, spellWheel=true, mustEquip=false
+            // maxSpells=4 (o 3 en almas densas sin Resonancia Espiritual), spellWheel=true, mustEquip=false
             // Slot 0: Técnica de liberación principal
             // Slot 1: Segunda técnica suprema desbloqueada al alcanzar 150 de Afinidad
             // Slot 2: Tercera técnica universal (Spiritual Beam) desbloqueada al alcanzar 200 de Afinidad
-            // Slot 3: Cuarta técnica universal suprema (Spiritual Resonance) desbloqueada al alcanzar 200 de Afinidad
-            ISpellContainer newContainer = ISpellContainer.create(4, true, false);
+            // Slot 3: Cuarta técnica universal suprema (Spiritual Resonance) solo en almas Menor/Moderada (200 Afinidad)
+            ISpellContainer newContainer = ISpellContainer.create(maxSlots, true, false);
             io.redspace.ironsspellbooks.api.spells.ISpellContainerMutable mutable = newContainer.mutableCopy();
             mutable.addSpellAtIndex(primarySpell, targetLevel, 0, true);
             if (hasSecondary && secondarySpell != null) {
@@ -916,7 +959,7 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
             if (hasTertiary && tertiarySpell != null) {
                 mutable.addSpellAtIndex(tertiarySpell, targetLevel, 2, true);
             }
-            if (hasQuaternary && quaternarySpell != null) {
+            if (hasQuaternary && quaternarySpell != null && maxSlots >= 4) {
                 mutable.addSpellAtIndex(quaternarySpell, targetLevel, 3, true);
             }
             ISpellContainer.set(stack, mutable.toImmutable());
@@ -926,22 +969,37 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
     }
 
     @Override
+    public boolean shouldCauseReequipAnimation(ItemStack oldStack, ItemStack newStack, boolean slotChanged) {
+        return slotChanged || !ItemStack.isSameItem(oldStack, newStack);
+    }
+
+    @Override
     public void inventoryTick(ItemStack stack, Level level, Entity entity, int slotId, boolean isSelected) {
         super.inventoryTick(stack, level, entity, slotId, isSelected);
 
-        // Optimización: Solo sincronizar el contenedor de hechizos si aún no está inicializado o periódicamente cada 20 ticks (1s)
-        if (ISpellContainer.get(stack) == null || entity.tickCount % 20 == 0) {
-            boolean updated = syncAwakenedSpell(stack);
-            if (updated && entity instanceof ServerPlayer serverPlayer) {
+        if (level.isClientSide() || !(level instanceof ServerLevel serverLevel)) return;
+        if (!(entity instanceof LivingEntity living)) return;
+
+        boolean denseSoul = (entity instanceof ServerPlayer p
+                && p.getData(ModAttachments.PLAYER_RPG_DATA) != null
+                && p.getData(ModAttachments.PLAYER_RPG_DATA).isDenseSoul());
+        boolean denseFlagChanged = false;
+        if (entity instanceof ServerPlayer && isSoulBound(stack) && isDenseSoulBlade(stack) != denseSoul) {
+            setDenseSoulBlade(stack, denseSoul);
+            denseFlagChanged = true;
+        }
+        boolean allowResonance = !denseSoul;
+
+        // Optimización: Solo sincronizar el contenedor de hechizos si aún no está inicializado, si cambió DenseSoulBlade o periódicamente cada 20 ticks (1s)
+        if (denseFlagChanged || ISpellContainer.get(stack) == null || entity.tickCount % 20 == 0) {
+            boolean updated = syncAwakenedSpell(stack, allowResonance);
+            if ((updated || denseFlagChanged) && entity instanceof ServerPlayer serverPlayer) {
                 net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(
                         serverPlayer,
                         new io.redspace.ironsspellbooks.network.EquipmentChangedPacket()
                 );
             }
         }
-
-        if (level.isClientSide() || !(level instanceof ServerLevel serverLevel)) return;
-        if (!(entity instanceof LivingEntity living)) return;
 
         // En una misma partida el jugador solo puede tener espadas con sus habilidades únicas de alma (a excepción de Senbonzakura).
         // Optimización: Verificar rasgos de NBT y mutación solo cada 20 ticks (1s) en lugar de cada tick.
@@ -966,7 +1024,7 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
                             setBladeElement(stack, soulElement);
                             setBladeRelease(stack, soulRelease);
                             setBladeResonance(stack, soulResonance);
-                            syncAwakenedSpell(stack);
+                            syncAwakenedSpell(stack, allowResonance);
                             net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(
                                     serverPlayer,
                                     new io.redspace.ironsspellbooks.network.EquipmentChangedPacket()
@@ -977,15 +1035,26 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
             }
         }
 
-        // Autorreparación consumiendo maná de a poco solo si el vínculo de alma fue forjado
-        // Cada 40 ticks (2 segundos), consume 2 MP para reparar 2 de durabilidad
-        if (isSoulBound(stack) && entity.tickCount % 40 == 0 && stack.getDamageValue() > 0 && entity instanceof ServerPlayer serverPlayer) {
-            PlayerRpgData data = serverPlayer.getData(ModAttachments.PLAYER_RPG_DATA);
-            if (data != null && data.getCurrentMana(serverPlayer) >= 2.0f) {
-                if (data.consumeMana(serverPlayer, 2.0f)) {
-                    stack.setDamageValue(Math.max(0, stack.getDamageValue() - 2));
-                    ModNetworking.syncMana(serverPlayer);
+        // Las Espadas Espirituales (vírgenes y vinculadas) son indestructibles: limpiar daño previo sin consumir maná
+        if (stack.getDamageValue() > 0) {
+            stack.setDamageValue(0);
+        }
+
+        if (living instanceof ServerPlayer sp && isSoulBound(stack)) {
+            PlayerRpgData denseCheck = sp.getData(ModAttachments.PLAYER_RPG_DATA);
+            if (denseCheck != null && denseCheck.isDenseSoul()) {
+                if (!isFirstRelease(stack)) {
+                    setFirstRelease(stack, true);
+                    syncAwakenedSpell(stack, false);
+                    com.pablo.tenseicraft.events.ModAttributesHandler.updatePlayerAttributes(sp);
+                    net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(
+                            sp,
+                            new io.redspace.ironsspellbooks.network.EquipmentChangedPacket()
+                    );
                 }
+                // Almas densas (Alta/Irregular): la espada permanece siempre liberada visualmente
+                // y con sus técnicas activas, pero SIN saturación, SIN +50% y SIN drenaje de maná.
+                return;
             }
         }
 
@@ -1438,6 +1507,7 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
             tooltipComponents.add(Component.literal("§d2. Canaliza magia con al menos 200 de Maná.").withStyle(ChatFormatting.LIGHT_PURPLE));
             tooltipComponents.add(Component.literal("§7El vínculo maestro-arma forjará su esencia espiritual.").withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
             tooltipComponents.add(Component.empty());
+            tooltipComponents.add(Component.literal("§7Durabilidad: §bIrrompible §8(Indestructible)").withStyle(ChatFormatting.GRAY));
             tooltipComponents.add(Component.literal("§8(Inmune a encantamientos de mesa y libros)").withStyle(ChatFormatting.DARK_GRAY));
             return;
         }
@@ -1446,19 +1516,22 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
         if (!ownerName.isEmpty()) {
             tooltipComponents.add(Component.literal("§7Portador de Alma: §d" + ownerName));
         }
-        tooltipComponents.add(Component.literal("§7Autorreparación: §aActiva §8(Consume 2 MP de tu reserva)").withStyle(ChatFormatting.GRAY));
+        tooltipComponents.add(Component.literal("§7Durabilidad: §bIrrompible §8(Indestructible)").withStyle(ChatFormatting.GRAY));
 
         int affinity = getAffinity(stack);
         int maxAffinity = getMaxAffinity(stack);
         boolean trialReady = isTrialReady(stack);
         boolean trialPassed = isFirstReleaseUnlocked(stack);
+        boolean denseSoulBlade = isDenseSoulBlade(stack);
 
         int filledBlocks = Math.min(10, Math.max(0, (affinity * 10) / maxAffinity));
         String bar = "§a" + "■".repeat(filledBlocks) + "§8" + "■".repeat(10 - filledBlocks);
         String affTag = (affinity >= 200) ? " §6[Dominada]" : "";
         tooltipComponents.add(Component.literal("§6Afinidad Espiritual: §e" + affinity + "/" + maxAffinity + affTag + " §8[" + bar + "§8]"));
 
-        if (!trialPassed) {
+        if (denseSoulBlade && firstRelease) {
+            tooltipComponents.add(Component.literal("§f✦ Forma Liberada Constante §8(Sin bono +50%, sin Saturación ni drenaje de maná)"));
+        } else if (!trialPassed) {
             if (affinity < 100) {
                 tooltipComponents.add(Component.literal("§7(Requiere 100 de afinidad para despertar sus efectos elementales)").withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
             } else {
@@ -1542,14 +1615,22 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
                         .append(Component.literal(" §7[HUD ISB Ranura 3]")));
                 tooltipComponents.add(Component.literal("   §3↳ §o(Haz continuo destructivo. ¡Desencadena Choques de Poderes!)"));
 
-                io.redspace.ironsspellbooks.api.spells.AbstractSpell quatSpell = com.pablo.tenseicraft.magic.spiritual.SpiritualSpells.SPIRITUAL_RESONANCE.get();
-                tooltipComponents.add(Component.literal("§5✦ Forma Suprema Universal: ")
-                        .append(quatSpell.getDisplayName(null).copy().withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD))
-                        .append(Component.literal(" §7[HUD ISB Ranura 4]")));
-                tooltipComponents.add(Component.literal("   §d↳ §o(Resonancia Espiritual: x2 a todas las stats durante 30s. Aura exaltada)"));
+                if (denseSoulBlade) {
+                    tooltipComponents.add(Component.literal("§f✦ Camino Primordial: §7Resonancia bloqueada §8(Usa Furia Primordial [Z])"));
+                } else {
+                    io.redspace.ironsspellbooks.api.spells.AbstractSpell quatSpell = com.pablo.tenseicraft.magic.spiritual.SpiritualSpells.SPIRITUAL_RESONANCE.get();
+                    tooltipComponents.add(Component.literal("§5✦ Forma Suprema Universal: ")
+                            .append(quatSpell.getDisplayName(null).copy().withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD))
+                            .append(Component.literal(" §7[HUD ISB Ranura 4]")));
+                    tooltipComponents.add(Component.literal("   §d↳ §o(Resonancia Espiritual: x2 a todas las stats durante 30s. Aura exaltada)"));
+                }
             } else {
                 tooltipComponents.add(Component.literal("§8✦ Técnica Definitiva: §7(Bloqueada - Requiere 200 de Afinidad)"));
-                tooltipComponents.add(Component.literal("§8✦ Forma Suprema: §7(Bloqueada - Requiere 200 de Afinidad)"));
+                if (denseSoulBlade) {
+                    tooltipComponents.add(Component.literal("§f✦ Camino Primordial: §7Resonancia bloqueada §8(Usa Furia Primordial [Z])"));
+                } else {
+                    tooltipComponents.add(Component.literal("§8✦ Forma Suprema: §7(Bloqueada - Requiere 200 de Afinidad)"));
+                }
             }
         } else {
             io.redspace.ironsspellbooks.api.spells.AbstractSpell primarySpell = getPrimaryAwakenedSpell(release);
@@ -1573,14 +1654,22 @@ public class SpiritualSwordItem extends SwordItem implements IPresetSpellContain
                         .append(Component.literal(" §7[HUD ISB Ranura 3]")));
                 tooltipComponents.add(Component.literal("   §3↳ §o(Haz continuo destructivo. ¡Desencadena Choques de Poderes!)"));
 
-                io.redspace.ironsspellbooks.api.spells.AbstractSpell quatSpell = com.pablo.tenseicraft.magic.spiritual.SpiritualSpells.SPIRITUAL_RESONANCE.get();
-                tooltipComponents.add(Component.literal("§5✦ Forma Suprema Universal: ")
-                        .append(quatSpell.getDisplayName(null).copy().withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD))
-                        .append(Component.literal(" §7[HUD ISB Ranura 4]")));
-                tooltipComponents.add(Component.literal("   §d↳ §o(Resonancia Espiritual: x2 a todas las stats durante 30s. Aura exaltada)"));
+                if (denseSoulBlade) {
+                    tooltipComponents.add(Component.literal("§f✦ Camino Primordial: §7Resonancia bloqueada §8(Usa Furia Primordial [Z])"));
+                } else {
+                    io.redspace.ironsspellbooks.api.spells.AbstractSpell quatSpell = com.pablo.tenseicraft.magic.spiritual.SpiritualSpells.SPIRITUAL_RESONANCE.get();
+                    tooltipComponents.add(Component.literal("§5✦ Forma Suprema Universal: ")
+                            .append(quatSpell.getDisplayName(null).copy().withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD))
+                            .append(Component.literal(" §7[HUD ISB Ranura 4]")));
+                    tooltipComponents.add(Component.literal("   §d↳ §o(Resonancia Espiritual: x2 a todas las stats durante 30s. Aura exaltada)"));
+                }
             } else {
                 tooltipComponents.add(Component.literal("§8✦ Técnica Definitiva: §7(Bloqueada - Requiere 200 de Afinidad)"));
-                tooltipComponents.add(Component.literal("§8✦ Forma Suprema: §7(Bloqueada - Requiere 200 de Afinidad)"));
+                if (denseSoulBlade) {
+                    tooltipComponents.add(Component.literal("§f✦ Camino Primordial: §7Resonancia bloqueada §8(Usa Furia Primordial [Z])"));
+                } else {
+                    tooltipComponents.add(Component.literal("§8✦ Forma Suprema: §7(Bloqueada - Requiere 200 de Afinidad)"));
+                }
             }
         }
 

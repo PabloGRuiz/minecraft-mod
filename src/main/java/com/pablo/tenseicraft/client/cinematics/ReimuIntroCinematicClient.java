@@ -41,7 +41,7 @@ public class ReimuIntroCinematicClient {
         active = false;
         activeMode = 0;
         targetBoss = null;
-        if (mc.player != null) {
+        if (mc.player != null && !ReimuTouhouCameraClient.hasSavedCamera()) {
             mc.options.setCameraType(savedCameraType);
         }
     }
@@ -95,8 +95,10 @@ public class ReimuIntroCinematicClient {
         int mode = boss.getCinematicMode();
         if (!active || activeMode != mode) {
             if (!active) {
-                savedCameraType = mc.options.getCameraType();
-                if (savedCameraType != CameraType.FIRST_PERSON) {
+                if (!ReimuTouhouCameraClient.hasSavedCamera()) {
+                    savedCameraType = mc.options.getCameraType();
+                }
+                if (mc.options.getCameraType() != CameraType.FIRST_PERSON) {
                     mc.options.setCameraType(CameraType.FIRST_PERSON);
                 }
             }

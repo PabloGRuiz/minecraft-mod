@@ -55,7 +55,7 @@ public final class RpgUiHelper {
         boolean showFuryTab = (activeTab == NavTab.FURY);
         if (!showFuryTab && mc.player != null) {
             com.pablo.tenseicraft.data.PlayerRpgData rpgData = mc.player.getData(com.pablo.tenseicraft.data.ModAttachments.PLAYER_RPG_DATA);
-            if (rpgData != null && rpgData.isPrimordialFuryTabUnlocked()) {
+            if (rpgData != null && rpgData.isDenseSoul() && rpgData.isPrimordialFuryTabUnlocked()) {
                 showFuryTab = true;
             }
         }

@@ -29,6 +29,7 @@ public class ModAttributesHandler {
     private static final ResourceLocation MOD_LUCK = ResourceLocation.fromNamespaceAndPath(TenseiCraftMod.MOD_ID, "stat_luck_bonus");
     private static final ResourceLocation MOD_SKILL_PHYSICAL_DAMAGE = ResourceLocation.fromNamespaceAndPath(TenseiCraftMod.MOD_ID, "stat_skill_physical_damage");
     private static final ResourceLocation MOD_SPIRIT_SPELL_POWER = ResourceLocation.fromNamespaceAndPath(TenseiCraftMod.MOD_ID, "stat_spirit_spell_power");
+    private static final ResourceLocation MOD_SOUL_DENSITY_SPELL_PENALTY = ResourceLocation.fromNamespaceAndPath(TenseiCraftMod.MOD_ID, "soul_density_spell_power_penalty");
 
     // God Blessing Passive Modifiers
     private static final ResourceLocation MOD_GOD_HERMES_SPEED = ResourceLocation.fromNamespaceAndPath(TenseiCraftMod.MOD_ID, "god_hermes_speed");
@@ -124,6 +125,9 @@ public class ModAttributesHandler {
         // 5. SPIRIT (Poder Mágico Espiritual: +2.5% por punto de Espíritu sobre la base)
         applyModifier(player, com.pablo.tenseicraft.magic.spiritual.SpiritualAttributes.SPIRITUAL_SPELL_POWER,
                 MOD_SPIRIT_SPELL_POWER, Math.max(0.0, spiritDelta * 0.025), AttributeModifier.Operation.ADD_VALUE);
+        double soulSpellPenalty = data.getTechniqueEffectivenessMultiplier() - 1.0;
+        applyModifier(player, com.pablo.tenseicraft.magic.spiritual.SpiritualAttributes.SPIRITUAL_SPELL_POWER,
+                MOD_SOUL_DENSITY_SPELL_PENALTY, soulSpellPenalty, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
 
         if (com.pablo.tenseicraft.compat.irons.IronsSpellsCompat.isLoaded()) {
             boolean surge = data.isSpiritSurgeActive(player.level().getGameTime());

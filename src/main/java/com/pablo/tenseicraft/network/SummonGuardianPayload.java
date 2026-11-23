@@ -74,16 +74,17 @@ public record SummonGuardianPayload() implements CustomPacketPayload {
                 return;
             }
 
-            // 3. Verificar Maná (Mínimo 50 MP)
+            // 3. Verificar Maná (Mínimo 50 MP * multiplicador de Densidad del Alma)
+            float summonManaCost = 50.0f * data.getSkillManaCostMultiplier();
             float currentMana = data.getCurrentMana(player);
-            if (currentMana < 50.0f) {
-                player.displayClientMessage(Component.literal("§c¡Maná insuficiente! Se requieren al menos §b50 MP §c(Tienes §e" + Math.round(currentMana) + " MP§c)."), true);
+            if (currentMana < summonManaCost) {
+                player.displayClientMessage(Component.literal("§c¡Maná insuficiente! Se requieren al menos §b" + (int) Math.ceil(summonManaCost) + " MP §c(Tienes §e" + Math.round(currentMana) + " MP§c)."), true);
                 player.playNotifySound(SoundEvents.VILLAGER_NO, SoundSource.PLAYERS, 1.0f, 1.2f);
                 return;
             }
 
-            // Consumir 50 MP
-            data.consumeMana(player, 50.0f);
+            // Consumir MP
+            data.consumeMana(player, summonManaCost);
             ModNetworking.syncMana(player);
 
             // 4. Instanciar la criatura elegida

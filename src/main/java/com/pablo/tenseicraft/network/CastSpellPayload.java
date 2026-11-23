@@ -116,10 +116,12 @@ public record CastSpellPayload(String spellId) implements CustomPacketPayload {
             return true;
         }
 
-        float manaCost = customCost > 0 ? customCost : tech.getManaCost();
+        float baseCost = customCost > 0 ? customCost : tech.getManaCost();
+        boolean isBondingCost = Math.abs(customCost - 200.0f) < 0.01f;
+        float manaCost = isBondingCost ? baseCost : (baseCost * data.getSkillManaCostMultiplier());
         if (!data.consumeMana(player, manaCost)) {
             player.displayClientMessage(
-                    Component.literal("§c¡Maná insuficiente! Requiere " + (int)manaCost + " MP (Tienes: " + (int)data.getCurrentMana(player) + "/" + (int)data.getMaxMana(player) + " MP)"),
+                    Component.literal("§c¡Maná insuficiente! Requiere " + (int) Math.ceil(manaCost) + " MP (Tienes: " + (int)data.getCurrentMana(player) + "/" + (int)data.getMaxMana(player) + " MP)"),
                     true
             );
             player.serverLevel().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.8f, 1.4f);
@@ -131,6 +133,29 @@ public record CastSpellPayload(String spellId) implements CustomPacketPayload {
 
     private static boolean consumeManaOrFree(ServerPlayer player, PlayerRpgData data, SpiritualTechnique tech) {
         return consumeManaOrFree(player, data, tech, -1.0f);
+    }
+
+    private static boolean checkSoulControlFailure(ServerPlayer player, PlayerRpgData data, SpiritualTechnique tech) {
+        float failChance = data.getTechniqueFailChance();
+        if (failChance <= 0.0f || player.getRandom().nextFloat() >= failChance) {
+            return false;
+        }
+
+        ServerLevel level = player.serverLevel();
+        level.playSound(null, player.getX(), player.getY(), player.getZ(),
+                SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.9f, 0.85f);
+        level.sendParticles(ParticleTypes.LARGE_SMOKE, player.getX(), player.getY() + 1.1, player.getZ(), 12, 0.3, 0.4, 0.3, 0.04);
+        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, player.getX(), player.getY() + 1.1, player.getZ(), 15, 0.35, 0.45, 0.35, 0.12);
+
+        int halfCd = Math.max(20, data.getTechniqueCooldownTicks(player, tech) / 2);
+        data.setSkillCooldown(tech.getId(), player.level().getGameTime(), halfCd);
+        ModNetworking.syncToPlayer(player);
+
+        player.displayClientMessage(
+                Component.literal("§c⚡ ¡Tu inmensa energía espiritual se descontroló y la técnica falló!"),
+                true
+        );
+        return true;
     }
 
     private static void applyTechniqueCooldown(ServerPlayer player, PlayerRpgData data, SpiritualTechnique tech) {
@@ -159,7 +184,8 @@ public record CastSpellPayload(String spellId) implements CustomPacketPayload {
     private static void triggerIronsSpellEffects(ServerPlayer player, PlayerRpgData data, AbstractSpell spell) {
         if (spell == null) return;
         int spirit = data.getTotalStatPoints(player, StatType.SPIRIT);
-        int spellLevel = Math.max(1, Math.min(10, 1 + (spirit / 15)));
+        int rawLevel = Math.max(1, Math.min(10, 1 + (spirit / 15)));
+        int spellLevel = Math.max(1, Math.min(10, (int) Math.round(rawLevel * data.getTechniqueEffectivenessMultiplier())));
 
         PacketDistributor.sendToPlayersTrackingEntityAndSelf(
                 player,
@@ -177,6 +203,7 @@ public record CastSpellPayload(String spellId) implements CustomPacketPayload {
     // =========================================================================
     private static void executePhysicalBoost(ServerPlayer player, PlayerRpgData data, SpiritualTechnique tech) {
         if (!consumeManaOrFree(player, data, tech)) return;
+        if (checkSoulControlFailure(player, data, tech)) return;
         applyTechniqueCooldown(player, data, tech);
         broadcastIncantation(player, tech.getChant(), tech.getDisplayName(), tech.getColor());
 
@@ -193,6 +220,7 @@ public record CastSpellPayload(String spellId) implements CustomPacketPayload {
     // =========================================================================
     private static void executeLowHealing(ServerPlayer player, PlayerRpgData data, SpiritualTechnique tech) {
         if (!consumeManaOrFree(player, data, tech)) return;
+        if (checkSoulControlFailure(player, data, tech)) return;
         applyTechniqueCooldown(player, data, tech);
         broadcastIncantation(player, tech.getChant(), tech.getDisplayName(), tech.getColor());
 
@@ -209,6 +237,7 @@ public record CastSpellPayload(String spellId) implements CustomPacketPayload {
     // =========================================================================
     private static void executeLowParalize(ServerPlayer player, PlayerRpgData data, SpiritualTechnique tech) {
         if (!consumeManaOrFree(player, data, tech)) return;
+        if (checkSoulControlFailure(player, data, tech)) return;
         applyTechniqueCooldown(player, data, tech);
         broadcastIncantation(player, tech.getChant(), tech.getDisplayName(), tech.getColor());
 
@@ -225,6 +254,7 @@ public record CastSpellPayload(String spellId) implements CustomPacketPayload {
     // =========================================================================
     private static void executeLowPurification(ServerPlayer player, PlayerRpgData data, SpiritualTechnique tech) {
         if (!consumeManaOrFree(player, data, tech)) return;
+        if (checkSoulControlFailure(player, data, tech)) return;
         applyTechniqueCooldown(player, data, tech);
         broadcastIncantation(player, tech.getChant(), tech.getDisplayName(), tech.getColor());
 
@@ -241,6 +271,7 @@ public record CastSpellPayload(String spellId) implements CustomPacketPayload {
     // =========================================================================
     private static void executeElementalBall(ServerPlayer player, PlayerRpgData data, SpiritualTechnique tech) {
         if (!consumeManaOrFree(player, data, tech)) return;
+        if (checkSoulControlFailure(player, data, tech)) return;
         applyTechniqueCooldown(player, data, tech);
 
         String dynamicName = SpiritualTechnique.getDynamicElementalBallName(player);
@@ -275,6 +306,7 @@ public record CastSpellPayload(String spellId) implements CustomPacketPayload {
         }
 
         if (!consumeManaOrFree(player, data, tech, isBondingSword ? 200.0f : -1.0f)) return;
+        if (!isBondingSword && checkSoulControlFailure(player, data, tech)) return;
         applyTechniqueCooldown(player, data, tech);
 
         broadcastIncantation(player, tech.getChant(), tech.getDisplayName(), tech.getColor());
@@ -360,6 +392,7 @@ public record CastSpellPayload(String spellId) implements CustomPacketPayload {
     // =========================================================================
     private static void executeSummonLesserSoul(ServerPlayer player, PlayerRpgData data, SpiritualTechnique tech) {
         if (!consumeManaOrFree(player, data, tech)) return;
+        if (checkSoulControlFailure(player, data, tech)) return;
         applyTechniqueCooldown(player, data, tech);
         broadcastIncantation(player, tech.getChant(), tech.getDisplayName(), tech.getColor());
 
@@ -399,12 +432,13 @@ public record CastSpellPayload(String spellId) implements CustomPacketPayload {
         }
 
         if (!consumeManaOrFree(player, data, tech)) return;
+        if (checkSoulControlFailure(player, data, tech)) return;
         applyTechniqueCooldown(player, data, tech);
 
         broadcastIncantation(player, tech.getChant(), tech.getDisplayName(), tech.getColor());
 
         int spirit = data.getTotalStatPoints(player, StatType.SPIRIT);
-        float healAmount = 14.0f + (spirit * 0.8f);
+        float healAmount = (14.0f + (spirit * 0.8f)) * data.getTechniqueEffectivenessMultiplier();
         target.heal(healAmount);
 
         // Visual beam
@@ -451,6 +485,8 @@ public record CastSpellPayload(String spellId) implements CustomPacketPayload {
     // =========================================================================
     private static void executeConnectRealities(ServerPlayer player, PlayerRpgData data, SpiritualTechnique tech) {
         if (!consumeManaOrFree(player, data, tech)) return;
+        boolean exitingGensokyo = com.pablo.tenseicraft.world.dimension.ModDimensions.isGensokyo(player.level());
+        if (!exitingGensokyo && checkSoulControlFailure(player, data, tech)) return;
         applyTechniqueCooldown(player, data, tech);
         broadcastIncantation(player, tech.getChant(), tech.getDisplayName(), tech.getColor());
 
@@ -499,6 +535,7 @@ public record CastSpellPayload(String spellId) implements CustomPacketPayload {
     // =========================================================================
     private static void executeOppressiveAura(ServerPlayer player, PlayerRpgData data, SpiritualTechnique tech) {
         if (!consumeManaOrFree(player, data, tech)) return;
+        if (checkSoulControlFailure(player, data, tech)) return;
         applyTechniqueCooldown(player, data, tech);
         broadcastIncantation(player, tech.getChant(), tech.getDisplayName(), tech.getColor());
 
@@ -540,6 +577,7 @@ public record CastSpellPayload(String spellId) implements CustomPacketPayload {
     // =========================================================================
     private static void executeHakurei(ServerPlayer player, PlayerRpgData data, SpiritualTechnique tech) {
         if (!consumeManaOrFree(player, data, tech)) return;
+        if (checkSoulControlFailure(player, data, tech)) return;
         applyTechniqueCooldown(player, data, tech);
         broadcastIncantation(player, tech.getChant(), tech.getDisplayName(), tech.getColor());
 

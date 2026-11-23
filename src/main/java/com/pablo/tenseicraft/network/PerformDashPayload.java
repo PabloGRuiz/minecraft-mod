@@ -60,8 +60,9 @@ public record PerformDashPayload(float dirX, float dirY, float dirZ, boolean isA
                 return;
             }
 
-            // Consume Mana (20 MP)
-            if (!data.consumeMana(player, PlayerRpgData.DASH_MANA_COST)) {
+            // Consume Mana (20 MP * Soul Density multiplier)
+            float dashManaCost = PlayerRpgData.DASH_MANA_COST * data.getSkillManaCostMultiplier();
+            if (!data.consumeMana(player, dashManaCost)) {
                 return;
             }
             com.pablo.tenseicraft.network.ModNetworking.syncMana(player);

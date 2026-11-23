@@ -22,6 +22,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
@@ -199,18 +200,35 @@ public class EnergyAttackEntity extends Projectile {
                 }
             }
 
-            // Comprobación de contacto justo (hitbox ligeramente recortada en proyectiles letales para un esquive justo estilo Touhou)
+            // Comprobación cilíndrica justa centrada en el disco visible (evita golpes fantasma por encima/debajo o esquinas del cubo)
             if (this.lethalInstakill) {
-                double pad = -0.10 * getOrbScale();
-                List<LivingEntity> touched = this.level().getEntitiesOfClass(
+                float orbScale = getOrbScale();
+                double discCenterY = this.getY() + this.getBbHeight() * 0.5;
+                double hitRadius = 0.34 * orbScale;
+                double halfHeight = 0.22 * orbScale;
+                AABB broadBox = new AABB(
+                        this.getX() - hitRadius - 0.6, discCenterY - halfHeight - 1.0, this.getZ() - hitRadius - 0.6,
+                        this.getX() + hitRadius + 0.6, discCenterY + halfHeight + 1.0, this.getZ() + hitRadius + 0.6
+                );
+                List<LivingEntity> candidates = this.level().getEntitiesOfClass(
                         LivingEntity.class,
-                        this.getBoundingBox().inflate(pad),
+                        broadBox,
                         this::canHitEntity
                 );
-                if (!touched.isEmpty()) {
-                    onHitEntity(new EntityHitResult(touched.get(0)));
-                    if (this.isRemoved()) {
-                        return;
+                for (LivingEntity target : candidates) {
+                    if (discCenterY + halfHeight < target.getY()
+                            || discCenterY - halfHeight > target.getY() + target.getBbHeight()) {
+                        continue;
+                    }
+                    double targetRadius = (target instanceof Player) ? 0.24 : (target.getBbWidth() * 0.45);
+                    double maxDist = hitRadius + targetRadius;
+                    double dx = target.getX() - this.getX();
+                    double dz = target.getZ() - this.getZ();
+                    if (dx * dx + dz * dz <= maxDist * maxDist) {
+                        onHitEntity(new EntityHitResult(target));
+                        if (this.isRemoved()) {
+                            return;
+                        }
                     }
                 }
             }
@@ -219,7 +237,11 @@ public class EnergyAttackEntity extends Projectile {
         Vec3 velocity = this.getDeltaMovement();
         if (!this.orbiting && velocity.lengthSqr() > 1.0E-6) {
             if (!this.level().isClientSide()) {
-                HitResult hitResult = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity);
+                // Para orbes letales, ProjectileUtil sólo comprueba bloques; el impacto con entidades lo gestiona el disco cilíndrico justo arriba
+                HitResult hitResult = ProjectileUtil.getHitResultOnMoveVector(
+                        this,
+                        this.lethalInstakill ? (e -> false) : this::canHitEntity
+                );
                 if (hitResult.getType() != HitResult.Type.MISS) {
                     this.onHit(hitResult);
                     if (this.isRemoved()) {
@@ -256,23 +278,23 @@ public class EnergyAttackEntity extends Projectile {
 
     private void spawnAmbientParticles() {
         float scale = getOrbScale();
-        double spread = 0.22 * scale;
-        double cy = this.getY() + 0.5625 * scale;
+        double spread = 0.24 * scale;
+        double cy = this.getY() + this.getBbHeight() * 0.5;
 
-        if (this.random.nextFloat() < 0.45F) {
+        if (this.random.nextFloat() < 0.50F) {
             this.level().addParticle(
                     ParticleTypes.ELECTRIC_SPARK,
                     this.getX() + (this.random.nextDouble() - 0.5) * spread,
-                    cy + (this.random.nextDouble() - 0.5) * spread,
+                    cy + (this.random.nextDouble() - 0.5) * 0.08,
                     this.getZ() + (this.random.nextDouble() - 0.5) * spread,
                     0.0, 0.01, 0.0
             );
         }
-        if (this.random.nextFloat() < 0.20F) {
+        if (this.random.nextFloat() < (this.lethalInstakill ? 0.35F : 0.20F)) {
             this.level().addParticle(
                     ParticleTypes.END_ROD,
                     this.getX() + (this.random.nextDouble() - 0.5) * spread * 0.6,
-                    cy + (this.random.nextDouble() - 0.5) * spread * 0.6,
+                    cy + (this.random.nextDouble() - 0.5) * 0.06,
                     this.getZ() + (this.random.nextDouble() - 0.5) * spread * 0.6,
                     0.0, 0.005, 0.0
             );
@@ -426,7 +448,7 @@ public class EnergyAttackEntity extends Projectile {
     public void dissipate(boolean withSound) {
         if (this.level() instanceof ServerLevel sl) {
             float scale = getOrbScale();
-            double cy = this.getY() + 0.5625 * scale;
+            double cy = this.getY() + this.getBbHeight() * 0.5;
             sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, this.getX(), cy, this.getZ(),
                     Math.max(8, (int) (14 * scale)), 0.15 * scale, 0.15 * scale, 0.15 * scale, 0.08);
             sl.sendParticles(ParticleTypes.END_ROD, this.getX(), cy, this.getZ(),

@@ -405,7 +405,7 @@ public class CombatEvents {
                             SpiritualSwordItem.imprintSoulBlade(heldSword, player);
                         }
 
-                        if (SpiritualSwordItem.isFirstRelease(heldSword)) {
+                        if (SpiritualSwordItem.isFirstRelease(heldSword) && !data.isDenseSoul()) {
                             // Power-up de Primera Liberación: +50% al daño cuerpo a cuerpo general
                             event.setNewDamage(event.getNewDamage() * 1.50f);
                         }

@@ -45,6 +45,7 @@ public class LevelCheckEvents {
             boolean rolledFirstTime = false;
             if (data != null) {
                 rolledFirstTime = data.rollBirthStatsIfNeeded(serverPlayer.getRandom());
+                data.rollSoulDensityIfNeeded(serverPlayer.getRandom());
             }
 
             ModAttributesHandler.updatePlayerAttributes(serverPlayer);

@@ -378,7 +378,7 @@ public class ReimuBossEntity extends Monster {
             return;
         }
 
-        if (target != null && !target.isCreative() && !target.isSpectator()) {
+        if (target != null && !target.isSpectator()) {
             this.patternTick++;
             tickDanmakuPatterns(serverLevel, target, currentStage);
         } else {

@@ -195,7 +195,7 @@ public class ModEntities {
 
     public static final Supplier<EntityType<EnergyAttackEntity>> ENERGY_ATTACK =
             ENTITIES.register("energy_attack", () -> EntityType.Builder.<EnergyAttackEntity>of(EnergyAttackEntity::new, MobCategory.MISC)
-                    .sized(1.125f, 1.125f)
+                    .sized(0.85f, 0.35f)
                     .clientTrackingRange(16)
                     .updateInterval(1)
                     .build("energy_attack"));

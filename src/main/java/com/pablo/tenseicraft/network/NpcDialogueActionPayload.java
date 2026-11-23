@@ -764,16 +764,19 @@ public record NpcDialogueActionPayload(int entityId, int actionType) implements 
                     rpgData.setReceivedSpiritualSword(true);
                     ModNetworking.syncToPlayer(player);
 
+                    boolean claimedFromQuest = false;
                     com.pablo.tenseicraft.quests.PlayerQuestData questData = player.getData(ModAttachments.PLAYER_QUEST_DATA);
                     if (questData != null) {
-                        questData.claimReward("alice_spiritual_trial", player);
+                        claimedFromQuest = questData.claimReward("alice_spiritual_trial", player);
                         ModNetworking.syncQuestsToPlayer(player);
                     }
 
-                    // Deliver Base Spiritual Sword and Spiritual Spellbook
-                    ItemStack sword = new ItemStack(com.pablo.tenseicraft.items.ModItems.SPIRITUAL_SWORD.get());
-                    if (!player.addItem(sword)) {
-                        player.drop(sword, false);
+                    // Entregar Espada Espiritual solo si no vino ya de la recompensa de la misión, más el Grimorio Espiritual
+                    if (!claimedFromQuest) {
+                        ItemStack sword = new ItemStack(com.pablo.tenseicraft.items.ModItems.SPIRITUAL_SWORD.get());
+                        if (!player.addItem(sword)) {
+                            player.drop(sword, false);
+                        }
                     }
                     ItemStack spellbook = new ItemStack(com.pablo.tenseicraft.items.ModItems.SPIRITUAL_SPELLBOOK.get());
                     if (!player.addItem(spellbook)) {
